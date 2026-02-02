@@ -2,10 +2,10 @@
 
 ## Status: ACTIVE
 
-## Action Count: 24
+## Action Count: 25
 
 ## Current Phase
-M2: Memory & Control Flow - Issue #8 (Load/Store) ready for Bob.
+M2: Memory & Control Flow - PR #12 (Load/Store) ready for review.
 
 ## Milestones
 - [x] M1: Foundation (MVP) - Basic execution ✅ (2026-02-02)
@@ -16,7 +16,7 @@ M2: Memory & Control Flow - Issue #8 (Load/Store) ready for Bob.
 - [ ] M6: Validation & Benchmarks
 
 ## Last Action
-Spawning Bob for issue #8 (Load/Store instructions).
+Bob created PR #12 implementing Load/Store instructions.
 
 ## Notes
 - Project started: 2026-02-02
