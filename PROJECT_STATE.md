@@ -2,10 +2,10 @@
 
 ## Status: ACTIVE
 
-## Action Count: 23
+## Action Count: 24
 
 ## Current Phase
-M2: Memory & Control Flow - Issues created. Ready for implementation.
+M2: Memory & Control Flow - Issue #8 (Load/Store) ready for Bob.
 
 ## Milestones
 - [x] M1: Foundation (MVP) - Basic execution ✅ (2026-02-02)
@@ -16,7 +16,7 @@ M2: Memory & Control Flow - Issues created. Ready for implementation.
 - [ ] M6: Validation & Benchmarks
 
 ## Last Action
-[Alice] M1 verified complete. Created M2 issues for Memory & Control Flow.
+Spawning Bob for issue #8 (Load/Store instructions).
 
 ## Notes
 - Project started: 2026-02-02
