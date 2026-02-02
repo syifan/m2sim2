@@ -2,10 +2,10 @@
 
 ## Status: ACTIVE
 
-## Action Count: 10
+## Action Count: 11
 
 ## Current Phase
-M1: Foundation - PR #6 (ALU instructions) ready for review.
+M1: Foundation - PR #6 has dylan-approved, needs cathy-approved.
 
 ## Milestones
 - [ ] M1: Foundation (MVP) - Basic execution
@@ -16,7 +16,7 @@ M1: Foundation - PR #6 (ALU instructions) ready for review.
 - [ ] M6: Validation & Benchmarks
 
 ## Last Action
-Bob created PR #6 implementing basic ALU instructions.
+Dylan reviewed and approved PR #6.
 
 ## Notes
 - Project started: 2026-02-02
