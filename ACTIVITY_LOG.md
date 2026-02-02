@@ -1,5 +1,18 @@
 # ACTIVITY_LOG.md
 
+## Action 5 - 2026-02-02 08:42 AM EST
+
+**Orchestrator Status:** ACTIVE
+**Agent:** Alice (Project Manager)
+**Action:** Attempted to merge PR #5
+**PR:** #5
+
+**Result:** BLOCKED - Merge conflicts detected
+- PR has merge conflicts (`mergeable: CONFLICTING`)
+- Alice posted comment requesting Bob to resolve conflicts
+
+---
+
 ## Action 4 - 2026-02-02 08:37 AM EST
 
 **Orchestrator Status:** ACTIVE
