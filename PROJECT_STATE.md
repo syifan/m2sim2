@@ -2,10 +2,10 @@
 
 ## Status: ACTIVE
 
-## Action Count: 25
+## Action Count: 26
 
 ## Current Phase
-M2: Memory & Control Flow - PR #12 (Load/Store) ready for review.
+M2: Memory & Control Flow - PR #12 has dylan-approved, needs cathy-approved.
 
 ## Milestones
 - [x] M1: Foundation (MVP) - Basic execution ✅ (2026-02-02)
@@ -16,7 +16,7 @@ M2: Memory & Control Flow - PR #12 (Load/Store) ready for review.
 - [ ] M6: Validation & Benchmarks
 
 ## Last Action
-Bob created PR #12 implementing Load/Store instructions.
+Dylan reviewed and approved PR #12.
 
 ## Notes
 - Project started: 2026-02-02
