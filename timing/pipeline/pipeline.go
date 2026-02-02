@@ -25,16 +25,11 @@ func (s Statistics) CPI() float64 {
 	return float64(s.Cycles) / float64(s.Instructions)
 }
 
-// SyscallHandler is an interface for handling system calls.
-type SyscallHandler interface {
-	Handle() emu.SyscallResult
-}
-
 // PipelineOption is a functional option for configuring the Pipeline.
 type PipelineOption func(*Pipeline)
 
 // WithSyscallHandler sets a custom syscall handler.
-func WithSyscallHandler(handler SyscallHandler) PipelineOption {
+func WithSyscallHandler(handler emu.SyscallHandler) PipelineOption {
 	return func(p *Pipeline) {
 		p.syscallHandler = handler
 	}
@@ -64,7 +59,7 @@ type Pipeline struct {
 	memory  *emu.Memory
 
 	// Syscall handling
-	syscallHandler SyscallHandler
+	syscallHandler emu.SyscallHandler
 
 	// Program counter
 	pc uint64
@@ -112,6 +107,7 @@ func (p *Pipeline) PC() uint64 {
 // SetPC sets the program counter.
 func (p *Pipeline) SetPC(pc uint64) {
 	p.pc = pc
+	p.regFile.PC = pc
 }
 
 // GetIFID returns the IF/ID pipeline register.
@@ -170,6 +166,11 @@ func (p *Pipeline) RunCycles(cycles uint64) bool {
 // Tick executes one pipeline cycle.
 // All stages execute in parallel, with results latched at the end.
 func (p *Pipeline) Tick() {
+	// Don't execute if halted
+	if p.halted {
+		return
+	}
+
 	p.stats.Cycles++
 
 	// Detect hazards before executing stages
@@ -192,8 +193,9 @@ func (p *Pipeline) Tick() {
 		}
 	}
 
-	// Compute stall signals
-	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard, false)
+	// Track if branch is taken this cycle
+	branchTaken := false
+	var branchTarget uint64
 
 	// Execute stages in reverse order (WB -> MEM -> EX -> ID -> IF)
 	// This allows us to compute new values before latching
@@ -208,6 +210,17 @@ func (p *Pipeline) Tick() {
 	// Stage 4: Memory
 	var nextMEMWB MEMWBRegister
 	if p.exmem.Valid {
+		// Check for syscall in memory stage
+		if p.exmem.Inst != nil && p.exmem.Inst.Op == insts.OpSVC {
+			if p.syscallHandler != nil {
+				result := p.syscallHandler.Handle()
+				if result.Exited {
+					p.halted = true
+					p.exitCode = result.ExitCode
+				}
+			}
+		}
+
 		memResult := p.memoryStage.Access(&p.exmem)
 		nextMEMWB = MEMWBRegister{
 			Valid:     true,
@@ -223,7 +236,7 @@ func (p *Pipeline) Tick() {
 
 	// Stage 3: Execute
 	var nextEXMEM EXMEMRegister
-	if p.idex.Valid && !stallResult.InsertBubbleEX {
+	if p.idex.Valid {
 		// Apply forwarding to get correct operand values
 		rnValue := p.hazardUnit.GetForwardedValue(
 			forwarding.ForwardRn, p.idex.RnValue, &p.exmem, &newMEMWB)
@@ -231,6 +244,12 @@ func (p *Pipeline) Tick() {
 			forwarding.ForwardRm, p.idex.RmValue, &p.exmem, &newMEMWB)
 
 		execResult := p.executeStage.Execute(&p.idex, rnValue, rmValue)
+
+		// Check for branch taken
+		if execResult.BranchTaken {
+			branchTaken = true
+			branchTarget = execResult.BranchTarget
+		}
 
 		// For store instructions, we need the value from Rd (which is actually Rt)
 		storeValue := execResult.StoreValue
@@ -253,9 +272,12 @@ func (p *Pipeline) Tick() {
 		}
 	}
 
+	// Compute stall signals
+	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard, branchTaken)
+
 	// Stage 2: Decode
 	var nextIDEX IDEXRegister
-	if p.ifid.Valid && !stallResult.StallID {
+	if p.ifid.Valid && !stallResult.StallID && !stallResult.FlushID {
 		decResult := p.decodeStage.Decode(p.ifid.InstructionWord, p.ifid.PC)
 		nextIDEX = IDEXRegister{
 			Valid:    true,
@@ -272,14 +294,14 @@ func (p *Pipeline) Tick() {
 			MemToReg: decResult.MemToReg,
 			IsBranch: decResult.IsBranch,
 		}
-	} else if stallResult.StallID {
+	} else if stallResult.StallID && !stallResult.FlushID {
 		// Keep the current ID/EX contents during stall
 		nextIDEX = p.idex
 	}
 
 	// Stage 1: Fetch
 	var nextIFID IFIDRegister
-	if !stallResult.StallIF {
+	if !stallResult.StallIF && !stallResult.FlushIF {
 		word, ok := p.fetchStage.Fetch(p.pc)
 		if ok {
 			nextIFID = IFIDRegister{
@@ -289,10 +311,19 @@ func (p *Pipeline) Tick() {
 			}
 			p.pc += 4 // Advance PC
 		}
-	} else {
+	} else if stallResult.StallIF && !stallResult.FlushIF {
 		// Keep the current IF/ID contents during stall
 		nextIFID = p.ifid
 		p.stats.Stalls++
+	}
+
+	// Handle branch: update PC and flush pipeline
+	if branchTaken {
+		p.pc = branchTarget
+		// Flush IF and ID stages (clear their pipeline registers)
+		nextIFID.Clear()
+		nextIDEX.Clear()
+		p.stats.Flushes++
 	}
 
 	// Latch all pipeline registers at the end of the cycle

@@ -174,7 +174,7 @@ var _ = Describe("Pipeline Stages", func() {
 
 			It("should decode conditional branch", func() {
 				// B.EQ .+20
-				word := uint32(0x54000050) // B.EQ #20
+				word := uint32(0x540000A0) // B.EQ #20
 
 				result := decodeStage.Decode(word, 0x1000)
 
