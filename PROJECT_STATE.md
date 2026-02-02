@@ -2,10 +2,10 @@
 
 ## Status: ACTIVE
 
-## Action Count: 13
+## Action Count: 14
 
 ## Current Phase
-M1: Foundation - PR #6 merged, issue #4 closed. Basic ALU instructions complete.
+M1: Foundation - Need to label/review remaining issues.
 
 ## Milestones
 - [ ] M1: Foundation (MVP) - Basic execution
@@ -16,7 +16,7 @@ M1: Foundation - PR #6 merged, issue #4 closed. Basic ALU instructions complete.
 - [ ] M6: Validation & Benchmarks
 
 ## Last Action
-Alice merged PR #6 and closed issue #4.
+PR #6 merged, checking remaining issues #2 and #3.
 
 ## Notes
 - Project started: 2026-02-02
