@@ -2,10 +2,10 @@
 
 ## Status: ACTIVE
 
-## Action Count: 8
+## Action Count: 9
 
 ## Current Phase
-M1: Foundation - PR #5 merged, issue #1 closed. Ready for next issue.
+M1: Foundation - Issue #4 (ALU instructions) ready for Bob.
 
 ## Milestones
 - [ ] M1: Foundation (MVP) - Basic execution
@@ -16,7 +16,7 @@ M1: Foundation - PR #5 merged, issue #1 closed. Ready for next issue.
 - [ ] M6: Validation & Benchmarks
 
 ## Last Action
-Alice merged PR #5 and closed issue #1.
+PR #5 merged, issue #1 closed. Spawning Bob for issue #4.
 
 ## Notes
 - Project started: 2026-02-02
