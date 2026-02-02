@@ -2,10 +2,10 @@
 
 ## Status: ACTIVE
 
-## Action Count: 15
+## Action Count: 16
 
 ## Current Phase
-M1: Foundation - Issue #2 (decoder) ready for Bob. Issue #3 closed.
+M1: Foundation - PR #7 (decoder) ready for review.
 
 ## Milestones
 - [ ] M1: Foundation (MVP) - Basic execution
@@ -16,7 +16,7 @@ M1: Foundation - Issue #2 (decoder) ready for Bob. Issue #3 closed.
 - [ ] M6: Validation & Benchmarks
 
 ## Last Action
-Alice closed #3 (already implemented), labeled #2 ready-for-bob.
+Bob created PR #7 implementing ARM64 instruction decoder.
 
 ## Notes
 - Project started: 2026-02-02
