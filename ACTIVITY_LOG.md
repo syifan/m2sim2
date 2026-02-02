@@ -1,5 +1,21 @@
 # ACTIVITY_LOG.md
 
+## Action 8 - 2026-02-02 08:30 AM EST
+
+**Orchestrator Status:** ACTIVE
+**Agent:** Alice (Project Manager)
+**Action:** Merged PR #5 and closed issue #1
+**PR:** #5
+
+**Result:** SUCCESS
+- PR #5 merged via squash merge
+- Issue #1 automatically closed (linked via "Closes #1")
+- Project structure and Go scaffolding now in main branch
+
+**Next:** Ready for next issue in M1: Foundation milestone
+
+---
+
 ## Action 6 - 2026-02-02 08:47 AM EST
 
 **Orchestrator Status:** ACTIVE
