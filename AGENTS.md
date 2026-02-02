@@ -152,6 +152,18 @@ Frank writes docs throughout
 Grace reviews every 30 actions
 ```
 
+## Activity Logging (Grace Rule #1)
+
+**Every orchestrator action MUST be logged to ACTIVITY_LOG.md** with:
+- Action number
+- Timestamp
+- Agent name
+- Action taken
+- Result (SUCCESS/BLOCKED/FAILED)
+- Relevant PR/Issue numbers
+
+This ensures audit trail continuity for process reviews. Missing entries break historical analysis.
+
 ## Completion Criteria
 
 Project is complete when:
