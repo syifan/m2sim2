@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/sarchlab/m2sim/emu"
+	"github.com/sarchlab/m2sim/timing/latency"
 	"github.com/sarchlab/m2sim/timing/pipeline"
 )
 
@@ -449,6 +450,126 @@ var _ = Describe("Pipeline Integration", func() {
 
 			Expect(regFile.ReadReg(0)).To(Equal(uint64(110)))
 			Expect(memory.Read64(0x2000)).To(Equal(uint64(100)))
+		})
+	})
+
+	Describe("Latency Table Integration", func() {
+		BeforeEach(func() {
+			regFile = &emu.RegFile{}
+			memory = emu.NewMemory()
+			regFile.WriteReg(8, 93) // Set exit syscall number
+		})
+
+		It("should support WithLatencyTable option", func() {
+			table := latency.NewTable()
+			pipe = pipeline.NewPipeline(regFile, memory, pipeline.WithLatencyTable(table))
+			Expect(pipe.LatencyTable()).To(Equal(table))
+		})
+
+		It("should allow setting latency table after creation", func() {
+			pipe = pipeline.NewPipeline(regFile, memory)
+			Expect(pipe.LatencyTable()).To(BeNil())
+
+			table := latency.NewTable()
+			pipe.SetLatencyTable(table)
+			Expect(pipe.LatencyTable()).To(Equal(table))
+		})
+
+		It("should track execution stalls with multi-cycle config", func() {
+			// Configure with 3-cycle ALU latency
+			config := &latency.TimingConfig{
+				ALULatency:              3,
+				BranchLatency:           1,
+				BranchMispredictPenalty: 12,
+				LoadLatency:             4,
+				StoreLatency:            1,
+				MultiplyLatency:         3,
+				DivideLatencyMin:        10,
+				DivideLatencyMax:        15,
+				SyscallLatency:          1,
+				L1HitLatency:            4,
+				L2HitLatency:            12,
+				L3HitLatency:            30,
+				MemoryLatency:           150,
+			}
+			table := latency.NewTableWithConfig(config)
+			pipe = pipeline.NewPipeline(regFile, memory, pipeline.WithLatencyTable(table))
+
+			// Single ADD instruction
+			memory.Write32(0x1000, 0x91002820) // ADD X0, X1, #10
+			memory.Write32(0x1004, 0xD4000001) // SVC #0
+
+			regFile.WriteReg(1, 100)
+			pipe.SetPC(0x1000)
+			pipe.Run()
+
+			// Verify result is still correct
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(110)))
+
+			// With 3-cycle ALU, we should have execution stalls
+			stats := pipe.Stats()
+			Expect(stats.ExecStalls).To(BeNumerically(">", 0))
+		})
+
+		It("should produce correct results with latency enabled", func() {
+			table := latency.NewTable() // Default config
+			pipe = pipeline.NewPipeline(regFile, memory, pipeline.WithLatencyTable(table))
+
+			// Three consecutive ADDs
+			regFile.WriteReg(1, 1)
+			memory.Write32(0x1000, 0x8B010000) // ADD X0, X0, X1 (X0 = 0 + 1 = 1)
+			memory.Write32(0x1004, 0x8B010000) // ADD X0, X0, X1 (X0 = 1 + 1 = 2)
+			memory.Write32(0x1008, 0x8B010000) // ADD X0, X0, X1 (X0 = 2 + 1 = 3)
+			memory.Write32(0x100C, 0xD4000001) // SVC #0
+
+			pipe.SetPC(0x1000)
+			pipe.Run()
+
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(3)))
+		})
+
+		It("should have more cycles with load latency", func() {
+			// First run without latency
+			pipe = pipeline.NewPipeline(regFile, memory)
+			memory.Write32(0x1000, 0xF9400020) // LDR X0, [X1]
+			memory.Write32(0x1004, 0xD4000001) // SVC #0
+			memory.Write64(0x2000, 0xCAFEBABE)
+			regFile.WriteReg(1, 0x2000)
+
+			pipe.SetPC(0x1000)
+			pipe.Run()
+			cyclesWithoutLatency := pipe.Stats().Cycles
+
+			// Reset for second run with latency
+			regFile = &emu.RegFile{}
+			regFile.WriteReg(8, 93)
+			regFile.WriteReg(1, 0x2000)
+
+			config := &latency.TimingConfig{
+				ALULatency:              1,
+				BranchLatency:           1,
+				BranchMispredictPenalty: 12,
+				LoadLatency:             4, // 4-cycle load
+				StoreLatency:            1,
+				MultiplyLatency:         3,
+				DivideLatencyMin:        10,
+				DivideLatencyMax:        15,
+				SyscallLatency:          1,
+				L1HitLatency:            4,
+				L2HitLatency:            12,
+				L3HitLatency:            30,
+				MemoryLatency:           150,
+			}
+			table := latency.NewTableWithConfig(config)
+			pipe = pipeline.NewPipeline(regFile, memory, pipeline.WithLatencyTable(table))
+
+			pipe.SetPC(0x1000)
+			pipe.Run()
+			cyclesWithLatency := pipe.Stats().Cycles
+
+			// With 4-cycle load, should take more cycles
+			Expect(cyclesWithLatency).To(BeNumerically(">", cyclesWithoutLatency))
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(0xCAFEBABE)))
 		})
 	})
 })

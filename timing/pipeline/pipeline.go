@@ -3,6 +3,7 @@ package pipeline
 import (
 	"github.com/sarchlab/m2sim/emu"
 	"github.com/sarchlab/m2sim/insts"
+	"github.com/sarchlab/m2sim/timing/latency"
 )
 
 // Statistics holds pipeline performance statistics.
@@ -15,6 +16,10 @@ type Statistics struct {
 	Stalls uint64
 	// Flushes is the number of pipeline flushes (due to branches).
 	Flushes uint64
+	// ExecStalls is the number of stalls due to multi-cycle execution.
+	ExecStalls uint64
+	// MemStalls is the number of stalls due to memory latency.
+	MemStalls uint64
 }
 
 // CPI returns the cycles per instruction.
@@ -32,6 +37,14 @@ type PipelineOption func(*Pipeline)
 func WithSyscallHandler(handler emu.SyscallHandler) PipelineOption {
 	return func(p *Pipeline) {
 		p.syscallHandler = handler
+	}
+}
+
+// WithLatencyTable sets a custom latency table for instruction timing.
+// When set, multi-cycle operations will stall the pipeline appropriately.
+func WithLatencyTable(table *latency.Table) PipelineOption {
+	return func(p *Pipeline) {
+		p.latencyTable = table
 	}
 }
 
@@ -53,6 +66,10 @@ type Pipeline struct {
 
 	// Hazard detection
 	hazardUnit *HazardUnit
+
+	// Instruction timing
+	latencyTable *latency.Table
+	exLatency    uint64 // Remaining cycles for execute stage
 
 	// Shared resources
 	regFile *emu.RegFile
@@ -236,48 +253,66 @@ func (p *Pipeline) Tick() {
 
 	// Stage 3: Execute
 	var nextEXMEM EXMEMRegister
+	execStall := false
 	if p.idex.Valid {
-		// Apply forwarding to get correct operand values
-		rnValue := p.hazardUnit.GetForwardedValue(
-			forwarding.ForwardRn, p.idex.RnValue, &p.exmem, &newMEMWB)
-		rmValue := p.hazardUnit.GetForwardedValue(
-			forwarding.ForwardRm, p.idex.RmValue, &p.exmem, &newMEMWB)
-
-		execResult := p.executeStage.Execute(&p.idex, rnValue, rmValue)
-
-		// Check for branch taken
-		if execResult.BranchTaken {
-			branchTaken = true
-			branchTarget = execResult.BranchTarget
+		// Check for multi-cycle execution latency
+		if p.latencyTable != nil && p.exLatency == 0 {
+			// Starting new instruction - get its latency
+			p.exLatency = p.latencyTable.GetLatency(p.idex.Inst)
 		}
 
-		// For store instructions, we need the value from Rd (which is actually Rt)
-		storeValue := execResult.StoreValue
-		if p.idex.MemWrite {
-			// Store value comes from Rd register
-			storeValue = p.regFile.ReadReg(p.idex.Rd)
+		// Decrement latency counter
+		if p.exLatency > 0 {
+			p.exLatency--
 		}
 
-		nextEXMEM = EXMEMRegister{
-			Valid:      true,
-			PC:         p.idex.PC,
-			Inst:       p.idex.Inst,
-			ALUResult:  execResult.ALUResult,
-			StoreValue: storeValue,
-			Rd:         p.idex.Rd,
-			MemRead:    p.idex.MemRead,
-			MemWrite:   p.idex.MemWrite,
-			RegWrite:   p.idex.RegWrite,
-			MemToReg:   p.idex.MemToReg,
+		// If still executing, stall
+		if p.exLatency > 0 {
+			execStall = true
+			p.stats.ExecStalls++
+		} else {
+			// Apply forwarding to get correct operand values
+			rnValue := p.hazardUnit.GetForwardedValue(
+				forwarding.ForwardRn, p.idex.RnValue, &p.exmem, &newMEMWB)
+			rmValue := p.hazardUnit.GetForwardedValue(
+				forwarding.ForwardRm, p.idex.RmValue, &p.exmem, &newMEMWB)
+
+			execResult := p.executeStage.Execute(&p.idex, rnValue, rmValue)
+
+			// Check for branch taken
+			if execResult.BranchTaken {
+				branchTaken = true
+				branchTarget = execResult.BranchTarget
+			}
+
+			// For store instructions, we need the value from Rd (which is actually Rt)
+			storeValue := execResult.StoreValue
+			if p.idex.MemWrite {
+				// Store value comes from Rd register
+				storeValue = p.regFile.ReadReg(p.idex.Rd)
+			}
+
+			nextEXMEM = EXMEMRegister{
+				Valid:      true,
+				PC:         p.idex.PC,
+				Inst:       p.idex.Inst,
+				ALUResult:  execResult.ALUResult,
+				StoreValue: storeValue,
+				Rd:         p.idex.Rd,
+				MemRead:    p.idex.MemRead,
+				MemWrite:   p.idex.MemWrite,
+				RegWrite:   p.idex.RegWrite,
+				MemToReg:   p.idex.MemToReg,
+			}
 		}
 	}
 
 	// Compute stall signals
-	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard, branchTaken)
+	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard || execStall, branchTaken)
 
 	// Stage 2: Decode
 	var nextIDEX IDEXRegister
-	if p.ifid.Valid && !stallResult.StallID && !stallResult.FlushID {
+	if p.ifid.Valid && !stallResult.StallID && !stallResult.FlushID && !execStall {
 		decResult := p.decodeStage.Decode(p.ifid.InstructionWord, p.ifid.PC)
 		nextIDEX = IDEXRegister{
 			Valid:    true,
@@ -294,7 +329,7 @@ func (p *Pipeline) Tick() {
 			MemToReg: decResult.MemToReg,
 			IsBranch: decResult.IsBranch,
 		}
-	} else if stallResult.StallID && !stallResult.FlushID {
+	} else if (stallResult.StallID || execStall) && !stallResult.FlushID {
 		// Keep the current ID/EX contents during stall
 		nextIDEX = p.idex
 	}
@@ -328,8 +363,10 @@ func (p *Pipeline) Tick() {
 
 	// Latch all pipeline registers at the end of the cycle
 	p.memwb = nextMEMWB
-	p.exmem = nextEXMEM
-	if stallResult.InsertBubbleEX {
+	if !execStall {
+		p.exmem = nextEXMEM
+	}
+	if stallResult.InsertBubbleEX && !execStall {
 		p.idex.Clear() // Insert bubble
 	} else {
 		p.idex = nextIDEX
@@ -346,4 +383,15 @@ func (p *Pipeline) Reset() {
 	p.pc = 0
 	p.stats = Statistics{}
 	p.halted = false
+	p.exLatency = 0
+}
+
+// LatencyTable returns the current latency table, or nil if not set.
+func (p *Pipeline) LatencyTable() *latency.Table {
+	return p.latencyTable
+}
+
+// SetLatencyTable sets the latency table for instruction timing.
+func (p *Pipeline) SetLatencyTable(table *latency.Table) {
+	p.latencyTable = table
 }
