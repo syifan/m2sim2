@@ -37,7 +37,65 @@ make run
 make verify
 ```
 
-## Collecting Performance Data
+## Benchmark Runner Scripts
+
+Three scripts are provided for automated performance measurement:
+
+### run_benchmarks.sh - Basic Timing Collection
+
+Runs benchmarks multiple times and estimates CPU cycles from execution time.
+
+```bash
+# Human-readable output
+./run_benchmarks.sh
+
+# JSON output for automation
+./run_benchmarks.sh --json > native_results.json
+
+# Options
+./run_benchmarks.sh --iterations 200      # More iterations for accuracy
+./run_benchmarks.sh --benchmark dependency_chain  # Single benchmark
+```
+
+Output includes:
+- Execution time (avg, min, max, stddev)
+- Estimated CPU cycles (based on 3.5 GHz M2 P-core)
+- CPI (Cycles Per Instruction)
+- Exit code validation
+
+### run_benchmarks_xctrace.sh - Accurate Cycle Counts
+
+Uses Apple Instruments (xctrace) for hardware performance counter access.
+
+```bash
+# Collect actual CPU cycle counts
+./run_benchmarks_xctrace.sh
+
+# JSON output
+./run_benchmarks_xctrace.sh --json > native_results.json
+```
+
+Note: Requires Xcode Command Line Tools and may need Terminal to have
+Full Disk Access in System Settings.
+
+### compare_with_simulator.sh - Accuracy Analysis
+
+Compares native M2 results with M2Sim simulator output.
+
+```bash
+# Run comparison (collects both native and simulator data)
+./compare_with_simulator.sh
+
+# Use existing native results
+./compare_with_simulator.sh native_results.json
+```
+
+Output:
+- Side-by-side CPI comparison
+- Error percentage for each benchmark
+- Overall calibration assessment
+
+## Manual Performance Data Collection
 
 ### Method 1: /usr/bin/time (Basic)
 
@@ -164,12 +222,15 @@ Install Xcode Command Line Tools: `xcode-select --install`
 
 ```
 benchmarks/native/
-├── Makefile                    # Build system
-├── README.md                   # This file
-├── arithmetic_sequential.s     # ALU throughput test
-├── dependency_chain.s          # RAW hazard test  
-├── memory_sequential.s         # Cache/memory test
-├── function_calls.s            # BL/RET overhead test
-├── branch_taken.s              # Branch overhead test
-└── mixed_operations.s          # Realistic workload test
+├── Makefile                      # Build system
+├── README.md                     # This file
+├── run_benchmarks.sh             # Timing-based benchmark runner
+├── run_benchmarks_xctrace.sh     # xctrace-based cycle counter
+├── compare_with_simulator.sh     # Native vs simulator comparison
+├── arithmetic_sequential.s       # ALU throughput test
+├── dependency_chain.s            # RAW hazard test  
+├── memory_sequential.s           # Cache/memory test
+├── function_calls.s              # BL/RET overhead test
+├── branch_taken.s                # Branch overhead test
+└── mixed_operations.s            # Realistic workload test
 ```

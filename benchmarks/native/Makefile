@@ -25,9 +25,11 @@ BINS = $(SRCS:.s=)
 # Object files
 OBJS = $(SRCS:.s=.o)
 
-.PHONY: all clean run check
+.PHONY: all clean run check tools
 
-all: check_arch $(BINS)
+all: check_arch $(BINS) measure
+
+tools: measure
 
 check_arch:
 ifneq ($(ARCH),arm64)
@@ -45,8 +47,12 @@ endif
 # Build all binaries
 $(BINS): %: %.o
 
+# Build measurement tool
+measure: measure.c
+	clang -O2 -o $@ $<
+
 clean:
-	rm -f $(OBJS) $(BINS)
+	rm -f $(OBJS) $(BINS) measure
 
 # Run all benchmarks and verify exit codes
 run: all
