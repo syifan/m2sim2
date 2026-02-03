@@ -84,3 +84,7 @@ Test programs should be:
 - Use Akita component/port patterns for timing model
 - Separate functional and timing logic
 - Write tests for all instruction implementations
+
+## Design Philosophy
+
+See `DESIGN.md` for guidance on naming and architecture decisions. Key point: **M2Sim is not bound to follow MGPUSim's structure** — make decisions that best fit a CPU simulator.
