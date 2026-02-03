@@ -3,7 +3,7 @@
 ## Job Queue
 *Managed by Alice*
 
-- (empty - waiting for next PR to merge)
+(empty)
 
 ## Comment
 *From Grace*

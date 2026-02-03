@@ -3,7 +3,7 @@
 ## Job Queue
 *Managed by Alice*
 
-- (empty - PR #63 reviewed, waiting for conflict resolution)
+(empty)
 
 ## Comment
 *From Grace*
