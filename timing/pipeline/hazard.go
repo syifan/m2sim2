@@ -21,6 +21,8 @@ type ForwardingResult struct {
 	ForwardRn ForwardSource
 	// ForwardRm specifies the forwarding source for the Rm operand.
 	ForwardRm ForwardSource
+	// ForwardRd specifies the forwarding source for the Rd operand (store data).
+	ForwardRd ForwardSource
 }
 
 // StallResult contains stall and flush control signals.
@@ -47,7 +49,8 @@ func NewHazardUnit() *HazardUnit {
 
 // DetectForwarding determines if forwarding is needed for the ID/EX stage.
 // It checks if the source registers (Rn, Rm) match the destination register
-// of instructions in later pipeline stages.
+// of instructions in later pipeline stages. For store instructions, it also
+// checks if the store data register (Rd) needs forwarding.
 func (h *HazardUnit) DetectForwarding(
 	idex *IDEXRegister,
 	exmem *EXMEMRegister,
@@ -56,6 +59,7 @@ func (h *HazardUnit) DetectForwarding(
 	result := ForwardingResult{
 		ForwardRn: ForwardNone,
 		ForwardRm: ForwardNone,
+		ForwardRd: ForwardNone,
 	}
 
 	if !idex.Valid {
@@ -67,6 +71,12 @@ func (h *HazardUnit) DetectForwarding(
 
 	// Check forwarding for Rm operand
 	result.ForwardRm = h.detectForwardForReg(idex.Rm, exmem, memwb)
+
+	// Check forwarding for Rd operand (store data)
+	// For store instructions, Rd contains the register to store
+	if idex.MemWrite {
+		result.ForwardRd = h.detectForwardForReg(idex.Rd, exmem, memwb)
+	}
 
 	return result
 }

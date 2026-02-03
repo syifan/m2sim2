@@ -286,10 +286,13 @@ func (p *Pipeline) Tick() {
 			}
 
 			// For store instructions, we need the value from Rd (which is actually Rt)
+			// Apply forwarding for store data to handle RAW hazards
 			storeValue := execResult.StoreValue
 			if p.idex.MemWrite {
-				// Store value comes from Rd register
-				storeValue = p.regFile.ReadReg(p.idex.Rd)
+				// Store value comes from Rd register, but may need forwarding
+				rdValue := p.regFile.ReadReg(p.idex.Rd)
+				storeValue = p.hazardUnit.GetForwardedValue(
+					forwarding.ForwardRd, rdValue, &p.exmem, &newMEMWB)
 			}
 
 			nextEXMEM = EXMEMRegister{
