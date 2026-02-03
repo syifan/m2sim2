@@ -21,6 +21,8 @@ type Statistics struct {
 	ExecStalls uint64
 	// MemStalls is the number of stalls due to memory latency.
 	MemStalls uint64
+	// DataHazards is the number of RAW data hazards detected.
+	DataHazards uint64
 }
 
 // CPI returns the cycles per instruction.
@@ -113,6 +115,10 @@ type Pipeline struct {
 	// Instruction timing
 	latencyTable *latency.Table
 	exLatency    uint64 // Remaining cycles for execute stage
+
+	// Non-cached memory latency tracking
+	memPending   bool   // True if waiting for memory operation to complete
+	memPendingPC uint64 // PC of pending memory operation
 
 	// Shared resources
 	regFile *emu.RegFile
@@ -236,20 +242,40 @@ func (p *Pipeline) Tick() {
 	// Detect hazards before executing stages
 	forwarding := p.hazardUnit.DetectForwarding(&p.idex, &p.exmem, &p.memwb)
 
-	// Detect load-use hazard (checking ID/EX against IF/ID's decoded instruction)
+	// Track data hazards (RAW hazards resolved by forwarding)
+	if forwarding.ForwardRn != ForwardNone || forwarding.ForwardRm != ForwardNone || forwarding.ForwardRd != ForwardNone {
+		p.stats.DataHazards++
+	}
+
+	// Detect RAW hazards between EX stage (ID/EX) and ID stage (IF/ID)
+	// This models a pipeline where EX-to-EX forwarding requires 1 cycle stall
+	rawHazard := false
 	loadUseHazard := false
-	if p.idex.Valid && p.idex.MemRead && p.ifid.Valid {
+	if p.idex.Valid && p.idex.RegWrite && p.idex.Rd != 31 && p.ifid.Valid {
 		// Peek at the next instruction to check for hazard
 		nextInst := p.decodeStage.decoder.Decode(p.ifid.InstructionWord)
 		if nextInst != nil && nextInst.Op != insts.OpUnknown {
-			// Check if the load destination conflicts with next instruction's sources
-			loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
-				p.idex.Rd,
-				nextInst.Rn,
-				nextInst.Rm,
-				true,                                 // Most instructions use Rn
-				nextInst.Format == insts.FormatDPReg, // Only register format uses Rm
-			)
+			// Check if the instruction's destination conflicts with next instruction's sources
+			usesRn := true                                 // Most instructions use Rn
+			usesRm := nextInst.Format == insts.FormatDPReg // Only register format uses Rm
+
+			// Check for RAW hazard: next instruction reads a register being written by current
+			if (usesRn && p.idex.Rd == nextInst.Rn && nextInst.Rn != 31) ||
+				(usesRm && p.idex.Rd == nextInst.Rm && nextInst.Rm != 31) {
+				rawHazard = true
+				p.stats.Stalls++ // Count RAW hazard stalls
+			}
+
+			// Load-use hazard is a special case that also needs tracking
+			if p.idex.MemRead {
+				loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
+					p.idex.Rd,
+					nextInst.Rn,
+					nextInst.Rm,
+					usesRn,
+					usesRm,
+				)
+			}
 		}
 	}
 
@@ -290,8 +316,29 @@ func (p *Pipeline) Tick() {
 				p.stats.MemStalls++
 			}
 		} else {
-			// Direct memory access
-			memResult = p.memoryStage.Access(&p.exmem)
+			// Direct memory access with latency modeling
+			// Memory operations (LDR/STR) take 1 extra cycle (2 total)
+			if p.exmem.MemRead || p.exmem.MemWrite {
+				// If PC changed, cancel any pending state
+				if p.memPending && p.memPendingPC != p.exmem.PC {
+					p.memPending = false
+				}
+
+				if !p.memPending {
+					// First cycle seeing this memory op - stall
+					p.memPending = true
+					p.memPendingPC = p.exmem.PC
+					memStall = true
+					p.stats.MemStalls++
+				} else {
+					// Second cycle - complete the access
+					p.memPending = false
+					memResult = p.memoryStage.Access(&p.exmem)
+				}
+			} else {
+				// Not a memory operation
+				p.memPending = false
+			}
 		}
 
 		if !memStall {
@@ -369,7 +416,7 @@ func (p *Pipeline) Tick() {
 
 	// Compute stall signals
 	// Memory stalls should also stall upstream stages
-	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard || execStall || memStall, branchTaken)
+	stallResult := p.hazardUnit.ComputeStalls(rawHazard || loadUseHazard || execStall || memStall, branchTaken)
 
 	// Stage 2: Decode
 	var nextIDEX IDEXRegister
@@ -443,6 +490,10 @@ func (p *Pipeline) Tick() {
 	// Don't advance if memory stage is stalling
 	if !memStall {
 		p.memwb = nextMEMWB
+	} else {
+		// Clear memwb during memory stall to prevent double-counting
+		// the previous instruction in writeback
+		p.memwb.Clear()
 	}
 	if !execStall && !memStall {
 		p.exmem = nextEXMEM
@@ -465,6 +516,8 @@ func (p *Pipeline) Reset() {
 	p.stats = Statistics{}
 	p.halted = false
 	p.exLatency = 0
+	p.memPending = false
+	p.memPendingPC = 0
 }
 
 // LatencyTable returns the current latency table, or nil if not set.
