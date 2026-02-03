@@ -3,6 +3,7 @@ package pipeline
 import (
 	"github.com/sarchlab/m2sim/emu"
 	"github.com/sarchlab/m2sim/insts"
+	"github.com/sarchlab/m2sim/timing/cache"
 	"github.com/sarchlab/m2sim/timing/latency"
 )
 
@@ -48,6 +49,42 @@ func WithLatencyTable(table *latency.Table) PipelineOption {
 	}
 }
 
+// WithICache enables L1 instruction cache with the given configuration.
+func WithICache(config cache.Config) PipelineOption {
+	return func(p *Pipeline) {
+		backing := cache.NewMemoryBacking(p.memory)
+		icache := cache.New(config, backing)
+		p.cachedFetchStage = NewCachedFetchStage(icache, p.memory)
+		p.useICache = true
+	}
+}
+
+// WithDCache enables L1 data cache with the given configuration.
+func WithDCache(config cache.Config) PipelineOption {
+	return func(p *Pipeline) {
+		backing := cache.NewMemoryBacking(p.memory)
+		dcache := cache.New(config, backing)
+		p.cachedMemoryStage = NewCachedMemoryStage(dcache, p.memory)
+		p.useDCache = true
+	}
+}
+
+// WithDefaultCaches enables L1 I-cache and D-cache with default Apple M2 configurations.
+func WithDefaultCaches() PipelineOption {
+	return func(p *Pipeline) {
+		// Initialize I-cache
+		backing := cache.NewMemoryBacking(p.memory)
+		icache := cache.New(cache.DefaultL1IConfig(), backing)
+		p.cachedFetchStage = NewCachedFetchStage(icache, p.memory)
+		p.useICache = true
+
+		// Initialize D-cache
+		dcache := cache.New(cache.DefaultL1DConfig(), backing)
+		p.cachedMemoryStage = NewCachedMemoryStage(dcache, p.memory)
+		p.useDCache = true
+	}
+}
+
 // Pipeline implements a 5-stage pipelined CPU model.
 // Stages: Fetch (IF) -> Decode (ID) -> Execute (EX) -> Memory (MEM) -> Writeback (WB)
 type Pipeline struct {
@@ -63,6 +100,12 @@ type Pipeline struct {
 	executeStage   *ExecuteStage
 	memoryStage    *MemoryStage
 	writebackStage *WritebackStage
+
+	// Cached pipeline stages (optional)
+	cachedFetchStage  *CachedFetchStage
+	cachedMemoryStage *CachedMemoryStage
+	useICache         bool
+	useDCache         bool
 
 	// Hazard detection
 	hazardUnit *HazardUnit
@@ -226,6 +269,7 @@ func (p *Pipeline) Tick() {
 
 	// Stage 4: Memory
 	var nextMEMWB MEMWBRegister
+	memStall := false
 	if p.exmem.Valid {
 		// Check for syscall in memory stage
 		if p.exmem.Inst != nil && p.exmem.Inst.Op == insts.OpSVC {
@@ -238,23 +282,36 @@ func (p *Pipeline) Tick() {
 			}
 		}
 
-		memResult := p.memoryStage.Access(&p.exmem)
-		nextMEMWB = MEMWBRegister{
-			Valid:     true,
-			PC:        p.exmem.PC,
-			Inst:      p.exmem.Inst,
-			ALUResult: p.exmem.ALUResult,
-			MemData:   memResult.MemData,
-			Rd:        p.exmem.Rd,
-			RegWrite:  p.exmem.RegWrite,
-			MemToReg:  p.exmem.MemToReg,
+		var memResult MemoryResult
+		if p.useDCache && p.cachedMemoryStage != nil {
+			// Use D-cache for memory access
+			memResult, memStall = p.cachedMemoryStage.Access(&p.exmem)
+			if memStall {
+				p.stats.MemStalls++
+			}
+		} else {
+			// Direct memory access
+			memResult = p.memoryStage.Access(&p.exmem)
+		}
+
+		if !memStall {
+			nextMEMWB = MEMWBRegister{
+				Valid:     true,
+				PC:        p.exmem.PC,
+				Inst:      p.exmem.Inst,
+				ALUResult: p.exmem.ALUResult,
+				MemData:   memResult.MemData,
+				Rd:        p.exmem.Rd,
+				RegWrite:  p.exmem.RegWrite,
+				MemToReg:  p.exmem.MemToReg,
+			}
 		}
 	}
 
 	// Stage 3: Execute
 	var nextEXMEM EXMEMRegister
 	execStall := false
-	if p.idex.Valid {
+	if p.idex.Valid && !memStall {
 		// Check for multi-cycle execution latency
 		if p.latencyTable != nil && p.exLatency == 0 {
 			// Starting new instruction - get its latency
@@ -311,7 +368,8 @@ func (p *Pipeline) Tick() {
 	}
 
 	// Compute stall signals
-	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard || execStall, branchTaken)
+	// Memory stalls should also stall upstream stages
+	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard || execStall || memStall, branchTaken)
 
 	// Stage 2: Decode
 	var nextIDEX IDEXRegister
@@ -332,24 +390,41 @@ func (p *Pipeline) Tick() {
 			MemToReg: decResult.MemToReg,
 			IsBranch: decResult.IsBranch,
 		}
-	} else if (stallResult.StallID || execStall) && !stallResult.FlushID {
+	} else if (stallResult.StallID || execStall || memStall) && !stallResult.FlushID {
 		// Keep the current ID/EX contents during stall
 		nextIDEX = p.idex
 	}
 
 	// Stage 1: Fetch
 	var nextIFID IFIDRegister
-	if !stallResult.StallIF && !stallResult.FlushIF {
-		word, ok := p.fetchStage.Fetch(p.pc)
-		if ok {
+	fetchStall := false
+	if !stallResult.StallIF && !stallResult.FlushIF && !memStall {
+		var word uint32
+		var ok bool
+
+		if p.useICache && p.cachedFetchStage != nil {
+			// Use I-cache for fetch
+			word, ok, fetchStall = p.cachedFetchStage.Fetch(p.pc)
+			if fetchStall {
+				p.stats.Stalls++
+			}
+		} else {
+			// Direct memory fetch
+			word, ok = p.fetchStage.Fetch(p.pc)
+		}
+
+		if ok && !fetchStall {
 			nextIFID = IFIDRegister{
 				Valid:           true,
 				PC:              p.pc,
 				InstructionWord: word,
 			}
 			p.pc += 4 // Advance PC
+		} else if fetchStall {
+			// Keep current IF/ID during I-cache stall
+			nextIFID = p.ifid
 		}
-	} else if stallResult.StallIF && !stallResult.FlushIF {
+	} else if (stallResult.StallIF || memStall) && !stallResult.FlushIF {
 		// Keep the current IF/ID contents during stall
 		nextIFID = p.ifid
 		p.stats.Stalls++
@@ -365,13 +440,16 @@ func (p *Pipeline) Tick() {
 	}
 
 	// Latch all pipeline registers at the end of the cycle
-	p.memwb = nextMEMWB
-	if !execStall {
+	// Don't advance if memory stage is stalling
+	if !memStall {
+		p.memwb = nextMEMWB
+	}
+	if !execStall && !memStall {
 		p.exmem = nextEXMEM
 	}
-	if stallResult.InsertBubbleEX && !execStall {
+	if stallResult.InsertBubbleEX && !execStall && !memStall {
 		p.idex.Clear() // Insert bubble
-	} else {
+	} else if !memStall {
 		p.idex = nextIDEX
 	}
 	p.ifid = nextIFID
@@ -397,4 +475,30 @@ func (p *Pipeline) LatencyTable() *latency.Table {
 // SetLatencyTable sets the latency table for instruction timing.
 func (p *Pipeline) SetLatencyTable(table *latency.Table) {
 	p.latencyTable = table
+}
+
+// ICacheStats returns I-cache statistics, or empty if I-cache not enabled.
+func (p *Pipeline) ICacheStats() cache.Statistics {
+	if p.cachedFetchStage != nil {
+		return p.cachedFetchStage.CacheStats()
+	}
+	return cache.Statistics{}
+}
+
+// DCacheStats returns D-cache statistics, or empty if D-cache not enabled.
+func (p *Pipeline) DCacheStats() cache.Statistics {
+	if p.cachedMemoryStage != nil {
+		return p.cachedMemoryStage.CacheStats()
+	}
+	return cache.Statistics{}
+}
+
+// UseICache returns true if I-cache is enabled.
+func (p *Pipeline) UseICache() bool {
+	return p.useICache
+}
+
+// UseDCache returns true if D-cache is enabled.
+func (p *Pipeline) UseDCache() bool {
+	return p.useDCache
 }
