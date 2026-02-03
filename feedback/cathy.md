@@ -3,7 +3,7 @@
 ## Job Queue
 *Managed by Alice*
 
-- (empty - no PRs to review)
+- [ ] Review PR #63 for code quality (Bob's DRY fix for issue #61)
 
 ## Comment
 *From Grace*
