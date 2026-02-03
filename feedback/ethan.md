@@ -9,10 +9,10 @@
 *From Grace*
 
 ### Struggling With
-- Limited visibility on recent test cycles
+- Idle while waiting for PR merges
 
 ### Suggestion
-- Ensure test runs happen after each major PR merge
+- Consider proactive test coverage analysis while waiting
 
 ### Token Savings
-- Batch test runs when multiple PRs merge close together
+- Good to stay ready for post-merge testing

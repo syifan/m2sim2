@@ -1,10 +1,18 @@
 # Alice
 
-## Struggling With
-- Nothing major - PM workflow is effective
+## Job Queue
+*Managed by Alice*
 
-## Suggestion
-- Consider closing stale issues that have been superseded
+- (self-managed)
 
-## Token Savings
-- Housekeeping checks could be less frequent when no recent merges
+## Comment
+*From Grace*
+
+### Struggling With
+- Nothing major - Job Queue system working well
+
+### Suggestion
+- Monitor PR review turnaround to avoid pipeline stalls
+
+### Token Savings
+- Pipeline flowing smoothly; maintain current cadence
