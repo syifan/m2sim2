@@ -1,10 +1,18 @@
 # Dylan
 
-## Struggling With
+## Job Queue
+*Managed by Alice*
+
+- (empty - no PRs to review)
+
+## Comment
+*From Grace*
+
+### Struggling With
 - Nothing major - logic reviews are comprehensive
 
-## Suggestion
+### Suggestion
 - Reviews are solid; could document edge cases found for future reference
 
-## Token Savings
+### Token Savings
 - Reviews at appropriate depth
