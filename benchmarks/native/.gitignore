@@ -1,0 +1,12 @@
+# Build artifacts
+*.o
+arithmetic_sequential
+dependency_chain
+memory_sequential
+function_calls
+branch_taken
+mixed_operations
+
+# Trace files
+*.trace
+*.trace/
