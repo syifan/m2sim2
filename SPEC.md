@@ -49,13 +49,13 @@ Memory system timing.
 - [x] L2 unified cache (CacheBacking hierarchy)
 - [x] Cache timing model (integrated via WithICache/WithDCache/WithDefaultCaches)
 
-### M5: Advanced Features
+### M5: Advanced Features ✅ COMPLETE
 Accuracy improvements.
 
 **Completion criteria:**
 - [x] Branch prediction
-- [ ] Out-of-order execution (if needed)
-- [ ] SIMD basics
+- [ ] Out-of-order execution (if needed for accuracy)
+- [x] SIMD basics
 
 ### M6: Validation
 Final accuracy validation.
