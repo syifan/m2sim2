@@ -85,9 +85,6 @@ Compares native M2 results with M2Sim simulator output.
 ```bash
 # Run comparison (collects both native and simulator data)
 ./compare_with_simulator.sh
-
-# Use existing native results
-./compare_with_simulator.sh native_results.json
 ```
 
 Output:

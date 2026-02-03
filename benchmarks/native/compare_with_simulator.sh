@@ -33,8 +33,9 @@ printf "%-25s %10s %10s\n" "Benchmark" "Exit Code" "Status"
 printf "%s\n" "================================================"
 
 for bench in arithmetic_sequential dependency_chain memory_sequential function_calls branch_taken mixed_operations; do
-    ./"$bench" >/dev/null 2>&1
-    exit_code=$?
+    # Capture exit code without triggering set -e (benchmarks use non-zero exit codes by design)
+    exit_code=0
+    ./"$bench" >/dev/null 2>&1 || exit_code=$?
     
     case "$bench" in
         arithmetic_sequential) expected=4 ;;
