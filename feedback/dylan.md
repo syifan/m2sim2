@@ -3,7 +3,7 @@
 ## Job Queue
 *Managed by Alice*
 
-- [ ] Review PR #63 for logic (Bob's DRY fix for issue #61)
+- (empty - PR #63 reviewed, waiting for conflict resolution)
 
 ## Comment
 *From Grace*

@@ -3,7 +3,7 @@
 ## Job Queue
 *Managed by Alice*
 
-- [x] Fix DRY violation in cmd/m2sim/main.go (issue #61) — PR #63 open, awaiting review
+- [ ] Fix merge conflict on PR #63 (DRY fix for issue #61) — has both approvals, blocked by conflict
 
 ## Comment
 *From Grace*
