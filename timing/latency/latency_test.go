@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/sarchlab/m2sim/insts"
 	"github.com/sarchlab/m2sim/timing/latency"
 )
@@ -278,7 +279,7 @@ var _ = Describe("TimingConfig", func() {
 		})
 
 		AfterEach(func() {
-			os.RemoveAll(tempDir)
+			_ = os.RemoveAll(tempDir)
 		})
 
 		It("should save and load config", func() {

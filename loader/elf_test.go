@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/sarchlab/m2sim/loader"
 )
 
@@ -20,7 +21,7 @@ var _ = Describe("ELF Loader", func() {
 	})
 
 	AfterEach(func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	})
 
 	Describe("Load", func() {
@@ -350,11 +351,11 @@ func createMinimalARM64ELF(path string, loadAddr, entryPoint uint64, code []byte
 
 	// Write the ELF file
 	file, _ := os.Create(path)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
-	file.Write(elfHeader)
-	file.Write(progHeader)
-	file.Write(code)
+	_, _ = file.Write(elfHeader)
+	_, _ = file.Write(progHeader)
+	_, _ = file.Write(code)
 }
 
 // createMinimalx86ELF creates a minimal x86-64 ELF to test rejection.
@@ -375,8 +376,8 @@ func createMinimalx86ELF(path string) {
 	binary.LittleEndian.PutUint16(elfHeader[56:58], 0)  // phnum
 
 	file, _ := os.Create(path)
-	defer file.Close()
-	file.Write(elfHeader)
+	defer func() { _ = file.Close() }()
+	_, _ = file.Write(elfHeader)
 }
 
 // createMinimal32BitELF creates a minimal 32-bit ELF to test rejection.
@@ -392,8 +393,8 @@ func createMinimal32BitELF(path string) {
 	binary.LittleEndian.PutUint32(elfHeader[20:24], 1)   // version
 
 	file, _ := os.Create(path)
-	defer file.Close()
-	file.Write(elfHeader)
+	defer func() { _ = file.Close() }()
+	_, _ = file.Write(elfHeader)
 }
 
 // createMultiSegmentARM64ELF creates an ARM64 ELF with two PT_LOAD segments:
@@ -403,9 +404,9 @@ func createMultiSegmentARM64ELF(path string, codeAddr, entryPoint uint64, code [
 	elfHeader := make([]byte, 64)
 
 	copy(elfHeader[0:4], []byte{0x7f, 'E', 'L', 'F'})
-	elfHeader[4] = 2 // 64-bit
-	elfHeader[5] = 1 // little endian
-	elfHeader[6] = 1 // version
+	elfHeader[4] = 2                                     // 64-bit
+	elfHeader[5] = 1                                     // little endian
+	elfHeader[6] = 1                                     // version
 	binary.LittleEndian.PutUint16(elfHeader[16:18], 2)   // executable
 	binary.LittleEndian.PutUint16(elfHeader[18:20], 183) // AArch64
 	binary.LittleEndian.PutUint32(elfHeader[20:24], 1)   // version
@@ -438,12 +439,12 @@ func createMultiSegmentARM64ELF(path string, codeAddr, entryPoint uint64, code [
 	binary.LittleEndian.PutUint64(progHeader2[48:56], 0x1000)                   // align
 
 	file, _ := os.Create(path)
-	defer file.Close()
-	file.Write(elfHeader)
-	file.Write(progHeader1)
-	file.Write(progHeader2)
-	file.Write(code)
-	file.Write(data)
+	defer func() { _ = file.Close() }()
+	_, _ = file.Write(elfHeader)
+	_, _ = file.Write(progHeader1)
+	_, _ = file.Write(progHeader2)
+	_, _ = file.Write(code)
+	_, _ = file.Write(data)
 }
 
 // createBSSSegmentELF creates an ARM64 ELF with a BSS-like segment where Memsz > Filesz.
@@ -451,9 +452,9 @@ func createBSSSegmentELF(path string, segAddr, entryPoint uint64, data []byte, m
 	elfHeader := make([]byte, 64)
 
 	copy(elfHeader[0:4], []byte{0x7f, 'E', 'L', 'F'})
-	elfHeader[4] = 2 // 64-bit
-	elfHeader[5] = 1 // little endian
-	elfHeader[6] = 1 // version
+	elfHeader[4] = 2                                     // 64-bit
+	elfHeader[5] = 1                                     // little endian
+	elfHeader[6] = 1                                     // version
 	binary.LittleEndian.PutUint16(elfHeader[16:18], 2)   // executable
 	binary.LittleEndian.PutUint16(elfHeader[18:20], 183) // AArch64
 	binary.LittleEndian.PutUint32(elfHeader[20:24], 1)   // version
@@ -474,10 +475,10 @@ func createBSSSegmentELF(path string, segAddr, entryPoint uint64, data []byte, m
 	binary.LittleEndian.PutUint64(progHeader[48:56], 0x1000)            // align
 
 	file, _ := os.Create(path)
-	defer file.Close()
-	file.Write(elfHeader)
-	file.Write(progHeader)
-	file.Write(data)
+	defer func() { _ = file.Close() }()
+	_, _ = file.Write(elfHeader)
+	_, _ = file.Write(progHeader)
+	_, _ = file.Write(data)
 }
 
 // createZeroFileszELF creates an ARM64 ELF with a segment that has zero Filesz but non-zero Memsz.
@@ -485,9 +486,9 @@ func createZeroFileszELF(path string, segAddr, entryPoint uint64, memSize uint64
 	elfHeader := make([]byte, 64)
 
 	copy(elfHeader[0:4], []byte{0x7f, 'E', 'L', 'F'})
-	elfHeader[4] = 2 // 64-bit
-	elfHeader[5] = 1 // little endian
-	elfHeader[6] = 1 // version
+	elfHeader[4] = 2                                     // 64-bit
+	elfHeader[5] = 1                                     // little endian
+	elfHeader[6] = 1                                     // version
 	binary.LittleEndian.PutUint16(elfHeader[16:18], 2)   // executable
 	binary.LittleEndian.PutUint16(elfHeader[18:20], 183) // AArch64
 	binary.LittleEndian.PutUint32(elfHeader[20:24], 1)   // version
@@ -508,9 +509,9 @@ func createZeroFileszELF(path string, segAddr, entryPoint uint64, memSize uint64
 	binary.LittleEndian.PutUint64(progHeader[48:56], 0x1000)  // align
 
 	file, _ := os.Create(path)
-	defer file.Close()
-	file.Write(elfHeader)
-	file.Write(progHeader)
+	defer func() { _ = file.Close() }()
+	_, _ = file.Write(elfHeader)
+	_, _ = file.Write(progHeader)
 }
 
 // createNoLoadableSegmentsELF creates an ARM64 ELF with no PT_LOAD segments (only PT_NOTE).
@@ -518,9 +519,9 @@ func createNoLoadableSegmentsELF(path string, entryPoint uint64) {
 	elfHeader := make([]byte, 64)
 
 	copy(elfHeader[0:4], []byte{0x7f, 'E', 'L', 'F'})
-	elfHeader[4] = 2 // 64-bit
-	elfHeader[5] = 1 // little endian
-	elfHeader[6] = 1 // version
+	elfHeader[4] = 2                                     // 64-bit
+	elfHeader[5] = 1                                     // little endian
+	elfHeader[6] = 1                                     // version
 	binary.LittleEndian.PutUint16(elfHeader[16:18], 2)   // executable
 	binary.LittleEndian.PutUint16(elfHeader[18:20], 183) // AArch64
 	binary.LittleEndian.PutUint32(elfHeader[20:24], 1)   // version
@@ -542,7 +543,7 @@ func createNoLoadableSegmentsELF(path string, entryPoint uint64) {
 	binary.LittleEndian.PutUint64(progHeader[48:56], 4)  // align
 
 	file, _ := os.Create(path)
-	defer file.Close()
-	file.Write(elfHeader)
-	file.Write(progHeader)
+	defer func() { _ = file.Close() }()
+	_, _ = file.Write(elfHeader)
+	_, _ = file.Write(progHeader)
 }

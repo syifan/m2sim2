@@ -56,7 +56,7 @@ func Load(path string) (*Program, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open ELF file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Validate ELF class (must be 64-bit)
 	if f.Class != elf.ELFCLASS64 {

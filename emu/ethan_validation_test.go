@@ -17,13 +17,13 @@ import (
 
 // ValidationResult captures the result of a validation test
 type ValidationResult struct {
-	Name              string
-	ExitCode          int64
-	ExpectedExitCode  int64
-	Output            string
-	ExpectedOutput    string
-	InstructionCount  uint64
-	Pass              bool
+	Name             string
+	ExitCode         int64
+	ExpectedExitCode int64
+	Output           string
+	ExpectedOutput   string
+	InstructionCount uint64
+	Pass             bool
 }
 
 var validationResults []ValidationResult
@@ -33,7 +33,7 @@ var _ = AfterSuite(func() {
 	fmt.Println("\n========================================")
 	fmt.Println("M2Sim Ethan Validation Baseline Summary")
 	fmt.Println("========================================")
-	
+
 	allPassed := true
 	for _, r := range validationResults {
 		status := "✓"
@@ -47,7 +47,7 @@ var _ = AfterSuite(func() {
 		}
 		fmt.Printf(", insts=%d\n", r.InstructionCount)
 	}
-	
+
 	fmt.Println("========================================")
 	if allPassed {
 		fmt.Println("All Ethan validation tests PASSED!")
@@ -85,11 +85,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "simple_exit",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  42,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 42,
+					Name:             "simple_exit",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 42,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 42,
 				}
 				validationResults = append(validationResults, result)
 
@@ -111,11 +111,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "arithmetic",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  15,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 15,
+					Name:             "arithmetic",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 15,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 15,
 				}
 				validationResults = append(validationResults, result)
 
@@ -136,11 +136,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "subtraction",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  42,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 42,
+					Name:             "subtraction",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 42,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 42,
 				}
 				validationResults = append(validationResults, result)
 
@@ -162,11 +162,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "loop",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  0,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 0,
+					Name:             "loop",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 0,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 0,
 				}
 				validationResults = append(validationResults, result)
 
@@ -177,12 +177,12 @@ var _ = Describe("Ethan Validation Suite", func() {
 		Context("loop_sum: Sum 1+2+3+4+5 = 15", func() {
 			It("should compute sum correctly", func() {
 				program := []byte{}
-				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 31, 5, false))...)  // counter = 5
-				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(1, 31, 0, false))...)  // sum = 0
+				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 31, 5, false))...) // counter = 5
+				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(1, 31, 0, false))...) // sum = 0
 				// loop:
-				program = append(program, ethanEncodeInstBytes(ethanEncodeADDReg(1, 1, 0, false))...)   // sum += counter
-				program = append(program, ethanEncodeInstBytes(ethanEncodeSUBImm(0, 0, 1, true))...)    // counter-- (set flags)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeBCond(-8, insts.CondNE))...)  // if counter != 0, goto loop
+				program = append(program, ethanEncodeInstBytes(ethanEncodeADDReg(1, 1, 0, false))...)  // sum += counter
+				program = append(program, ethanEncodeInstBytes(ethanEncodeSUBImm(0, 0, 1, true))...)   // counter-- (set flags)
+				program = append(program, ethanEncodeInstBytes(ethanEncodeBCond(-8, insts.CondNE))...) // if counter != 0, goto loop
 				// done:
 				program = append(program, ethanEncodeInstBytes(ethanEncodeADDReg(0, 31, 1, false))...)  // x0 = sum
 				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(8, 31, 93, false))...) // x8 = exit
@@ -192,11 +192,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "loop_sum",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  15,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 15,
+					Name:             "loop_sum",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 15,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 15,
 				}
 				validationResults = append(validationResults, result)
 
@@ -226,13 +226,13 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "hello",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  0,
-					Output:            stdoutBuf.String(),
-					ExpectedOutput:    "Hello\n",
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 0 && stdoutBuf.String() == "Hello\n",
+					Name:             "hello",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 0,
+					Output:           stdoutBuf.String(),
+					ExpectedOutput:   "Hello\n",
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 0 && stdoutBuf.String() == "Hello\n",
 				}
 				validationResults = append(validationResults, result)
 
@@ -256,11 +256,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "function_call",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  15,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 15,
+					Name:             "function_call",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 15,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 15,
 				}
 				validationResults = append(validationResults, result)
 
@@ -273,35 +273,35 @@ var _ = Describe("Ethan Validation Suite", func() {
 				// main -> outer(10) -> inner(15) -> return 20 -> return 25 -> exit 35
 				// Uses x19 to save LR instead of stack (callee-saved register)
 				program := []byte{}
-				
+
 				// main: (0x1000)
 				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 31, 10, false))...) // x0 = 10
 				program = append(program, ethanEncodeInstBytes(ethanEncodeBL(12))...)                   // bl outer (+12 bytes)
 				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(8, 31, 93, false))...) // x8 = 93
 				program = append(program, ethanEncodeInstBytes(ethanEncodeSVC(0))...)                   // exit(x0)
-				
+
 				// outer: (0x1010 = main + 16 bytes)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 0, 5, false))...)   // x0 += 5 (now 15)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeADDReg(19, 31, 30, false))...)// x19 = x30 (save LR)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeBL(16))...)                   // bl inner (+16 bytes)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeADDReg(30, 31, 19, false))...)// x30 = x19 (restore LR)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 0, 5, false))...)   // x0 += 5 (now 30)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeRET())...)                    // return
-				
+				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 0, 5, false))...)    // x0 += 5 (now 15)
+				program = append(program, ethanEncodeInstBytes(ethanEncodeADDReg(19, 31, 30, false))...) // x19 = x30 (save LR)
+				program = append(program, ethanEncodeInstBytes(ethanEncodeBL(16))...)                    // bl inner (+16 bytes)
+				program = append(program, ethanEncodeInstBytes(ethanEncodeADDReg(30, 31, 19, false))...) // x30 = x19 (restore LR)
+				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 0, 5, false))...)    // x0 += 5 (now 30)
+				program = append(program, ethanEncodeInstBytes(ethanEncodeRET())...)                     // return
+
 				// inner: (0x1028 = outer + 24 bytes)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 0, 5, false))...)   // x0 += 5 (now 20)
-				program = append(program, ethanEncodeInstBytes(ethanEncodeRET())...)                    // return
+				program = append(program, ethanEncodeInstBytes(ethanEncodeADDImm(0, 0, 5, false))...) // x0 += 5 (now 20)
+				program = append(program, ethanEncodeInstBytes(ethanEncodeRET())...)                  // return
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
 
 				// 10 + 5 (outer) + 5 (inner) + 5 (outer again) = 25
 				result := ValidationResult{
-					Name:              "nested_calls",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  25,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 25,
+					Name:             "nested_calls",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 25,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 25,
 				}
 				validationResults = append(validationResults, result)
 
@@ -325,11 +325,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 
 				// 0xFF & 0xF0 = 0xF0, 0xF0 | 0x0F = 0xFF
 				result := ValidationResult{
-					Name:              "logical_ops",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  255,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 255,
+					Name:             "logical_ops",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 255,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 255,
 				}
 				validationResults = append(validationResults, result)
 
@@ -352,11 +352,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "memory_ops",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  77,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 77,
+					Name:             "memory_ops",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 77,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 77,
 				}
 				validationResults = append(validationResults, result)
 
@@ -379,11 +379,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "cond_branch_eq",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  5,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 5,
+					Name:             "cond_branch_eq",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 5,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 5,
 				}
 				validationResults = append(validationResults, result)
 
@@ -404,11 +404,11 @@ var _ = Describe("Ethan Validation Suite", func() {
 				exitCode := e.Run()
 
 				result := ValidationResult{
-					Name:              "cond_branch_gt",
-					ExitCode:          exitCode,
-					ExpectedExitCode:  10,
-					InstructionCount:  e.InstructionCount(),
-					Pass:              exitCode == 10,
+					Name:             "cond_branch_gt",
+					ExitCode:         exitCode,
+					ExpectedExitCode: 10,
+					InstructionCount: e.InstructionCount(),
+					Pass:             exitCode == 10,
 				}
 				validationResults = append(validationResults, result)
 
@@ -513,6 +513,7 @@ func ethanEncodeORRReg(rd, rn, rm uint8) uint32 {
 	return inst
 }
 
+//nolint:unused // helper for future tests
 func ethanEncodeEORReg(rd, rn, rm uint8) uint32 {
 	var inst uint32 = 0
 	inst |= 1 << 31
@@ -556,6 +557,8 @@ func ethanEncodeSTR64(rd, rn uint8, offset uint16) uint32 {
 }
 
 // Pre-index/post-index variants for stack operations
+//
+//nolint:unused // helper for future tests
 func ethanEncodeLDR64Offset(rt, rn uint8, offset int16) uint32 {
 	// LDR (immediate) with pre-index mode
 	var inst uint32 = 0
@@ -567,12 +570,13 @@ func ethanEncodeLDR64Offset(rt, rn uint8, offset int16) uint32 {
 	inst |= 0 << 21
 	imm9 := uint32(offset) & 0x1FF
 	inst |= imm9 << 12
-	inst |= 0b01 << 10  // pre-index
+	inst |= 0b01 << 10 // pre-index
 	inst |= uint32(rn&0x1F) << 5
 	inst |= uint32(rt & 0x1F)
 	return inst
 }
 
+//nolint:unused // helper for future tests
 func ethanEncodeSTR64Offset(rt, rn uint8, offset int16) uint32 {
 	// STR (immediate) with pre-index mode
 	var inst uint32 = 0
@@ -584,12 +588,13 @@ func ethanEncodeSTR64Offset(rt, rn uint8, offset int16) uint32 {
 	inst |= 0 << 21
 	imm9 := uint32(offset) & 0x1FF
 	inst |= imm9 << 12
-	inst |= 0b01 << 10  // pre-index
+	inst |= 0b01 << 10 // pre-index
 	inst |= uint32(rn&0x1F) << 5
 	inst |= uint32(rt & 0x1F)
 	return inst
 }
 
+//nolint:unused // helper for future tests
 func ethanEncodeB(offset int32) uint32 {
 	var inst uint32 = 0
 	inst |= 0b000101 << 26

@@ -253,7 +253,7 @@ var _ = Describe("Pipeline", func() {
 		})
 
 	})
-	
+
 	Describe("Halted", func() {
 		BeforeEach(func() {
 			pipe = pipeline.NewPipeline(regFile, memory)

@@ -33,9 +33,9 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 				// MOV X0, #42    (exit code)
 				// SVC #0
 				program := []byte{}
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93
-				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 42, false))...)  // X0 = 42
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...) // X8 = 93
+				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 42, false))...) // X0 = 42
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -55,11 +55,11 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 				// MOV X8, #93
 				// SVC #0
 				program := []byte{}
-				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 10, false))...)  // X0 = 10
-				program = append(program, uint32ToBytes(encodeADDImm(1, 31, 5, false))...)   // X1 = 5
-				program = append(program, uint32ToBytes(encodeADDReg(0, 0, 1, false))...)    // X0 = X0 + X1
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
+				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 10, false))...) // X0 = 10
+				program = append(program, uint32ToBytes(encodeADDImm(1, 31, 5, false))...)  // X1 = 5
+				program = append(program, uint32ToBytes(encodeADDReg(0, 0, 1, false))...)   // X0 = X0 + X1
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...) // X8 = 93
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -77,7 +77,7 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 100, false))...) // X0 = 100
 				program = append(program, uint32ToBytes(encodeSUBImm(0, 0, 58, false))...)   // X0 = X0 - 58
 				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                    // syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -98,12 +98,12 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 				// MOV X8, #93          ; exit syscall
 				// SVC #0
 				program := []byte{}
-				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 3, false))...)   // X0 = 3
+				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 3, false))...) // X0 = 3
 				// loop:
-				program = append(program, uint32ToBytes(encodeSUBImm(0, 0, 1, true))...)     // X0 = X0 - 1 (set flags)
-				program = append(program, uint32ToBytes(encodeBCond(-4, insts.CondNE))...)   // B.NE loop
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
+				program = append(program, uint32ToBytes(encodeSUBImm(0, 0, 1, true))...)    // X0 = X0 - 1 (set flags)
+				program = append(program, uint32ToBytes(encodeBCond(-4, insts.CondNE))...)  // B.NE loop
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...) // X8 = 93
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -126,14 +126,14 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 				// MOV X8, #93          ; exit syscall
 				// SVC #0
 				program := []byte{}
-				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 0, false))...)   // X0 = 0
-				program = append(program, uint32ToBytes(encodeADDImm(1, 31, 5, false))...)   // X1 = 5
+				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 0, false))...) // X0 = 0
+				program = append(program, uint32ToBytes(encodeADDImm(1, 31, 5, false))...) // X1 = 5
 				// loop:
-				program = append(program, uint32ToBytes(encodeADDReg(0, 0, 1, false))...)    // X0 = X0 + X1
-				program = append(program, uint32ToBytes(encodeSUBImm(1, 1, 1, true))...)     // X1 = X1 - 1 (set flags)
-				program = append(program, uint32ToBytes(encodeBCond(-8, insts.CondNE))...)   // B.NE loop
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
+				program = append(program, uint32ToBytes(encodeADDReg(0, 0, 1, false))...)   // X0 = X0 + X1
+				program = append(program, uint32ToBytes(encodeSUBImm(1, 1, 1, true))...)    // X1 = X1 - 1 (set flags)
+				program = append(program, uint32ToBytes(encodeBCond(-8, insts.CondNE))...)  // B.NE loop
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...) // X8 = 93
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -157,14 +157,14 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 				e.RegFile().WriteReg(1, bufAddr)
 
 				program := []byte{}
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 64, false))...)  // X8 = 64 (write)
-				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 1, false))...)   // X0 = 1 (stdout)
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 64, false))...) // X8 = 64 (write)
+				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 1, false))...)  // X0 = 1 (stdout)
 				// X1 already set to buffer address
-				program = append(program, uint32ToBytes(encodeADDImm(2, 31, 6, false))...)   // X2 = 6 (length)
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // write syscall
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93 (exit)
-				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 0, false))...)   // X0 = 0
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // exit syscall
+				program = append(program, uint32ToBytes(encodeADDImm(2, 31, 6, false))...)  // X2 = 6 (length)
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // write syscall
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...) // X8 = 93 (exit)
+				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 0, false))...)  // X0 = 0
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // exit syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -190,13 +190,13 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 
 				program := []byte{}
 				// main: PC=0x1000
-				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 10, false))...)  // X0 = 10
-				program = append(program, uint32ToBytes(encodeBL(12))...)                    // BL +12 (to add_five at 0x1010)
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
+				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 10, false))...) // X0 = 10
+				program = append(program, uint32ToBytes(encodeBL(12))...)                   // BL +12 (to add_five at 0x1010)
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...) // X8 = 93
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // syscall
 				// add_five: PC=0x1010
-				program = append(program, uint32ToBytes(encodeADDImm(0, 0, 5, false))...)    // X0 = X0 + 5
-				program = append(program, uint32ToBytes(encodeRET())...)                      // RET
+				program = append(program, uint32ToBytes(encodeADDImm(0, 0, 5, false))...) // X0 = X0 + 5
+				program = append(program, uint32ToBytes(encodeRET())...)                  // RET
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -215,7 +215,7 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 				program := []byte{}
 				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 120, false))...) // X0 = 120
 				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                    // syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -244,7 +244,7 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 				program = append(program, uint32ToBytes(encodeEORReg(4, 0, 1))...)            // X4 = X0 ^ X1
 				program = append(program, uint32ToBytes(encodeADDReg(0, 31, 4, false))...)    // X0 = X4 (for exit)
 				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)   // X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                      // syscall
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -257,13 +257,13 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 
 		Context("memory_ops: Load and Store", func() {
 			It("should load and store 64-bit values", func() {
-				e.Memory().Write64(0x2000, 77) // Store 77
+				e.Memory().Write64(0x2000, 77)  // Store 77
 				e.RegFile().WriteReg(1, 0x2000) // Base address
 
 				program := []byte{}
-				program = append(program, uint32ToBytes(encodeLDR64(0, 1, 0))...)            // X0 = [X1]
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // syscall
+				program = append(program, uint32ToBytes(encodeLDR64(0, 1, 0))...)           // X0 = [X1]
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...) // X8 = 93
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // syscall
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -292,17 +292,17 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 
 				program := []byte{}
 				// main: PC=0x1000
-				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 5, false))...)   // 0x1000: X0 = 5
-				program = append(program, uint32ToBytes(encodeBL(16))...)                    // 0x1004: BL +16 -> 0x1014 (func_a)
-				program = append(program, uint32ToBytes(encodeBL(20))...)                    // 0x1008: BL +20 -> 0x101C (func_b)
-				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...)  // 0x100C: X8 = 93
-				program = append(program, uint32ToBytes(encodeSVC(0))...)                     // 0x1010: syscall
+				program = append(program, uint32ToBytes(encodeADDImm(0, 31, 5, false))...)  // 0x1000: X0 = 5
+				program = append(program, uint32ToBytes(encodeBL(16))...)                   // 0x1004: BL +16 -> 0x1014 (func_a)
+				program = append(program, uint32ToBytes(encodeBL(20))...)                   // 0x1008: BL +20 -> 0x101C (func_b)
+				program = append(program, uint32ToBytes(encodeADDImm(8, 31, 93, false))...) // 0x100C: X8 = 93
+				program = append(program, uint32ToBytes(encodeSVC(0))...)                   // 0x1010: syscall
 				// func_a: PC=0x1014
-				program = append(program, uint32ToBytes(encodeADDImm(0, 0, 10, false))...)   // 0x1014: X0 += 10
-				program = append(program, uint32ToBytes(encodeRET())...)                      // 0x1018: RET
+				program = append(program, uint32ToBytes(encodeADDImm(0, 0, 10, false))...) // 0x1014: X0 += 10
+				program = append(program, uint32ToBytes(encodeRET())...)                   // 0x1018: RET
 				// func_b: PC=0x101C
-				program = append(program, uint32ToBytes(encodeADDImm(0, 0, 20, false))...)   // 0x101C: X0 += 20
-				program = append(program, uint32ToBytes(encodeRET())...)                      // 0x1020: RET
+				program = append(program, uint32ToBytes(encodeADDImm(0, 0, 20, false))...) // 0x101C: X0 += 20
+				program = append(program, uint32ToBytes(encodeRET())...)                   // 0x1020: RET
 
 				e.LoadProgram(0x1000, program)
 				exitCode := e.Run()
@@ -344,13 +344,13 @@ var _ = Describe("M2 Baseline Validation Suite", func() {
 
 func encodeANDReg(rd, rn, rm uint8) uint32 {
 	var inst uint32 = 0
-	inst |= 1 << 31         // sf = 1 (64-bit)
-	inst |= 0b00 << 29      // opc = 00 (AND)
-	inst |= 0b01010 << 24   // op group
-	inst |= 0 << 22         // shift type = LSL
-	inst |= 0 << 21         // N = 0
+	inst |= 1 << 31       // sf = 1 (64-bit)
+	inst |= 0b00 << 29    // opc = 00 (AND)
+	inst |= 0b01010 << 24 // op group
+	inst |= 0 << 22       // shift type = LSL
+	inst |= 0 << 21       // N = 0
 	inst |= uint32(rm&0x1F) << 16
-	inst |= 0 << 10         // imm6 = 0 (no shift)
+	inst |= 0 << 10 // imm6 = 0 (no shift)
 	inst |= uint32(rn&0x1F) << 5
 	inst |= uint32(rd & 0x1F)
 	return inst
@@ -358,13 +358,13 @@ func encodeANDReg(rd, rn, rm uint8) uint32 {
 
 func encodeORRReg(rd, rn, rm uint8) uint32 {
 	var inst uint32 = 0
-	inst |= 1 << 31         // sf = 1 (64-bit)
-	inst |= 0b01 << 29      // opc = 01 (ORR)
-	inst |= 0b01010 << 24   // op group
-	inst |= 0 << 22         // shift type = LSL
-	inst |= 0 << 21         // N = 0
+	inst |= 1 << 31       // sf = 1 (64-bit)
+	inst |= 0b01 << 29    // opc = 01 (ORR)
+	inst |= 0b01010 << 24 // op group
+	inst |= 0 << 22       // shift type = LSL
+	inst |= 0 << 21       // N = 0
 	inst |= uint32(rm&0x1F) << 16
-	inst |= 0 << 10         // imm6 = 0 (no shift)
+	inst |= 0 << 10 // imm6 = 0 (no shift)
 	inst |= uint32(rn&0x1F) << 5
 	inst |= uint32(rd & 0x1F)
 	return inst
@@ -372,13 +372,13 @@ func encodeORRReg(rd, rn, rm uint8) uint32 {
 
 func encodeEORReg(rd, rn, rm uint8) uint32 {
 	var inst uint32 = 0
-	inst |= 1 << 31         // sf = 1 (64-bit)
-	inst |= 0b10 << 29      // opc = 10 (EOR)
-	inst |= 0b01010 << 24   // op group
-	inst |= 0 << 22         // shift type = LSL
-	inst |= 0 << 21         // N = 0
+	inst |= 1 << 31       // sf = 1 (64-bit)
+	inst |= 0b10 << 29    // opc = 10 (EOR)
+	inst |= 0b01010 << 24 // op group
+	inst |= 0 << 22       // shift type = LSL
+	inst |= 0 << 21       // N = 0
 	inst |= uint32(rm&0x1F) << 16
-	inst |= 0 << 10         // imm6 = 0 (no shift)
+	inst |= 0 << 10 // imm6 = 0 (no shift)
 	inst |= uint32(rn&0x1F) << 5
 	inst |= uint32(rd & 0x1F)
 	return inst

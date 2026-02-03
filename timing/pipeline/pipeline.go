@@ -204,7 +204,7 @@ func (p *Pipeline) Tick() {
 				p.idex.Rd,
 				nextInst.Rn,
 				nextInst.Rm,
-				true, // Most instructions use Rn
+				true,                                 // Most instructions use Rn
 				nextInst.Format == insts.FormatDPReg, // Only register format uses Rm
 			)
 		}

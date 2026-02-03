@@ -30,11 +30,11 @@ func TestValidationBaseline(t *testing.T) {
 		{
 			name: "arithmetic",
 			program: buildProgram(
-				encodeADDImm(0, 31, 10, false),  // X0 = 10
-				encodeADDImm(1, 31, 5, false),   // X1 = 5
-				encodeADDReg(0, 0, 1, false),    // X0 = X0 + X1
-				encodeADDImm(8, 31, 93, false),  // X8 = 93
-				encodeSVC(0),                    // syscall
+				encodeADDImm(0, 31, 10, false), // X0 = 10
+				encodeADDImm(1, 31, 5, false),  // X1 = 5
+				encodeADDReg(0, 0, 1, false),   // X0 = X0 + X1
+				encodeADDImm(8, 31, 93, false), // X8 = 93
+				encodeSVC(0),                   // syscall
 			),
 			expectedExit: 15,
 		},
@@ -51,24 +51,24 @@ func TestValidationBaseline(t *testing.T) {
 		{
 			name: "loop",
 			program: buildProgram(
-				encodeADDImm(0, 31, 3, false),   // X0 = 3
-				encodeSUBImm(0, 0, 1, true),     // SUBS X0, X0, #1
-				encodeBCond(-4, 1),              // B.NE loop (CondNE = 1)
-				encodeADDImm(8, 31, 93, false),  // X8 = 93
-				encodeSVC(0),                    // syscall
+				encodeADDImm(0, 31, 3, false),  // X0 = 3
+				encodeSUBImm(0, 0, 1, true),    // SUBS X0, X0, #1
+				encodeBCond(-4, 1),             // B.NE loop (CondNE = 1)
+				encodeADDImm(8, 31, 93, false), // X8 = 93
+				encodeSVC(0),                   // syscall
 			),
 			expectedExit: 0,
 		},
 		{
 			name: "loop_sum",
 			program: buildProgram(
-				encodeADDImm(0, 31, 0, false),   // X0 = 0 (sum)
-				encodeADDImm(1, 31, 5, false),   // X1 = 5 (counter)
-				encodeADDReg(0, 0, 1, false),    // ADD X0, X0, X1
-				encodeSUBImm(1, 1, 1, true),     // SUBS X1, X1, #1
-				encodeBCond(-8, 1),              // B.NE loop
-				encodeADDImm(8, 31, 93, false),  // X8 = 93
-				encodeSVC(0),                    // syscall
+				encodeADDImm(0, 31, 0, false),  // X0 = 0 (sum)
+				encodeADDImm(1, 31, 5, false),  // X1 = 5 (counter)
+				encodeADDReg(0, 0, 1, false),   // ADD X0, X0, X1
+				encodeSUBImm(1, 1, 1, true),    // SUBS X1, X1, #1
+				encodeBCond(-8, 1),             // B.NE loop
+				encodeADDImm(8, 31, 93, false), // X8 = 93
+				encodeSVC(0),                   // syscall
 			),
 			expectedExit: 15,
 		},
@@ -83,13 +83,13 @@ func TestValidationBaseline(t *testing.T) {
 				e.RegFile().WriteReg(1, 0x3000) // Buffer address
 			},
 			program: buildProgram(
-				encodeADDImm(8, 31, 64, false),  // X8 = 64 (write syscall)
-				encodeADDImm(0, 31, 1, false),   // X0 = 1 (stdout)
-				encodeADDImm(2, 31, 6, false),   // X2 = 6 (length)
-				encodeSVC(0),                    // write syscall
-				encodeADDImm(8, 31, 93, false),  // X8 = 93 (exit)
-				encodeADDImm(0, 31, 0, false),   // X0 = 0
-				encodeSVC(0),                    // exit syscall
+				encodeADDImm(8, 31, 64, false), // X8 = 64 (write syscall)
+				encodeADDImm(0, 31, 1, false),  // X0 = 1 (stdout)
+				encodeADDImm(2, 31, 6, false),  // X2 = 6 (length)
+				encodeSVC(0),                   // write syscall
+				encodeADDImm(8, 31, 93, false), // X8 = 93 (exit)
+				encodeADDImm(0, 31, 0, false),  // X0 = 0
+				encodeSVC(0),                   // exit syscall
 			),
 			expectedExit:   0,
 			expectedOutput: "Hello\n",
@@ -97,13 +97,13 @@ func TestValidationBaseline(t *testing.T) {
 		{
 			name: "function_call",
 			program: buildProgram(
-				encodeADDImm(0, 31, 10, false),  // X0 = 10
-				encodeBL(12),                    // BL add_five
-				encodeADDImm(8, 31, 93, false),  // X8 = 93
-				encodeSVC(0),                    // syscall
+				encodeADDImm(0, 31, 10, false), // X0 = 10
+				encodeBL(12),                   // BL add_five
+				encodeADDImm(8, 31, 93, false), // X8 = 93
+				encodeSVC(0),                   // syscall
 				// add_five:
-				encodeADDImm(0, 0, 5, false),    // X0 += 5
-				encodeRET(),                     // RET
+				encodeADDImm(0, 0, 5, false), // X0 += 5
+				encodeRET(),                  // RET
 			),
 			expectedExit: 15,
 		},
