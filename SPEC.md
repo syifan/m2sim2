@@ -40,14 +40,14 @@ Cycle-accurate timing.
 - [x] Instruction timing
 - [x] Basic timing predictions
 
-### M4: Cache Hierarchy — IN PROGRESS
+### M4: Cache Hierarchy ✅ COMPLETE
 Memory system timing.
 
 **Completion criteria:**
-- [ ] L1 instruction cache
-- [x] L1 data cache  
-- [x] L2 unified cache
-- [ ] Cache timing model (integration with pipeline)
+- [x] L1 instruction cache (CachedFetchStage)
+- [x] L1 data cache (CachedMemoryStage)
+- [x] L2 unified cache (CacheBacking hierarchy)
+- [x] Cache timing model (integrated via WithICache/WithDCache/WithDefaultCaches)
 
 ### M5: Advanced Features
 Accuracy improvements.
