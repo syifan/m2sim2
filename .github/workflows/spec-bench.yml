@@ -1,0 +1,122 @@
+name: SPEC Benchmark Daily
+
+# SPEC CPU 2017 benchmark validation
+# Runs daily on a self-hosted runner with SPEC installed
+# Not blocking PRs - informational only
+
+on:
+  schedule:
+    # Run at 6 AM UTC daily (1 AM EST)
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      benchmark:
+        description: 'Specific benchmark to run (blank = all available)'
+        required: false
+        default: ''
+
+# Only one SPEC run at a time
+concurrency:
+  group: spec-bench
+  cancel-in-progress: false
+
+jobs:
+  spec-bench:
+    name: SPEC Benchmark Validation
+    # Requires self-hosted runner with SPEC installed
+    # Label: macos-arm64-spec (or macos-14 for testing without SPEC)
+    runs-on: macos-14
+    timeout-minutes: 240  # 4 hours max
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Install Ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Check SPEC availability
+        id: spec-check
+        run: |
+          SPEC_PATH="benchmarks/spec"
+          if [ -L "$SPEC_PATH" ] && [ -d "$(readlink "$SPEC_PATH")" ]; then
+            echo "spec_available=true" >> $GITHUB_OUTPUT
+            echo "✅ SPEC installation found"
+            
+            # Check for built binaries
+            AVAILABLE=$(go run ./cmd/spec-check 2>/dev/null || echo "0")
+            echo "available_benchmarks=$AVAILABLE" >> $GITHUB_OUTPUT
+          else
+            echo "spec_available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ SPEC not found at $SPEC_PATH"
+            echo "This workflow requires a self-hosted runner with SPEC installed."
+          fi
+
+      - name: Run SPEC benchmarks
+        if: steps.spec-check.outputs.spec_available == 'true'
+        run: |
+          echo "Running SPEC benchmark validation..."
+          
+          # Run SPEC tests with extended timeout
+          go test -v -timeout 3h ./benchmarks/... -run TestSPEC || {
+            echo "⚠️ Some SPEC tests failed or timed out"
+            exit 0  # Don't fail workflow on test failures
+          }
+
+      - name: Generate SPEC accuracy report
+        if: steps.spec-check.outputs.spec_available == 'true'
+        run: |
+          mkdir -p reports/spec
+          
+          # Generate report (placeholder - actual report generation TBD)
+          cat > reports/spec/spec-report.md << 'EOF'
+          # SPEC Benchmark Report
+          
+          Generated: $(date -u +"%Y-%m-%d %H:%M UTC")
+          
+          ## Status
+          
+          SPEC benchmark infrastructure is set up.
+          See workflow logs for detailed results.
+          
+          ## Notes
+          
+          - Running on: ${{ runner.os }} / ${{ runner.arch }}
+          - Timeout: 4 hours
+          - Benchmarks: 557.xz_r, 505.mcf_r, 531.deepsjeng_r
+          EOF
+          
+          echo "Report generated at reports/spec/spec-report.md"
+
+      - name: Upload SPEC Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-report-${{ github.run_number }}
+          path: reports/spec/
+          retention-days: 90
+
+      - name: Post Summary
+        if: always()
+        run: |
+          echo "## SPEC Benchmark Daily Run" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "- **SPEC Available:** ${{ steps.spec-check.outputs.spec_available }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.spec-check.outputs.spec_available }}" != "true" ]; then
+            echo "⚠️ **SPEC not installed on this runner.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "To enable SPEC benchmarks:" >> $GITHUB_STEP_SUMMARY
+            echo "1. Use a self-hosted runner with SPEC CPU 2017 installed" >> $GITHUB_STEP_SUMMARY
+            echo "2. Run \`scripts/spec-setup.sh link\` to create the symlink" >> $GITHUB_STEP_SUMMARY
+            echo "3. Run \`scripts/spec-setup.sh build\` to compile ARM64 binaries" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "See artifacts for detailed benchmark results." >> $GITHUB_STEP_SUMMARY
+          fi
