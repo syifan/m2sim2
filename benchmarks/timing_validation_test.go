@@ -49,11 +49,23 @@ func TestTimingPredictions_DependencyVsIndependent(t *testing.T) {
 		t.Error("This suggests the pipeline is not detecting data dependencies")
 	}
 
-	// With proper forwarding, dependency chains should NOT require stalls
-	// for ALU-to-ALU hazards (only load-use hazards need stalls)
-	if dep.StallCycles > 0 && indep.StallCycles == 0 {
-		t.Logf("Note: dependency chain has stalls (%d) - may indicate load-use hazards",
-			dep.StallCycles)
+	// With proper forwarding, dependency and independent CPIs should be close.
+	// A large gap would indicate forwarding isn't working properly.
+	cpiDiff := dep.CPI - indep.CPI
+	if cpiDiff < 0 {
+		cpiDiff = -cpiDiff
+	}
+	if cpiDiff > 0.5 {
+		t.Errorf("TIMING BUG: CPI difference (%.3f) too large between dependency (%.3f) and independent (%.3f)",
+			cpiDiff, dep.CPI, indep.CPI)
+		t.Error("With proper forwarding, ALU-to-ALU dependency chains should not stall")
+	}
+
+	// For ALU-only benchmarks (no loads), neither should have stalls when caches disabled
+	if dep.StallCycles > indep.StallCycles {
+		t.Logf("Note: dependency chain has more stalls (%d) than independent (%d)",
+			dep.StallCycles, indep.StallCycles)
+		t.Log("For ALU-only chains with forwarding, this may indicate a bug")
 	}
 }
 

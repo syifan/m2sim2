@@ -278,16 +278,26 @@ func (p *Pipeline) Tick() {
 			usesRn := true                                 // Most instructions use Rn
 			usesRm := nextInst.Format == insts.FormatDPReg // Only register format uses Rm
 
+			// For store instructions, the store data comes from Rd (Rt in AArch64),
+			// which can be the destination of a preceding load. Treat Rd as a
+			// source register for load-use hazard detection.
+			sourceRm := nextInst.Rm
+			switch nextInst.Op {
+			case insts.OpSTR, insts.OpSTRQ:
+				usesRm = true
+				sourceRm = nextInst.Rd
+			}
+
 			loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
 				p.idex.Rd,
 				nextInst.Rn,
-				nextInst.Rm,
+				sourceRm,
 				usesRn,
 				usesRm,
 			)
-			if loadUseHazard {
-				p.stats.Stalls++ // Count load-use stalls
-			}
+			// Note: stall cycles for load-use hazards are counted in the fetch
+			// stage when the pipeline is actually stalled (see StallIF handling),
+			// so we do not increment p.stats.Stalls here to avoid double-counting.
 		}
 	}
 

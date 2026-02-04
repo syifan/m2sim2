@@ -103,6 +103,8 @@ func memorySequential() Benchmark {
 		},
 		Program: BuildProgram(
 			// Store X0 to [X1], load back, repeat at different offsets
+			// Note: Between pairs (e.g., LDR X0 then STR X0), there's a load-use
+			// hazard that requires a stall to ensure correct behavior.
 			EncodeSTR64(0, 1, 0), EncodeLDR64(0, 1, 0),
 			EncodeSTR64(0, 1, 1), EncodeLDR64(0, 1, 1), // offset = 8 bytes
 			EncodeSTR64(0, 1, 2), EncodeLDR64(0, 1, 2),
@@ -115,9 +117,9 @@ func memorySequential() Benchmark {
 			EncodeSTR64(0, 1, 9), EncodeLDR64(0, 1, 9),
 			EncodeSVC(0),
 		),
-		// Note: Expected value depends on simulator's memory/load behavior.
-		// Current simulator returns 32832 (0x8040) due to memory address scaling.
-		ExpectedExit: 32832,
+		// X0 starts at 42, and with proper load-use hazard handling for stores,
+		// the value is preserved through all store-load pairs.
+		ExpectedExit: 42,
 	}
 }
 

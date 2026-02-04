@@ -101,10 +101,11 @@ func TestMemorySequential(t *testing.T) {
 	}
 
 	r := results[0]
-	// Note: Expected value depends on simulator's memory/load behavior.
-	// Current simulator returns 32832 (0x8040) due to memory address scaling.
-	if r.ExitCode != 32832 {
-		t.Errorf("expected exit code 32832, got %d", r.ExitCode)
+	// With proper load-use hazard detection for stores, the benchmark correctly
+	// preserves X0's value (42) through all store-load pairs. The pipeline stalls
+	// when a load result is needed by a subsequent store.
+	if r.ExitCode != 42 {
+		t.Errorf("expected exit code 42, got %d", r.ExitCode)
 	}
 
 	t.Logf("memory_sequential: cycles=%d, insts=%d, CPI=%.3f",
