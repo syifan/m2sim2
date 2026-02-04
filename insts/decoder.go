@@ -124,10 +124,10 @@ const (
 type IndexMode uint8
 
 const (
-	IndexNone    IndexMode = iota // No indexing (unsigned offset)
-	IndexPost                     // Post-index: [Rn], #imm
-	IndexPre                      // Pre-index: [Rn, #imm]!
-	IndexSigned                   // Signed offset (for load/store pair)
+	IndexNone   IndexMode = iota // No indexing (unsigned offset)
+	IndexPost                    // Post-index: [Rn], #imm
+	IndexPre                     // Pre-index: [Rn, #imm]!
+	IndexSigned                  // Signed offset (for load/store pair)
 )
 
 // Instruction represents a decoded ARM64 instruction.
@@ -789,14 +789,14 @@ func (d *Decoder) isLoadStorePair(word uint32) bool {
 func (d *Decoder) decodeLoadStorePair(word uint32, inst *Instruction) {
 	inst.Format = FormatLoadStorePair
 
-	opc := (word >> 30) & 0x3    // bits [31:30]
-	v := (word >> 26) & 0x1      // bit 26: 0=GPR, 1=SIMD
-	mode := (word >> 23) & 0x7   // bits [25:23]
-	l := (word >> 22) & 0x1      // bit 22: 0=STP, 1=LDP
-	imm7 := (word >> 15) & 0x7F  // bits [21:15]
-	rt2 := (word >> 10) & 0x1F   // bits [14:10]
-	rn := (word >> 5) & 0x1F     // bits [9:5]
-	rt := word & 0x1F            // bits [4:0]
+	opc := (word >> 30) & 0x3   // bits [31:30]
+	v := (word >> 26) & 0x1     // bit 26: 0=GPR, 1=SIMD
+	mode := (word >> 23) & 0x7  // bits [25:23]
+	l := (word >> 22) & 0x1     // bit 22: 0=STP, 1=LDP
+	imm7 := (word >> 15) & 0x7F // bits [21:15]
+	rt2 := (word >> 10) & 0x1F  // bits [14:10]
+	rn := (word >> 5) & 0x1F    // bits [9:5]
+	rt := word & 0x1F           // bits [4:0]
 
 	inst.Rn = uint8(rn)
 	inst.Rd = uint8(rt)   // Rt uses Rd field
@@ -846,8 +846,8 @@ func (d *Decoder) decodeLoadStorePair(word uint32, inst *Instruction) {
 // bits [29:27] == 111, bit 26 == V, bits [25:24] == 00, bit 21 == 0
 // mode[11:10]: 00=unscaled, 01=post-index, 10=unprivileged, 11=pre-index
 func (d *Decoder) isLoadStoreRegIndexed(word uint32) bool {
-	op1 := (word >> 27) & 0x7  // bits [29:27]
-	op2 := (word >> 24) & 0x3  // bits [25:24]
+	op1 := (word >> 27) & 0x7   // bits [29:27]
+	op2 := (word >> 24) & 0x3   // bits [25:24]
 	bit21 := (word >> 21) & 0x1 // bit 21
 	return op1 == 0b111 && op2 == 0b00 && bit21 == 0
 }
@@ -862,13 +862,13 @@ func (d *Decoder) isLoadStoreRegIndexed(word uint32) bool {
 func (d *Decoder) decodeLoadStoreRegIndexed(word uint32, inst *Instruction) {
 	inst.Format = FormatLoadStore
 
-	size := (word >> 30) & 0x3     // bits [31:30]
-	v := (word >> 26) & 0x1        // bit 26: 0=GPR
-	opc := (word >> 22) & 0x3      // bits [23:22]
-	imm9 := (word >> 12) & 0x1FF   // bits [20:12]
-	mode := (word >> 10) & 0x3     // bits [11:10]
-	rn := (word >> 5) & 0x1F       // bits [9:5]
-	rt := word & 0x1F              // bits [4:0]
+	size := (word >> 30) & 0x3   // bits [31:30]
+	v := (word >> 26) & 0x1      // bit 26: 0=GPR
+	opc := (word >> 22) & 0x3    // bits [23:22]
+	imm9 := (word >> 12) & 0x1FF // bits [20:12]
+	mode := (word >> 10) & 0x3   // bits [11:10]
+	rn := (word >> 5) & 0x1F     // bits [9:5]
+	rt := word & 0x1F            // bits [4:0]
 
 	inst.Rn = uint8(rn)
 	inst.Rd = uint8(rt)
@@ -896,7 +896,7 @@ func (d *Decoder) decodeLoadStoreRegIndexed(word uint32, inst *Instruction) {
 	// size=10 (32-bit), opc=00=STR, opc=01=LDR
 	// size=01 (16-bit), opc=00=STRH, opc=01=LDRH, opc=10=LDRSW(16), opc=11=LDRSH
 	// size=00 (8-bit), opc=00=STRB, opc=01=LDRB, opc=10=LDRSB(64), opc=11=LDRSB(32)
-	
+
 	switch size {
 	case 0b11: // 64-bit
 		inst.Is64Bit = true
