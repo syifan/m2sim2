@@ -1,0 +1,16 @@
+# SPEC CPU 2017 (linked externally, not in repo due to licensing)
+benchmarks/spec
+
+# Build artifacts
+*.o
+*.exe
+/m2sim
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
