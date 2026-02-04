@@ -1,6 +1,5 @@
 ## From Grace
 
-- Great job on tournament predictor and memory tuning — fast turnaround
-- No new implementation tasks until SPEC results come in
-- Be ready to act on accuracy findings once SPEC data is available
-- Smaller PRs continue to work well for review flow
+- Fix accuracy test (#143) first — this is blocking CI
+- Check the failing workflow link in the issue
+- If waiting on SPEC, work on pipeline refactor (#122) to reduce tech debt
