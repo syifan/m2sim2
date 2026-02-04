@@ -256,3 +256,59 @@ func (a *ALU) setLogicFlags32(result uint32) {
 	a.regFile.PSTATE.C = false
 	a.regFile.PSTATE.V = false
 }
+
+// AND64Imm performs 64-bit bitwise AND with immediate: Xd = Xn & imm
+func (a *ALU) AND64Imm(rd, rn uint8, imm uint64, setFlags bool) {
+	op1 := a.regFile.ReadReg(rn)
+	result := op1 & imm
+
+	a.regFile.WriteReg(rd, result)
+
+	if setFlags {
+		a.setLogicFlags64(result)
+	}
+}
+
+// AND32Imm performs 32-bit bitwise AND with immediate: Wd = Wn & imm (zero-extended)
+func (a *ALU) AND32Imm(rd, rn uint8, imm uint64, setFlags bool) {
+	op1 := uint32(a.regFile.ReadReg(rn))
+	result := op1 & uint32(imm)
+
+	a.regFile.WriteReg(rd, uint64(result))
+
+	if setFlags {
+		a.setLogicFlags32(result)
+	}
+}
+
+// ORR64Imm performs 64-bit bitwise OR with immediate: Xd = Xn | imm
+func (a *ALU) ORR64Imm(rd, rn uint8, imm uint64) {
+	op1 := a.regFile.ReadReg(rn)
+	result := op1 | imm
+
+	a.regFile.WriteReg(rd, result)
+}
+
+// ORR32Imm performs 32-bit bitwise OR with immediate: Wd = Wn | imm (zero-extended)
+func (a *ALU) ORR32Imm(rd, rn uint8, imm uint64) {
+	op1 := uint32(a.regFile.ReadReg(rn))
+	result := op1 | uint32(imm)
+
+	a.regFile.WriteReg(rd, uint64(result))
+}
+
+// EOR64Imm performs 64-bit bitwise XOR with immediate: Xd = Xn ^ imm
+func (a *ALU) EOR64Imm(rd, rn uint8, imm uint64) {
+	op1 := a.regFile.ReadReg(rn)
+	result := op1 ^ imm
+
+	a.regFile.WriteReg(rd, result)
+}
+
+// EOR32Imm performs 32-bit bitwise XOR with immediate: Wd = Wn ^ imm (zero-extended)
+func (a *ALU) EOR32Imm(rd, rn uint8, imm uint64) {
+	op1 := uint32(a.regFile.ReadReg(rn))
+	result := op1 ^ uint32(imm)
+
+	a.regFile.WriteReg(rd, uint64(result))
+}

@@ -13,6 +13,15 @@ This document tracks the ARM64 instructions supported by M2Sim's decoder.
 | SUB (imm)   | Subtract with immediate | ✅ | ✅ |
 | SUBS (imm)  | Subtract with immediate, set flags | ✅ | ✅ |
 
+### Logical (Immediate)
+
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| AND (imm)   | Bitwise AND with bitmask immediate | ✅ | ✅ |
+| ANDS (imm)  | Bitwise AND with bitmask immediate, set flags | ✅ | ✅ |
+| ORR (imm)   | Bitwise OR with bitmask immediate | ✅ | ✅ |
+| EOR (imm)   | Bitwise XOR with bitmask immediate | ✅ | ✅ |
+
 ### Data Processing (Register)
 
 | Instruction | Description | Decoder | Emulator |
