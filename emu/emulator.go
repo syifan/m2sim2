@@ -221,6 +221,8 @@ func (e *Emulator) execute(inst *insts.Instruction) StepResult {
 		e.executeDPImm(inst)
 	case insts.FormatDPReg:
 		e.executeDPReg(inst)
+	case insts.FormatLogicalImm:
+		e.executeLogicalImm(inst)
 	case insts.FormatBranch:
 		e.executeBranch(inst)
 		return StepResult{} // PC already updated by branch
@@ -333,6 +335,30 @@ func (e *Emulator) executeDPReg(inst *insts.Instruction) {
 			e.alu.EOR64(inst.Rd, inst.Rn, inst.Rm)
 		} else {
 			e.alu.EOR32(inst.Rd, inst.Rn, inst.Rm)
+		}
+	}
+}
+
+// executeLogicalImm executes Logical Immediate instructions (AND, ORR, EOR, ANDS).
+func (e *Emulator) executeLogicalImm(inst *insts.Instruction) {
+	switch inst.Op {
+	case insts.OpAND:
+		if inst.Is64Bit {
+			e.alu.AND64Imm(inst.Rd, inst.Rn, inst.Imm, inst.SetFlags)
+		} else {
+			e.alu.AND32Imm(inst.Rd, inst.Rn, inst.Imm, inst.SetFlags)
+		}
+	case insts.OpORR:
+		if inst.Is64Bit {
+			e.alu.ORR64Imm(inst.Rd, inst.Rn, inst.Imm)
+		} else {
+			e.alu.ORR32Imm(inst.Rd, inst.Rn, inst.Imm)
+		}
+	case insts.OpEOR:
+		if inst.Is64Bit {
+			e.alu.EOR64Imm(inst.Rd, inst.Rn, inst.Imm)
+		} else {
+			e.alu.EOR32Imm(inst.Rd, inst.Rn, inst.Imm)
 		}
 	}
 }

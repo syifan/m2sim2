@@ -92,6 +92,7 @@ const (
 	FormatDataProc3Src         // Data Processing (3 source) - MADD, MSUB
 	FormatTestBranch           // Test and Branch (TBZ, TBNZ)
 	FormatCompareBranch        // Compare and Branch (CBZ, CBNZ)
+	FormatLogicalImm           // Logical Immediate (AND, ORR, EOR, ANDS)
 )
 
 // Cond represents an ARM64 condition code.
@@ -227,6 +228,8 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		d.decodeDataProc2Src(word, inst)
 	case d.isDataProc3Src(word):
 		d.decodeDataProc3Src(word, inst)
+	case d.isLogicalImm(word):
+		d.decodeLogicalImm(word, inst)
 	case d.isDataProcessingImm(word):
 		d.decodeDataProcessingImm(word, inst)
 	case d.isDataProcessingReg(word):
@@ -1091,6 +1094,112 @@ func (d *Decoder) decodeDataProc3Src(word uint32, inst *Instruction) {
 	} else {
 		inst.Op = OpMSUB
 	}
+}
+
+// isLogicalImm checks for logical immediate instructions (AND, ORR, EOR, ANDS).
+// Format: sf | opc | 100100 | N | immr | imms | Rn | Rd
+// bits [28:23] == 0b100100
+func (d *Decoder) isLogicalImm(word uint32) bool {
+	op := (word >> 23) & 0x3F // bits [28:23]
+	return op == 0b100100
+}
+
+// decodeLogicalImm decodes logical immediate instructions.
+// Format: sf | opc | 100100 | N | immr | imms | Rn | Rd
+// sf[31]: 0=32-bit, 1=64-bit
+// opc[30:29]: 00=AND, 01=ORR, 10=EOR, 11=ANDS
+// N[22]: part of bitmask encoding (must be 0 for 32-bit)
+// immr[21:16]: rotation amount
+// imms[15:10]: size and ones count
+func (d *Decoder) decodeLogicalImm(word uint32, inst *Instruction) {
+	inst.Format = FormatLogicalImm
+
+	sf := (word >> 31) & 0x1     // bit 31
+	opc := (word >> 29) & 0x3    // bits [30:29]
+	n := (word >> 22) & 0x1      // bit 22
+	immr := (word >> 16) & 0x3F  // bits [21:16]
+	imms := (word >> 10) & 0x3F  // bits [15:10]
+	rn := (word >> 5) & 0x1F     // bits [9:5]
+	rd := word & 0x1F            // bits [4:0]
+
+	inst.Is64Bit = sf == 1
+	inst.Rd = uint8(rd)
+	inst.Rn = uint8(rn)
+
+	// Decode the bitmask immediate
+	inst.Imm = DecodeBitmaskImmediate(uint8(n), uint8(immr), uint8(imms), sf == 1)
+
+	// Decode operation
+	switch opc {
+	case 0b00:
+		inst.Op = OpAND
+		inst.SetFlags = false
+	case 0b01:
+		inst.Op = OpORR
+		inst.SetFlags = false
+	case 0b10:
+		inst.Op = OpEOR
+		inst.SetFlags = false
+	case 0b11:
+		inst.Op = OpAND
+		inst.SetFlags = true // ANDS
+	}
+}
+
+// DecodeBitmaskImmediate decodes the ARM64 bitmask immediate encoding.
+// The encoding uses N, immr, imms to represent patterns of consecutive 1 bits
+// that are replicated across the register width.
+// Returns the decoded immediate value.
+func DecodeBitmaskImmediate(n, immr, imms uint8, is64bit bool) uint64 {
+	// Determine the element size (len) from N and highest bit of imms
+	// For 64-bit: N=1 means 64-bit element, N=0 means smaller element
+	// For 32-bit: N must be 0
+
+	var len uint8
+	if n == 1 {
+		len = 6 // 64-bit element
+	} else {
+		// Find the highest bit that is 0 in imms (starting from bit 5)
+		// len is (5 - position of highest 0 bit + 1)
+		for i := uint8(5); i >= 1; i-- {
+			if (imms & (1 << i)) == 0 {
+				len = i
+				break
+			}
+		}
+		if len == 0 {
+			len = 1 // Minimum element size is 2 bits
+		}
+	}
+
+	// Element size in bits: 2^len
+	esize := uint64(1) << len
+
+	// Number of 1 bits: (imms AND (esize-1)) + 1
+	levels := uint64(esize - 1)
+	s := uint64(imms) & levels
+	r := uint64(immr) & levels
+
+	// Create the basic pattern: (s+1) ones
+	welem := (uint64(1) << (s + 1)) - 1
+
+	// Rotate right by r within esize
+	if r > 0 {
+		welem = ((welem >> r) | (welem << (esize - r))) & ((1 << esize) - 1)
+	}
+
+	// Replicate the element across 64 bits
+	var result uint64
+	for i := uint64(0); i < 64; i += esize {
+		result |= welem << i
+	}
+
+	// For 32-bit operations, mask to 32 bits
+	if !is64bit {
+		result &= 0xFFFFFFFF
+	}
+
+	return result
 }
 
 // isTestBranch checks for test and branch instructions (TBZ, TBNZ).

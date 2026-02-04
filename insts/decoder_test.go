@@ -1100,4 +1100,54 @@ var _ = Describe("Decoder", func() {
 			Expect(inst.BranchOffset).To(Equal(int64(100)))
 		})
 	})
+
+	Describe("Logical Immediate Instructions", func() {
+		// ANDS X1, X1, #0xffffffffffff -> 0xf240bc21
+		// This is the instruction that was blocking CoreMark
+		// sf=1, opc=11, 100100, N=0, immr=0, imms=47, Rn=1, Rd=1
+		It("should decode ANDS X1, X1, #0xffffffffffff", func() {
+			inst := decoder.Decode(0xf240bc21)
+
+			Expect(inst.Op).To(Equal(insts.OpAND))
+			Expect(inst.Format).To(Equal(insts.FormatLogicalImm))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.SetFlags).To(BeTrue()) // ANDS sets flags
+			Expect(inst.Rd).To(Equal(uint8(1)))
+			Expect(inst.Rn).To(Equal(uint8(1)))
+			Expect(inst.Imm).To(Equal(uint64(0xffffffffffff)))
+		})
+
+		// AND X0, X1, #0xff -> 0x9240181f (or similar)
+		// sf=1, opc=00, 100100, N=0, immr=0, imms=7, Rn=1, Rd=0
+		It("should decode AND with 8-bit mask", func() {
+			inst := decoder.Decode(0x92401c20) // AND X0, X1, #0xff
+
+			Expect(inst.Op).To(Equal(insts.OpAND))
+			Expect(inst.Format).To(Equal(insts.FormatLogicalImm))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.SetFlags).To(BeFalse())
+		})
+
+		// ORR X0, XZR, #1 -> MOV X0, #1 (this is common)
+		// sf=1, opc=01, 100100, N=1, immr=0, imms=0, Rn=31, Rd=0
+		It("should decode ORR (immediate) as MOV pattern", func() {
+			inst := decoder.Decode(0xb2400000) // ORR X0, XZR, #1
+
+			Expect(inst.Op).To(Equal(insts.OpORR))
+			Expect(inst.Format).To(Equal(insts.FormatLogicalImm))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rn).To(Equal(uint8(0)))
+			Expect(inst.Rd).To(Equal(uint8(0)))
+		})
+
+		// EOR X2, X3, #0xffffffff00000000
+		// sf=1, opc=10, 100100, N=1, immr=32, imms=31, Rn=3, Rd=2
+		It("should decode EOR (immediate)", func() {
+			inst := decoder.Decode(0xd2607c62) // EOR X2, X3, #mask
+
+			Expect(inst.Op).To(Equal(insts.OpEOR))
+			Expect(inst.Format).To(Equal(insts.FormatLogicalImm))
+			Expect(inst.Is64Bit).To(BeTrue())
+		})
+	})
 })
