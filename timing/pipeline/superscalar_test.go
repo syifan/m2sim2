@@ -322,19 +322,19 @@ var _ = Describe("Superscalar Pipeline", func() {
 
 		It("should execute sextuple-issue faster than quad-issue", func() {
 			// 12 independent instructions
-			memory.Write32(0x1000, 0x910029E0)  // ADD X0, XZR, #10
-			memory.Write32(0x1004, 0x910053E1)  // ADD X1, XZR, #20
-			memory.Write32(0x1008, 0x91007BE2)  // ADD X2, XZR, #30
-			memory.Write32(0x100C, 0x9100A3E3)  // ADD X3, XZR, #40
-			memory.Write32(0x1010, 0x9100CBE4)  // ADD X4, XZR, #50
-			memory.Write32(0x1014, 0x9100F3E5)  // ADD X5, XZR, #60
-			memory.Write32(0x1018, 0x91011BE6)  // ADD X6, XZR, #70
-			memory.Write32(0x101C, 0x910143E7)  // ADD X7, XZR, #80
-			memory.Write32(0x1020, 0x91016BF8)  // ADD X24, XZR, #90
-			memory.Write32(0x1024, 0x910193F9)  // ADD X25, XZR, #100
-			memory.Write32(0x1028, 0x9101BBFA)  // ADD X26, XZR, #110
-			memory.Write32(0x102C, 0x9101E3FB)  // ADD X27, XZR, #120
-			memory.Write32(0x1030, 0xD4000001)  // SVC #0
+			memory.Write32(0x1000, 0x910029E0) // ADD X0, XZR, #10
+			memory.Write32(0x1004, 0x910053E1) // ADD X1, XZR, #20
+			memory.Write32(0x1008, 0x91007BE2) // ADD X2, XZR, #30
+			memory.Write32(0x100C, 0x9100A3E3) // ADD X3, XZR, #40
+			memory.Write32(0x1010, 0x9100CBE4) // ADD X4, XZR, #50
+			memory.Write32(0x1014, 0x9100F3E5) // ADD X5, XZR, #60
+			memory.Write32(0x1018, 0x91011BE6) // ADD X6, XZR, #70
+			memory.Write32(0x101C, 0x910143E7) // ADD X7, XZR, #80
+			memory.Write32(0x1020, 0x91016BF8) // ADD X24, XZR, #90
+			memory.Write32(0x1024, 0x910193F9) // ADD X25, XZR, #100
+			memory.Write32(0x1028, 0x9101BBFA) // ADD X26, XZR, #110
+			memory.Write32(0x102C, 0x9101E3FB) // ADD X27, XZR, #120
+			memory.Write32(0x1030, 0xD4000001) // SVC #0
 
 			pipe.SetPC(0x1000)
 			pipe.Run()
