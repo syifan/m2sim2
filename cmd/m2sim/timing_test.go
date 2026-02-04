@@ -206,6 +206,6 @@ var _ = Describe("Timing Model Documentation", func() {
 		Expect(config.LoadLatency).To(Equal(uint64(4)))
 		Expect(config.StoreLatency).To(Equal(uint64(1)))
 		Expect(config.SyscallLatency).To(Equal(uint64(1)))
-		Expect(config.BranchMispredictPenalty).To(Equal(uint64(12)))
+		Expect(config.BranchMispredictPenalty).To(Equal(uint64(14)))
 	})
 })

@@ -45,7 +45,7 @@ var _ = Describe("Latency", func() {
 
 		It("should have correct branch misprediction penalty", func() {
 			config := table.Config()
-			Expect(config.BranchMispredictPenalty).To(Equal(uint64(12)))
+			Expect(config.BranchMispredictPenalty).To(Equal(uint64(14)))
 		})
 	})
 

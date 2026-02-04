@@ -481,7 +481,7 @@ var _ = Describe("Pipeline Integration", func() {
 			config := &latency.TimingConfig{
 				ALULatency:              3,
 				BranchLatency:           1,
-				BranchMispredictPenalty: 12,
+				BranchMispredictPenalty: 14,
 				LoadLatency:             4,
 				StoreLatency:            1,
 				MultiplyLatency:         3,
@@ -545,7 +545,7 @@ var _ = Describe("Pipeline Integration", func() {
 			config := &latency.TimingConfig{
 				ALULatency:              1,
 				BranchLatency:           1,
-				BranchMispredictPenalty: 12,
+				BranchMispredictPenalty: 14,
 				LoadLatency:             4, // 4-cycle load
 				StoreLatency:            1,
 				MultiplyLatency:         3,

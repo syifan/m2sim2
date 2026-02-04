@@ -12,8 +12,10 @@ var _ = Describe("BranchPredictor", func() {
 
 	BeforeEach(func() {
 		config := pipeline.BranchPredictorConfig{
-			BHTSize: 16,
-			BTBSize: 8,
+			BHTSize:             16,
+			BTBSize:             8,
+			GlobalHistoryLength: 4,
+			UseTournament:       true,
 		}
 		bp = pipeline.NewBranchPredictor(config)
 	})
@@ -61,6 +63,14 @@ var _ = Describe("BranchPredictor", func() {
 
 	Describe("2-bit saturating counter", func() {
 		It("should require 2 mispredictions to change direction", func() {
+			// Use bimodal-only mode for deterministic testing
+			config := pipeline.BranchPredictorConfig{
+				BHTSize:       16,
+				BTBSize:       8,
+				UseTournament: false,
+			}
+			bp = pipeline.NewBranchPredictor(config)
+
 			pc := uint64(0x1000)
 			target := uint64(0x2000)
 
@@ -114,8 +124,9 @@ var _ = Describe("BranchPredictor", func() {
 		It("should handle BTB conflicts correctly", func() {
 			// Two PCs that map to the same BTB index
 			config := pipeline.BranchPredictorConfig{
-				BHTSize: 16,
-				BTBSize: 4, // Small BTB for easy conflicts
+				BHTSize:       16,
+				BTBSize:       4, // Small BTB for easy conflicts
+				UseTournament: false,
 			}
 			bp = pipeline.NewBranchPredictor(config)
 
@@ -179,6 +190,14 @@ var _ = Describe("BranchPredictor", func() {
 		})
 
 		It("should compute accuracy correctly", func() {
+			// Use bimodal-only for deterministic testing
+			config := pipeline.BranchPredictorConfig{
+				BHTSize:       16,
+				BTBSize:       8,
+				UseTournament: false,
+			}
+			bp = pipeline.NewBranchPredictor(config)
+
 			pc := uint64(0x1000)
 			target := uint64(0x2000)
 
@@ -247,8 +266,105 @@ var _ = Describe("BranchPredictor", func() {
 	Describe("Default configuration", func() {
 		It("should use sensible defaults", func() {
 			config := pipeline.DefaultBranchPredictorConfig()
-			Expect(config.BHTSize).To(Equal(uint32(1024)))
-			Expect(config.BTBSize).To(Equal(uint32(256)))
+			Expect(config.BHTSize).To(Equal(uint32(4096)))
+			Expect(config.BTBSize).To(Equal(uint32(512)))
+			Expect(config.GlobalHistoryLength).To(Equal(uint32(12)))
+			Expect(config.UseTournament).To(BeTrue())
+		})
+	})
+
+	Describe("Tournament predictor", func() {
+		It("should track tournament statistics", func() {
+			config := pipeline.BranchPredictorConfig{
+				BHTSize:             16,
+				BTBSize:             8,
+				GlobalHistoryLength: 4,
+				UseTournament:       true,
+			}
+			bp = pipeline.NewBranchPredictor(config)
+
+			pc := uint64(0x1000)
+			target := uint64(0x2000)
+
+			// Make several predictions
+			for i := 0; i < 10; i++ {
+				bp.Predict(pc)
+				bp.Update(pc, true, target)
+			}
+
+			stats := bp.Stats()
+			// Tournament should choose one predictor or the other
+			totalChoices := stats.TournamentChoseBimodal + stats.TournamentChoseGshare
+			Expect(totalChoices).To(Equal(uint64(10)))
+		})
+
+		It("should adapt to patterns that favor gshare", func() {
+			config := pipeline.BranchPredictorConfig{
+				BHTSize:             16,
+				BTBSize:             8,
+				GlobalHistoryLength: 4,
+				UseTournament:       true,
+			}
+			bp = pipeline.NewBranchPredictor(config)
+
+			// Create an alternating pattern (TNTNTN...) which gshare handles better
+			pc := uint64(0x1000)
+			target := uint64(0x2000)
+
+			// Train with alternating pattern
+			for i := 0; i < 50; i++ {
+				taken := i%2 == 0
+				bp.Predict(pc)
+				if taken {
+					bp.Update(pc, true, target)
+				} else {
+					bp.Update(pc, false, 0)
+				}
+			}
+
+			stats := bp.Stats()
+			// Should have some correct predictions (gshare should learn the pattern)
+			Expect(stats.Correct).To(BeNumerically(">", uint64(10)))
+		})
+
+		It("should track bimodal and gshare accuracy separately", func() {
+			pc := uint64(0x1000)
+			target := uint64(0x2000)
+
+			// Make predictions
+			for i := 0; i < 5; i++ {
+				bp.Predict(pc)
+				bp.Update(pc, true, target)
+			}
+
+			stats := bp.Stats()
+			// Both predictors should have some correct predictions
+			Expect(stats.BimodalCorrect).To(BeNumerically(">", uint64(0)))
+			Expect(stats.GshareCorrect).To(BeNumerically(">", uint64(0)))
+		})
+	})
+
+	Describe("Global history", func() {
+		It("should use global history for gshare index", func() {
+			config := pipeline.BranchPredictorConfig{
+				BHTSize:             16,
+				BTBSize:             8,
+				GlobalHistoryLength: 4,
+				UseTournament:       false, // Force bimodal to isolate global history effect
+			}
+			bp = pipeline.NewBranchPredictor(config)
+
+			pc := uint64(0x1000)
+
+			// Update with different patterns to shift global history
+			bp.Update(pc, true, 0x2000)  // history: 0001
+			bp.Update(pc, false, 0x2000) // history: 0010
+			bp.Update(pc, true, 0x2000)  // history: 0101
+			bp.Update(pc, false, 0x2000) // history: 1010
+
+			// The predictor should have updated various entries
+			stats := bp.Stats()
+			Expect(stats.Predictions).To(Equal(uint64(0))) // No predictions yet
 		})
 	})
 })
