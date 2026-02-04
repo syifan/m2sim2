@@ -860,4 +860,244 @@ var _ = Describe("Decoder", func() {
 			Expect(inst.Imm).To(Equal(uint64(100)))
 		})
 	})
+
+	Describe("Conditional Select Instructions", func() {
+		// CSEL X0, X1, X2, EQ -> 0x9A820020
+		// Format: sf=1, op=0, S=0, 11010100, Rm=2, cond=0000 (EQ), op2=00, Rn=1, Rd=0
+		It("should decode CSEL X0, X1, X2, EQ", func() {
+			inst := decoder.Decode(0x9A820020)
+
+			Expect(inst.Op).To(Equal(insts.OpCSEL))
+			Expect(inst.Format).To(Equal(insts.FormatCondSelect))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(0)))
+			Expect(inst.Rn).To(Equal(uint8(1)))
+			Expect(inst.Rm).To(Equal(uint8(2)))
+			Expect(inst.Cond).To(Equal(insts.CondEQ))
+		})
+
+		// CSINC X3, X4, X5, NE -> 0x9A851483
+		// Format: sf=1, op=0, S=0, 11010100, Rm=5, cond=0001 (NE), op2=01, Rn=4, Rd=3
+		It("should decode CSINC X3, X4, X5, NE", func() {
+			inst := decoder.Decode(0x9A851483)
+
+			Expect(inst.Op).To(Equal(insts.OpCSINC))
+			Expect(inst.Format).To(Equal(insts.FormatCondSelect))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(3)))
+			Expect(inst.Rn).To(Equal(uint8(4)))
+			Expect(inst.Rm).To(Equal(uint8(5)))
+			Expect(inst.Cond).To(Equal(insts.CondNE))
+		})
+
+		// CSINV X6, X7, X8, GE -> 0xDA88A0E6
+		// Format: sf=1, op=1, S=0, 11010100, Rm=8, cond=1010 (GE), op2=00, Rn=7, Rd=6
+		It("should decode CSINV X6, X7, X8, GE", func() {
+			inst := decoder.Decode(0xDA88A0E6)
+
+			Expect(inst.Op).To(Equal(insts.OpCSINV))
+			Expect(inst.Format).To(Equal(insts.FormatCondSelect))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(6)))
+			Expect(inst.Rn).To(Equal(uint8(7)))
+			Expect(inst.Rm).To(Equal(uint8(8)))
+			Expect(inst.Cond).To(Equal(insts.CondGE))
+		})
+
+		// CSNEG X9, X10, X11, LT -> 0xDA8BB549
+		// Format: sf=1, op=1, S=0, 11010100, Rm=11, cond=1011 (LT), op2=01, Rn=10, Rd=9
+		It("should decode CSNEG X9, X10, X11, LT", func() {
+			inst := decoder.Decode(0xDA8BB549)
+
+			Expect(inst.Op).To(Equal(insts.OpCSNEG))
+			Expect(inst.Format).To(Equal(insts.FormatCondSelect))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(9)))
+			Expect(inst.Rn).To(Equal(uint8(10)))
+			Expect(inst.Rm).To(Equal(uint8(11)))
+			Expect(inst.Cond).To(Equal(insts.CondLT))
+		})
+
+		// CSEL W0, W1, W2, EQ -> 0x1A820020
+		// 32-bit version
+		It("should decode CSEL W0, W1, W2, EQ (32-bit)", func() {
+			inst := decoder.Decode(0x1A820020)
+
+			Expect(inst.Op).To(Equal(insts.OpCSEL))
+			Expect(inst.Is64Bit).To(BeFalse())
+			Expect(inst.Rd).To(Equal(uint8(0)))
+			Expect(inst.Rn).To(Equal(uint8(1)))
+			Expect(inst.Rm).To(Equal(uint8(2)))
+		})
+	})
+
+	Describe("Division Instructions", func() {
+		// UDIV X0, X1, X2 -> 0x9AC20820
+		// Format: sf=1, 0, S=0, 11010110, Rm=2, opcode=000010, Rn=1, Rd=0
+		It("should decode UDIV X0, X1, X2", func() {
+			inst := decoder.Decode(0x9AC20820)
+
+			Expect(inst.Op).To(Equal(insts.OpUDIV))
+			Expect(inst.Format).To(Equal(insts.FormatDataProc2Src))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(0)))
+			Expect(inst.Rn).To(Equal(uint8(1)))
+			Expect(inst.Rm).To(Equal(uint8(2)))
+		})
+
+		// SDIV X3, X4, X5 -> 0x9AC50C83
+		// Format: sf=1, 0, S=0, 11010110, Rm=5, opcode=000011, Rn=4, Rd=3
+		It("should decode SDIV X3, X4, X5", func() {
+			inst := decoder.Decode(0x9AC50C83)
+
+			Expect(inst.Op).To(Equal(insts.OpSDIV))
+			Expect(inst.Format).To(Equal(insts.FormatDataProc2Src))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(3)))
+			Expect(inst.Rn).To(Equal(uint8(4)))
+			Expect(inst.Rm).To(Equal(uint8(5)))
+		})
+
+		// UDIV W0, W1, W2 -> 0x1AC20820
+		// 32-bit version
+		It("should decode UDIV W0, W1, W2 (32-bit)", func() {
+			inst := decoder.Decode(0x1AC20820)
+
+			Expect(inst.Op).To(Equal(insts.OpUDIV))
+			Expect(inst.Is64Bit).To(BeFalse())
+			Expect(inst.Rd).To(Equal(uint8(0)))
+			Expect(inst.Rn).To(Equal(uint8(1)))
+			Expect(inst.Rm).To(Equal(uint8(2)))
+		})
+	})
+
+	Describe("Multiply-Add Instructions", func() {
+		// MADD X0, X1, X2, X3 -> 0x9B020C20
+		// Format: sf=1, op54=00, 11011, op31=000, Rm=2, o0=0, Ra=3, Rn=1, Rd=0
+		It("should decode MADD X0, X1, X2, X3", func() {
+			inst := decoder.Decode(0x9B020C20)
+
+			Expect(inst.Op).To(Equal(insts.OpMADD))
+			Expect(inst.Format).To(Equal(insts.FormatDataProc3Src))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(0)))
+			Expect(inst.Rn).To(Equal(uint8(1)))
+			Expect(inst.Rm).To(Equal(uint8(2)))
+			Expect(inst.Rt2).To(Equal(uint8(3))) // Ra reuses Rt2 field
+		})
+
+		// MSUB X4, X5, X6, X7 -> 0x9B069CA4
+		// Format: sf=1, op54=00, 11011, op31=000, Rm=6, o0=1, Ra=7, Rn=5, Rd=4
+		It("should decode MSUB X4, X5, X6, X7", func() {
+			inst := decoder.Decode(0x9B069CA4)
+
+			Expect(inst.Op).To(Equal(insts.OpMSUB))
+			Expect(inst.Format).To(Equal(insts.FormatDataProc3Src))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(4)))
+			Expect(inst.Rn).To(Equal(uint8(5)))
+			Expect(inst.Rm).To(Equal(uint8(6)))
+			Expect(inst.Rt2).To(Equal(uint8(7)))
+		})
+
+		// MUL X0, X1, X2 (alias: MADD with Ra=XZR)
+		// MADD X0, X1, X2, XZR -> 0x9B027C20
+		It("should decode MUL X0, X1, X2 (MADD alias)", func() {
+			inst := decoder.Decode(0x9B027C20)
+
+			Expect(inst.Op).To(Equal(insts.OpMADD))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(0)))
+			Expect(inst.Rn).To(Equal(uint8(1)))
+			Expect(inst.Rm).To(Equal(uint8(2)))
+			Expect(inst.Rt2).To(Equal(uint8(31))) // XZR
+		})
+	})
+
+	Describe("Test and Branch Instructions", func() {
+		// TBZ X0, #5, .+8 -> 0x36280020
+		// Format: b5=0, 011011, op=0, b40=00101, imm14=2, Rt=0
+		It("should decode TBZ X0, #5, .+8", func() {
+			inst := decoder.Decode(0x36280040)
+
+			Expect(inst.Op).To(Equal(insts.OpTBZ))
+			Expect(inst.Format).To(Equal(insts.FormatTestBranch))
+			Expect(inst.Rd).To(Equal(uint8(0)))
+			Expect(inst.Imm).To(Equal(uint64(5))) // bit number
+			Expect(inst.BranchOffset).To(Equal(int64(8)))
+		})
+
+		// TBNZ X1, #63, .-4 -> 0xB7FFFFE1
+		// Format: b5=1, 011011, op=1, b40=11111, imm14=-1, Rt=1
+		It("should decode TBNZ X1, #63, .-4", func() {
+			inst := decoder.Decode(0xB7FFFFE1)
+
+			Expect(inst.Op).To(Equal(insts.OpTBNZ))
+			Expect(inst.Format).To(Equal(insts.FormatTestBranch))
+			Expect(inst.Rd).To(Equal(uint8(1)))
+			Expect(inst.Imm).To(Equal(uint64(63))) // bit number
+			Expect(inst.BranchOffset).To(Equal(int64(-4)))
+			Expect(inst.Is64Bit).To(BeTrue()) // b5=1 means 64-bit
+		})
+
+		// TBZ W2, #0, .+16 -> 0x36000082
+		// 32-bit test
+		It("should decode TBZ W2, #0, .+16", func() {
+			inst := decoder.Decode(0x36000082)
+
+			Expect(inst.Op).To(Equal(insts.OpTBZ))
+			Expect(inst.Rd).To(Equal(uint8(2)))
+			Expect(inst.Imm).To(Equal(uint64(0)))
+			Expect(inst.BranchOffset).To(Equal(int64(16)))
+			Expect(inst.Is64Bit).To(BeFalse())
+		})
+	})
+
+	Describe("Compare and Branch Instructions", func() {
+		// CBZ X0, .+8 -> 0xB4000040
+		// Format: sf=1, 011010, op=0, imm19=2, Rt=0
+		It("should decode CBZ X0, .+8", func() {
+			inst := decoder.Decode(0xB4000040)
+
+			Expect(inst.Op).To(Equal(insts.OpCBZ))
+			Expect(inst.Format).To(Equal(insts.FormatCompareBranch))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(0)))
+			Expect(inst.BranchOffset).To(Equal(int64(8)))
+		})
+
+		// CBNZ X1, .-4 -> 0xB5FFFFE1
+		// Format: sf=1, 011010, op=1, imm19=-1, Rt=1
+		It("should decode CBNZ X1, .-4", func() {
+			inst := decoder.Decode(0xB5FFFFE1)
+
+			Expect(inst.Op).To(Equal(insts.OpCBNZ))
+			Expect(inst.Format).To(Equal(insts.FormatCompareBranch))
+			Expect(inst.Is64Bit).To(BeTrue())
+			Expect(inst.Rd).To(Equal(uint8(1)))
+			Expect(inst.BranchOffset).To(Equal(int64(-4)))
+		})
+
+		// CBZ W2, .+16 -> 0x34000082
+		// 32-bit version
+		It("should decode CBZ W2, .+16 (32-bit)", func() {
+			inst := decoder.Decode(0x34000082)
+
+			Expect(inst.Op).To(Equal(insts.OpCBZ))
+			Expect(inst.Is64Bit).To(BeFalse())
+			Expect(inst.Rd).To(Equal(uint8(2)))
+			Expect(inst.BranchOffset).To(Equal(int64(16)))
+		})
+
+		// CBNZ W3, .+100 -> 0x35000323
+		// imm19 = 100/4 = 25 = 0x19, Rt=3
+		It("should decode CBNZ W3, .+100 (32-bit)", func() {
+			inst := decoder.Decode(0x35000323)
+
+			Expect(inst.Op).To(Equal(insts.OpCBNZ))
+			Expect(inst.Is64Bit).To(BeFalse())
+			Expect(inst.Rd).To(Equal(uint8(3)))
+			Expect(inst.BranchOffset).To(Equal(int64(100)))
+		})
+	})
 })

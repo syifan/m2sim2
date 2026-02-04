@@ -49,6 +49,23 @@ const (
 	OpVFADD // Vector floating-point ADD
 	OpVFSUB // Vector floating-point SUB
 	OpVFMUL // Vector floating-point MUL
+	// Conditional select opcodes
+	OpCSEL  // Conditional select
+	OpCSINC // Conditional select increment
+	OpCSINV // Conditional select invert
+	OpCSNEG // Conditional select negate
+	// Division opcodes
+	OpUDIV // Unsigned divide
+	OpSDIV // Signed divide
+	// Multiply-add opcodes
+	OpMADD // Multiply-add
+	OpMSUB // Multiply-subtract
+	// Test and branch opcodes
+	OpTBZ  // Test bit and branch if zero
+	OpTBNZ // Test bit and branch if not zero
+	// Compare and branch opcodes
+	OpCBZ  // Compare and branch if zero
+	OpCBNZ // Compare and branch if not zero
 )
 
 // Format represents an instruction encoding format.
@@ -70,6 +87,11 @@ const (
 	FormatException            // Exception Generation (SVC, HVC, SMC, BRK)
 	FormatSIMDReg              // SIMD Data Processing (Register)
 	FormatSIMDLoadStore        // SIMD Load/Store
+	FormatCondSelect           // Conditional Select (CSEL, CSINC, etc.)
+	FormatDataProc2Src         // Data Processing (2 source) - UDIV, SDIV
+	FormatDataProc3Src         // Data Processing (3 source) - MADD, MSUB
+	FormatTestBranch           // Test and Branch (TBZ, TBNZ)
+	FormatCompareBranch        // Compare and Branch (CBZ, CBNZ)
 )
 
 // Cond represents an ARM64 condition code.
@@ -199,10 +221,20 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		d.decodePCRelAddressing(word, inst)
 	case d.isMoveWide(word):
 		d.decodeMoveWide(word, inst)
+	case d.isConditionalSelect(word):
+		d.decodeConditionalSelect(word, inst)
+	case d.isDataProc2Src(word):
+		d.decodeDataProc2Src(word, inst)
+	case d.isDataProc3Src(word):
+		d.decodeDataProc3Src(word, inst)
 	case d.isDataProcessingImm(word):
 		d.decodeDataProcessingImm(word, inst)
 	case d.isDataProcessingReg(word):
 		d.decodeDataProcessingReg(word, inst)
+	case d.isTestBranch(word):
+		d.decodeTestBranch(word, inst)
+	case d.isCompareBranch(word):
+		d.decodeCompareBranch(word, inst)
 	case d.isBranchImm(word):
 		d.decodeBranchImm(word, inst)
 	case d.isBranchCond(word):
@@ -934,5 +966,215 @@ func (d *Decoder) decodeLoadStoreRegIndexed(word uint32, inst *Instruction) {
 			inst.Op = OpLDRSB
 			inst.Is64Bit = opc == 0b10 // 10=extend to 64-bit
 		}
+	}
+}
+
+// isConditionalSelect checks for conditional select instructions (CSEL, CSINC, CSINV, CSNEG).
+// Format: sf | op | S | 11010100 | Rm | cond | op2 | Rn | Rd
+// bits [29:21] == 0b011010100 (S=0 at bit 29, 11010100 at bits 28:21)
+func (d *Decoder) isConditionalSelect(word uint32) bool {
+	op := (word >> 21) & 0x1FF // bits [29:21]
+	return op == 0b011010100
+}
+
+// decodeConditionalSelect decodes CSEL, CSINC, CSINV, CSNEG instructions.
+// Format: sf | op | S | 11010100 | Rm | cond | op2 | Rn | Rd
+// op[30]: 0 for CSEL/CSINC, 1 for CSINV/CSNEG
+// op2[10]: 0 for CSEL/CSINV, 1 for CSINC/CSNEG
+func (d *Decoder) decodeConditionalSelect(word uint32, inst *Instruction) {
+	inst.Format = FormatCondSelect
+
+	sf := (word >> 31) & 0x1   // bit 31: 0=32-bit, 1=64-bit
+	op := (word >> 30) & 0x1   // bit 30
+	rm := (word >> 16) & 0x1F  // bits [20:16]
+	cond := (word >> 12) & 0xF // bits [15:12]
+	op2 := (word >> 10) & 0x1  // bit 10
+	rn := (word >> 5) & 0x1F   // bits [9:5]
+	rd := word & 0x1F          // bits [4:0]
+
+	inst.Is64Bit = sf == 1
+	inst.Rd = uint8(rd)
+	inst.Rn = uint8(rn)
+	inst.Rm = uint8(rm)
+	inst.Cond = Cond(cond)
+
+	// Decode operation based on op and op2
+	// op=0, op2=0: CSEL
+	// op=0, op2=1: CSINC
+	// op=1, op2=0: CSINV
+	// op=1, op2=1: CSNEG
+	switch {
+	case op == 0 && op2 == 0:
+		inst.Op = OpCSEL
+	case op == 0 && op2 == 1:
+		inst.Op = OpCSINC
+	case op == 1 && op2 == 0:
+		inst.Op = OpCSINV
+	case op == 1 && op2 == 1:
+		inst.Op = OpCSNEG
+	default:
+		inst.Op = OpUnknown
+	}
+}
+
+// isDataProc2Src checks for data processing (2 source) instructions (UDIV, SDIV).
+// Format: sf | 0 | S | 11010110 | Rm | opcode | Rn | Rd
+// bits [29:21] == 0b011010110 (S=0)
+func (d *Decoder) isDataProc2Src(word uint32) bool {
+	op := (word >> 21) & 0x1FF // bits [29:21]
+	return op == 0b011010110
+}
+
+// decodeDataProc2Src decodes UDIV and SDIV instructions.
+// Format: sf | 0 | S | 11010110 | Rm | opcode | Rn | Rd
+// opcode[15:10]: 000010=UDIV, 000011=SDIV
+func (d *Decoder) decodeDataProc2Src(word uint32, inst *Instruction) {
+	inst.Format = FormatDataProc2Src
+
+	sf := (word >> 31) & 0x1      // bit 31: 0=32-bit, 1=64-bit
+	rm := (word >> 16) & 0x1F     // bits [20:16]
+	opcode := (word >> 10) & 0x3F // bits [15:10]
+	rn := (word >> 5) & 0x1F      // bits [9:5]
+	rd := word & 0x1F             // bits [4:0]
+
+	inst.Is64Bit = sf == 1
+	inst.Rd = uint8(rd)
+	inst.Rn = uint8(rn)
+	inst.Rm = uint8(rm)
+
+	// Decode operation based on opcode
+	// 000010 = UDIV
+	// 000011 = SDIV
+	switch opcode {
+	case 0b000010:
+		inst.Op = OpUDIV
+	case 0b000011:
+		inst.Op = OpSDIV
+	default:
+		inst.Op = OpUnknown
+	}
+}
+
+// isDataProc3Src checks for data processing (3 source) instructions (MADD, MSUB).
+// Format: sf | op54 | 11011 | op31 | Rm | o0 | Ra | Rn | Rd
+// bits [28:24] == 0b11011
+func (d *Decoder) isDataProc3Src(word uint32) bool {
+	op := (word >> 24) & 0x1F // bits [28:24]
+	return op == 0b11011
+}
+
+// decodeDataProc3Src decodes MADD and MSUB instructions.
+// Format: sf | op54 | 11011 | op31 | Rm | o0 | Ra | Rn | Rd
+// op54=00, op31=000 for MADD/MSUB
+// o0[15]: 0=MADD, 1=MSUB
+func (d *Decoder) decodeDataProc3Src(word uint32, inst *Instruction) {
+	inst.Format = FormatDataProc3Src
+
+	sf := (word >> 31) & 0x1  // bit 31: 0=32-bit, 1=64-bit
+	rm := (word >> 16) & 0x1F // bits [20:16]
+	o0 := (word >> 15) & 0x1  // bit 15
+	ra := (word >> 10) & 0x1F // bits [14:10]
+	rn := (word >> 5) & 0x1F  // bits [9:5]
+	rd := word & 0x1F         // bits [4:0]
+
+	inst.Is64Bit = sf == 1
+	inst.Rd = uint8(rd)
+	inst.Rn = uint8(rn)
+	inst.Rm = uint8(rm)
+	inst.Rt2 = uint8(ra) // Reuse Rt2 field for Ra
+
+	// Decode operation based on o0
+	// o0=0: MADD (Rd = Ra + Rn * Rm)
+	// o0=1: MSUB (Rd = Ra - Rn * Rm)
+	if o0 == 0 {
+		inst.Op = OpMADD
+	} else {
+		inst.Op = OpMSUB
+	}
+}
+
+// isTestBranch checks for test and branch instructions (TBZ, TBNZ).
+// Format: b5 | 011011 | op | b40 | imm14 | Rt
+// bits [30:25] == 0b011011
+func (d *Decoder) isTestBranch(word uint32) bool {
+	op := (word >> 25) & 0x3F // bits [30:25]
+	return op == 0b011011
+}
+
+// decodeTestBranch decodes TBZ and TBNZ instructions.
+// Format: b5 | 011011 | op | b40 | imm14 | Rt
+// b5[31]: high bit of bit number (for 64-bit registers)
+// op[24]: 0=TBZ, 1=TBNZ
+// b40[23:19]: low 5 bits of bit number
+// imm14[18:5]: signed offset (scaled by 4)
+func (d *Decoder) decodeTestBranch(word uint32, inst *Instruction) {
+	inst.Format = FormatTestBranch
+
+	b5 := (word >> 31) & 0x1      // bit 31
+	op := (word >> 24) & 0x1      // bit 24
+	b40 := (word >> 19) & 0x1F    // bits [23:19]
+	imm14 := (word >> 5) & 0x3FFF // bits [18:5]
+	rt := word & 0x1F             // bits [4:0]
+
+	inst.Rd = uint8(rt)
+	inst.Is64Bit = b5 == 1 // 64-bit register if b5=1
+
+	// Combine b5:b40 to get the bit number (0-63)
+	bitNum := (b5 << 5) | b40
+	inst.Imm = uint64(bitNum)
+
+	// Sign-extend imm14 and multiply by 4
+	offset := int64(imm14)
+	if (imm14 >> 13) == 1 {
+		offset |= ^int64(0x3FFF) // Sign extend
+	}
+	offset *= 4
+	inst.BranchOffset = offset
+
+	// Decode operation
+	if op == 0 {
+		inst.Op = OpTBZ
+	} else {
+		inst.Op = OpTBNZ
+	}
+}
+
+// isCompareBranch checks for compare and branch instructions (CBZ, CBNZ).
+// Format: sf | 011010 | op | imm19 | Rt
+// bits [30:25] == 0b011010
+func (d *Decoder) isCompareBranch(word uint32) bool {
+	op := (word >> 25) & 0x3F // bits [30:25]
+	return op == 0b011010
+}
+
+// decodeCompareBranch decodes CBZ and CBNZ instructions.
+// Format: sf | 011010 | op | imm19 | Rt
+// sf[31]: 0=32-bit, 1=64-bit
+// op[24]: 0=CBZ, 1=CBNZ
+// imm19[23:5]: signed offset (scaled by 4)
+func (d *Decoder) decodeCompareBranch(word uint32, inst *Instruction) {
+	inst.Format = FormatCompareBranch
+
+	sf := (word >> 31) & 0x1       // bit 31
+	op := (word >> 24) & 0x1       // bit 24
+	imm19 := (word >> 5) & 0x7FFFF // bits [23:5]
+	rt := word & 0x1F              // bits [4:0]
+
+	inst.Rd = uint8(rt)
+	inst.Is64Bit = sf == 1
+
+	// Sign-extend imm19 and multiply by 4
+	offset := int64(imm19)
+	if (imm19 >> 18) == 1 {
+		offset |= ^int64(0x7FFFF) // Sign extend
+	}
+	offset *= 4
+	inst.BranchOffset = offset
+
+	// Decode operation
+	if op == 0 {
+		inst.Op = OpCBZ
+	} else {
+		inst.Op = OpCBNZ
 	}
 }
