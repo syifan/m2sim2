@@ -266,34 +266,27 @@ func (p *Pipeline) Tick() {
 		p.stats.DataHazards++
 	}
 
-	// Detect RAW hazards between EX stage (ID/EX) and ID stage (IF/ID)
-	// This models a pipeline where EX-to-EX forwarding requires 1 cycle stall
-	rawHazard := false
+	// Detect load-use hazards between EX stage (ID/EX) and ID stage (IF/ID)
+	// Load-use hazards require a stall because the loaded value isn't available
+	// until after the MEM stage, so it can't be forwarded in time for EX.
+	// ALU-to-ALU dependencies are handled by forwarding (no stall needed).
 	loadUseHazard := false
-	if p.idex.Valid && p.idex.RegWrite && p.idex.Rd != 31 && p.ifid.Valid {
-		// Peek at the next instruction to check for hazard
+	if p.idex.Valid && p.idex.MemRead && p.idex.Rd != 31 && p.ifid.Valid {
+		// Peek at the next instruction to check for load-use hazard
 		nextInst := p.decodeStage.decoder.Decode(p.ifid.InstructionWord)
 		if nextInst != nil && nextInst.Op != insts.OpUnknown {
-			// Check if the instruction's destination conflicts with next instruction's sources
 			usesRn := true                                 // Most instructions use Rn
 			usesRm := nextInst.Format == insts.FormatDPReg // Only register format uses Rm
 
-			// Check for RAW hazard: next instruction reads a register being written by current
-			if (usesRn && p.idex.Rd == nextInst.Rn && nextInst.Rn != 31) ||
-				(usesRm && p.idex.Rd == nextInst.Rm && nextInst.Rm != 31) {
-				rawHazard = true
-				p.stats.Stalls++ // Count RAW hazard stalls
-			}
-
-			// Load-use hazard is a special case that also needs tracking
-			if p.idex.MemRead {
-				loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
-					p.idex.Rd,
-					nextInst.Rn,
-					nextInst.Rm,
-					usesRn,
-					usesRm,
-				)
+			loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
+				p.idex.Rd,
+				nextInst.Rn,
+				nextInst.Rm,
+				usesRn,
+				usesRm,
+			)
+			if loadUseHazard {
+				p.stats.Stalls++ // Count load-use stalls
 			}
 		}
 	}
@@ -443,7 +436,9 @@ func (p *Pipeline) Tick() {
 
 	// Compute stall signals
 	// Memory stalls should also stall upstream stages
-	stallResult := p.hazardUnit.ComputeStalls(rawHazard || loadUseHazard || execStall || memStall, branchTaken)
+	// Note: Only load-use hazards require stalls. ALU-to-ALU dependencies
+	// are resolved through forwarding without stalling the pipeline.
+	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard || execStall || memStall, branchTaken)
 
 	// Stage 2: Decode
 	var nextIDEX IDEXRegister

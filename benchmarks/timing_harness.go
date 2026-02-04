@@ -39,6 +39,9 @@ type BenchmarkResult struct {
 	// MemStalls is stalls due to memory latency
 	MemStalls uint64 `json:"mem_stalls"`
 
+	// DataHazards is the number of RAW data hazards detected and resolved via forwarding
+	DataHazards uint64 `json:"data_hazards"`
+
 	// PipelineFlushes is the number of pipeline flushes
 	PipelineFlushes uint64 `json:"pipeline_flushes"`
 
@@ -184,6 +187,7 @@ func (h *Harness) runBenchmark(bench Benchmark) BenchmarkResult {
 		StallCycles:         stats.Stalls,
 		ExecStalls:          stats.ExecStalls,
 		MemStalls:           stats.MemStalls,
+		DataHazards:         stats.DataHazards,
 		PipelineFlushes:     stats.Flushes,
 		ExitCode:            exitCode,
 		WallTime:            wallTime,

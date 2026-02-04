@@ -7,7 +7,10 @@ import (
 )
 
 // TestTimingPredictions_DependencyVsIndependent validates that dependency chains
-// have higher CPI than independent operations due to RAW hazards and stalls.
+// use forwarding to avoid stalls. With proper data forwarding, ALU-to-ALU
+// dependencies are resolved in a single cycle, achieving the same CPI as
+// independent operations. The pipeline should detect and track data hazards
+// that are resolved via forwarding.
 func TestTimingPredictions_DependencyVsIndependent(t *testing.T) {
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
@@ -27,21 +30,30 @@ func TestTimingPredictions_DependencyVsIndependent(t *testing.T) {
 		t.Fatal("could not find expected benchmarks")
 	}
 
-	t.Logf("Independent ops: CPI=%.3f, Stalls=%d", indep.CPI, indep.StallCycles)
-	t.Logf("Dependency chain: CPI=%.3f, Stalls=%d", dep.CPI, dep.StallCycles)
+	t.Logf("Independent ops: CPI=%.3f, DataHazards=%d, Stalls=%d",
+		indep.CPI, indep.DataHazards, indep.StallCycles)
+	t.Logf("Dependency chain: CPI=%.3f, DataHazards=%d, Stalls=%d",
+		dep.CPI, dep.DataHazards, dep.StallCycles)
 
-	// Key invariant: dependency chain should have higher CPI due to RAW hazards
-	// (each instruction depends on the previous, cannot be parallelized)
-	if dep.CPI <= indep.CPI {
-		t.Errorf("TIMING BUG: dependency chain CPI (%.3f) should be > independent CPI (%.3f)",
-			dep.CPI, indep.CPI)
-		t.Error("This suggests the pipeline is not correctly modeling data dependencies")
+	// With proper forwarding, both should achieve similar CPI (around 1.0)
+	// since ALU-to-ALU dependencies don't require stalls
+	if dep.CPI < 1.0 {
+		t.Errorf("TIMING BUG: dependency chain CPI (%.3f) should be >= 1.0", dep.CPI)
 	}
 
-	// Dependency chain should have more stalls than independent operations
-	if dep.StallCycles <= indep.StallCycles {
-		t.Errorf("TIMING BUG: dependency chain stalls (%d) should be > independent stalls (%d)",
-			dep.StallCycles, indep.StallCycles)
+	// Key invariant: dependency chain should have MORE data hazards than
+	// independent operations, since each instruction depends on the previous
+	if dep.DataHazards <= indep.DataHazards {
+		t.Errorf("TIMING BUG: dependency chain hazards (%d) should be > independent hazards (%d)",
+			dep.DataHazards, indep.DataHazards)
+		t.Error("This suggests the pipeline is not detecting data dependencies")
+	}
+
+	// With proper forwarding, dependency chains should NOT require stalls
+	// for ALU-to-ALU hazards (only load-use hazards need stalls)
+	if dep.StallCycles > 0 && indep.StallCycles == 0 {
+		t.Logf("Note: dependency chain has stalls (%d) - may indicate load-use hazards",
+			dep.StallCycles)
 	}
 }
 
