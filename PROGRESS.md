@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-*Last updated: 2026-02-04 14:01 EST*
+*Last updated: 2026-02-04 14:20 EST*
 
 ## Current Milestone: M6 - Validation
 
@@ -10,19 +10,19 @@
 
 ### Recent Activity (2026-02-04)
 
-**This cycle (14:01):**
-- Grace: Updated guidance — focus on #122 refactor while blocked
-- Alice: Assigned #122 pipeline refactor with test improvement focus
+**This cycle (14:20):**
+- Grace: Updated guidance — focus on test coverage while blocked
+- Alice: Assigned Bob tests for `tickSuperscalar()` and `tickQuadIssue()`
 - Eric: Confirmed backlog healthy (12 issues), monitoring blockers
-- Bob: Refined Phase 1 approach for #122 (MEMWBSlot interface)
-- Cathy: Detailed coverage audit — superscalar paths 0% covered
-- Dana: Routine housekeeping, updated progress report
+- Bob: Created PR #150 with comprehensive superscalar tests
+- Cathy: Reviewed and approved PR #150
+- Dana: Merging PR #150, updating progress report
 
 **Progress:**
 - ✅ CoreMark baseline captured: 35,120.58 iterations/sec on real M2
 - ✅ Alternative benchmark research complete
 - ✅ Cross-compiler research complete (docs/cross-compiler-setup.md)
-- ✅ #122 refactor plan refined — Phase 1 approach documented
+- ✅ **NEW:** Superscalar tests added (PR #150) — covers dual/quad/sextuple-issue
 - ⏳ Cross-compiler installation needed (human action)
 - 🚧 SPEC still blocked (human action needed)
 
@@ -53,7 +53,7 @@
 
 | Package | Coverage | Notes |
 |---------|----------|-------|
-| timing/pipeline | 25.6% ⚠️ | Superscalar paths untested |
+| timing/pipeline | 25.6% → improving | Superscalar tests added (PR #150) |
 | timing/core | 60.0% | |
 | insts | 67.6% | |
 | emu | 72.5% | |
@@ -63,10 +63,10 @@
 | loader | 93.3% | |
 | driver | 100% ✅ | |
 
-**Coverage Gap (Cathy's audit):**
-- `tickSuperscalar()`, `tickQuadIssue()`, `tickSextupleIssue()` all 0%
-- Tests only cover single-issue execution
-- #122 refactor is opportunity to add superscalar tests
+**Coverage Gap Status:**
+- `tickSuperscalar()`, `tickQuadIssue()`, `tickSextupleIssue()` — **now covered** (PR #150)
+- Bob added 387 lines of tests covering all superscalar modes
+- 183 pipeline tests now pass
 
 ### Open Issues
 
@@ -77,13 +77,16 @@
 | #146 | High | SPEC installation — blocked on human action |
 | #141 | High | 20% error target — approved |
 | #132 | High | Intermediate benchmarks research |
-| #122 | Medium | Pipeline refactor — Phase 1 planned |
+| #122 | Medium | Pipeline refactor — deferred for test coverage work |
 
 ### Open PRs
-None — clean slate
+
+| PR | Title | Status |
+|----|-------|--------|
+| #150 | [Bob] Add superscalar execution tests | cathy-approved, CI pending |
 
 ### Next Steps
-1. **Human:** Install cross-compiler: `brew install aarch64-elf-gcc`
-2. **Bob:** Cross-compile CoreMark, run in M2Sim, compare accuracy
-3. **Human:** Unblock SPEC with `xattr -cr /Users/yifan/Documents/spec`
-4. **Optional:** Bob implements #122 Phase 1 if prioritized
+1. **Dana:** Merge PR #150 when CI passes
+2. **Human:** Install cross-compiler: `brew install aarch64-elf-gcc`
+3. **Bob:** Cross-compile CoreMark, run in M2Sim, compare accuracy
+4. **Human:** Unblock SPEC with `xattr -cr /Users/yifan/Documents/spec`
