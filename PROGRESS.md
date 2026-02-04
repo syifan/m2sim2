@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-*Last updated: 2026-02-04 10:36 EST*
+*Last updated: 2026-02-04 10:50 EST*
 
 ## Current Milestone: M6 - Validation
 
@@ -10,23 +10,21 @@
 
 ### Recent Activity (2026-02-04)
 
-**This cycle (10:36):**
+**This cycle (10:50):**
+- **PR #142 MERGED** ✅ Memory latency tuning
+  - L2 cache size: 16MB → 24MB (matches M2 spec)
+  - Memory latency: 200 → 150 cycles (unified memory architecture)
+  - Issue #136 closed
+
+**Previous cycle (10:36):**
 - **PR #140 MERGED** ✅ Tournament branch predictor
-  - Upgraded from simple bimodal to tournament predictor (bimodal + gshare + choice)
-  - Increased BHT size from 1024 to 4096 entries
-  - Increased BTB size from 256 to 512 entries
-  - Added 12-bit global history for gshare correlation
-  - Updated misprediction penalty from 12 to 14 cycles (M2 spec)
+  - Upgraded from simple bimodal to tournament predictor
   - Issue #135 closed
 
-**Research update:**
-- Eric commented on #134 with accuracy target analysis
-- Recommended adjusted target: <20% average error
-- <2% is unrealistic for in-order simulation
-
-**Previous cycle (10:08):**
-- PR #137 MERGED ✅ SPEC benchmark CI workflow
-- Issues #132-136 created for accuracy work
+**Research updates:**
+- Eric analyzed memory latency parameters on #136
+- Identified L2 size mismatch and unified memory opportunity
+- #141 pending human approval for 20% accuracy target
 
 **Current Accuracy:**
 | Benchmark | Sim CPI | M2 CPI | Error |
@@ -36,14 +34,14 @@
 | branch_taken | 1.800 | 1.190 | 51.3% |
 | **Average** | | | **39.8%** |
 
-*Note: Accuracy will be re-measured after tournament predictor merge.*
+*Note: Accuracy to be re-measured after memory latency tuning.*
 
 ### Open Issues
 
 | Issue | Priority | Status |
 |-------|----------|--------|
+| #141 | High | 20% accuracy target approval (pending human) |
 | #138 | High | SPEC benchmark execution |
-| #136 | High | Memory latency tuning |
 | #134 | High | Accuracy target discussion |
 | #132 | High | Intermediate benchmarks research |
 | #139 | Low | Multi-core execution (long-term) |
@@ -53,22 +51,22 @@
 | #107 | High | SPEC benchmarks available |
 
 ### Open PRs
-None - PR #140 merged this cycle!
+None - all approved PRs merged!
 
 ### Accuracy Work Progress
 - Phase 1: ✅ Branch predictor tuning (PR #140)
-- Phase 2: 🔜 Memory latency tuning (#136)
+- Phase 2: ✅ Memory latency tuning (PR #142)
 - Phase 3: 🔜 Re-measure accuracy after tuning
 
 ### Blockers
 - Fundamental accuracy limitation: M2Sim is in-order, M2 is out-of-order
 - Recommendation: Adjust target to <20% for in-order simulation
-- Decision needed on #134 (accuracy target) for M6 completion criteria
+- #141 awaiting human approval for 20% target
 
 ### Next Steps
-1. Run benchmarks to measure accuracy after tournament predictor
-2. Implement memory latency tuning (#136)
-3. Finalize accuracy target decision (#134)
+1. Re-run benchmarks to measure accuracy after memory latency tuning
+2. Finalize accuracy target decision (#134, #141)
+3. Investigate remaining accuracy gaps (#115)
 4. README update (#129)
 
 ## Milestones Overview
