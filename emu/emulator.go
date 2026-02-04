@@ -216,6 +216,15 @@ func (e *Emulator) execute(inst *insts.Instruction) StepResult {
 		return e.executeSVC()
 	}
 
+	// Handle BRK (breakpoint/trap) - indicates an error condition or assertion
+	if inst.Op == insts.OpBRK {
+		return StepResult{
+			Exited:   true,
+			ExitCode: -1, // Trap exit code
+			Err:      fmt.Errorf("BRK trap #0x%X at PC=0x%X", inst.Imm, e.regFile.PC),
+		}
+	}
+
 	// Execute based on instruction type
 	switch inst.Format {
 	case insts.FormatDPImm:

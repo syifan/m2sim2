@@ -547,6 +547,27 @@ var _ = Describe("Decoder", func() {
 			Expect(inst.Format).To(Equal(insts.FormatException))
 			Expect(inst.Imm).To(Equal(uint64(0xFFFF)))
 		})
+
+		// BRK #0x3e8        -> 0xD4207D00
+		// Encoding: 11010100 001 | imm16=0x3e8 | 00000
+		// This is the BRK instruction that CoreMark uses for assertions
+		It("should decode BRK #0x3e8 (from CoreMark)", func() {
+			inst := decoder.Decode(0xD4207D00)
+
+			Expect(inst.Op).To(Equal(insts.OpBRK))
+			Expect(inst.Format).To(Equal(insts.FormatException))
+			Expect(inst.Imm).To(Equal(uint64(0x3e8)))
+		})
+
+		// BRK #0            -> 0xD4200000
+		// Encoding: 11010100 001 | imm16=0 | 00000
+		It("should decode BRK #0", func() {
+			inst := decoder.Decode(0xD4200000)
+
+			Expect(inst.Op).To(Equal(insts.OpBRK))
+			Expect(inst.Format).To(Equal(insts.FormatException))
+			Expect(inst.Imm).To(Equal(uint64(0)))
+		})
 	})
 
 	Describe("Unknown Instructions", func() {

@@ -21,6 +21,7 @@ const (
 	OpLDR
 	OpSTR
 	OpSVC
+	OpBRK // Breakpoint - software debug trap
 	// PC-relative addressing
 	OpADR    // ADR - PC-relative address
 	OpADRP   // ADRP - PC-relative page address
@@ -533,22 +534,38 @@ func (d *Decoder) decodeLoadStoreImm(word uint32, inst *Instruction) {
 
 // isException checks for exception generation instructions.
 // SVC: bits [31:21] == 0b11010100000, bits [4:0] == 0b00001
+// BRK: bits [31:21] == 0b11010100001, bits [4:0] == 0b00000
 func (d *Decoder) isException(word uint32) bool {
 	hi := (word >> 21) & 0x7FF // bits [31:21]
 	lo := word & 0x1F          // bits [4:0]
-	return hi == 0b11010100000 && lo == 0b00001
+	// SVC
+	if hi == 0b11010100000 && lo == 0b00001 {
+		return true
+	}
+	// BRK
+	if hi == 0b11010100001 && lo == 0b00000 {
+		return true
+	}
+	return false
 }
 
-// decodeException decodes SVC (supervisor call) instruction.
-// Format: 11010100 000 | imm16 | 00001
-// imm16 is typically 0 for Linux syscalls (SVC #0)
+// decodeException decodes exception generation instructions (SVC, BRK).
+// SVC format: 11010100 000 | imm16 | 00001
+// BRK format: 11010100 001 | imm16 | 00000
 func (d *Decoder) decodeException(word uint32, inst *Instruction) {
 	inst.Format = FormatException
-	inst.Op = OpSVC
 
 	// Extract imm16 (bits [20:5])
 	imm16 := (word >> 5) & 0xFFFF
 	inst.Imm = uint64(imm16)
+
+	// Determine which exception instruction
+	hi := (word >> 21) & 0x7FF // bits [31:21]
+	if hi == 0b11010100001 {
+		inst.Op = OpBRK
+	} else {
+		inst.Op = OpSVC
+	}
 }
 
 // isSIMDLoadStore checks for SIMD/FP Load/Store with unsigned immediate offset.
