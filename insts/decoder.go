@@ -1114,13 +1114,13 @@ func (d *Decoder) isLogicalImm(word uint32) bool {
 func (d *Decoder) decodeLogicalImm(word uint32, inst *Instruction) {
 	inst.Format = FormatLogicalImm
 
-	sf := (word >> 31) & 0x1     // bit 31
-	opc := (word >> 29) & 0x3    // bits [30:29]
-	n := (word >> 22) & 0x1      // bit 22
-	immr := (word >> 16) & 0x3F  // bits [21:16]
-	imms := (word >> 10) & 0x3F  // bits [15:10]
-	rn := (word >> 5) & 0x1F     // bits [9:5]
-	rd := word & 0x1F            // bits [4:0]
+	sf := (word >> 31) & 0x1    // bit 31
+	opc := (word >> 29) & 0x3   // bits [30:29]
+	n := (word >> 22) & 0x1     // bit 22
+	immr := (word >> 16) & 0x3F // bits [21:16]
+	imms := (word >> 10) & 0x3F // bits [15:10]
+	rn := (word >> 5) & 0x1F    // bits [9:5]
+	rd := word & 0x1F           // bits [4:0]
 
 	inst.Is64Bit = sf == 1
 	inst.Rd = uint8(rd)
@@ -1176,7 +1176,7 @@ func DecodeBitmaskImmediate(n, immr, imms uint8, is64bit bool) uint64 {
 	esize := uint64(1) << len
 
 	// Number of 1 bits: (imms AND (esize-1)) + 1
-	levels := uint64(esize - 1)
+	levels := esize - 1
 	s := uint64(imms) & levels
 	r := uint64(immr) & levels
 
