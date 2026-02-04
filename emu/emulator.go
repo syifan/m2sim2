@@ -195,7 +195,8 @@ func (e *Emulator) Run() int64 {
 			return result.ExitCode
 		}
 		if result.Err != nil {
-			// On error, treat as abnormal exit
+			// Print error for debugging
+			fmt.Fprintf(e.stderr, "Emulation error: %v\n", result.Err)
 			return -1
 		}
 	}
@@ -223,6 +224,8 @@ func (e *Emulator) execute(inst *insts.Instruction) StepResult {
 		e.executeDPReg(inst)
 	case insts.FormatLogicalImm:
 		e.executeLogicalImm(inst)
+	case insts.FormatBitfield:
+		e.executeBitfield(inst)
 	case insts.FormatBranch:
 		e.executeBranch(inst)
 		return StepResult{} // PC already updated by branch
@@ -244,6 +247,8 @@ func (e *Emulator) execute(inst *insts.Instruction) StepResult {
 		e.executeMoveWide(inst)
 	case insts.FormatCondSelect:
 		e.executeCondSelect(inst)
+	case insts.FormatCondCmp:
+		e.executeCondCmp(inst)
 	case insts.FormatDataProc2Src:
 		e.executeDataProc2Src(inst)
 	case insts.FormatDataProc3Src:
@@ -363,6 +368,126 @@ func (e *Emulator) executeLogicalImm(inst *insts.Instruction) {
 	}
 }
 
+// executeBitfield executes bitfield instructions (SBFM, BFM, UBFM).
+// immr is in inst.Imm, imms is in inst.Imm2
+func (e *Emulator) executeBitfield(inst *insts.Instruction) {
+	rnVal := e.regFile.ReadReg(inst.Rn)
+	immr := uint32(inst.Imm)
+	imms := uint32(inst.Imm2)
+
+	var result uint64
+
+	switch inst.Op {
+	case insts.OpUBFM:
+		// UBFM: Unsigned bitfield move
+		// If imms >= immr: extract bits (LSR with imms=regsize-1)
+		// If imms < immr: insert bits (LSL)
+		if inst.Is64Bit {
+			if imms >= immr {
+				// LSR, UXTB, UXTH style: extract bits [imms:immr]
+				width := imms - immr + 1
+				mask := (uint64(1) << width) - 1
+				result = (rnVal >> immr) & mask
+			} else {
+				// LSL style: shift left
+				shift := 64 - immr
+				width := imms + 1
+				mask := (uint64(1) << width) - 1
+				result = (rnVal & mask) << shift
+			}
+		} else {
+			rn32 := uint32(rnVal)
+			if imms >= immr {
+				width := imms - immr + 1
+				mask := (uint32(1) << width) - 1
+				result = uint64((rn32 >> immr) & mask)
+			} else {
+				shift := 32 - immr
+				width := imms + 1
+				mask := (uint32(1) << width) - 1
+				result = uint64((rn32 & mask) << shift)
+			}
+		}
+	case insts.OpSBFM:
+		// SBFM: Signed bitfield move (ASR, SXTB, SXTH, SXTW)
+		if inst.Is64Bit {
+			if imms >= immr {
+				// ASR, SXTB, SXTH style: extract and sign-extend
+				width := imms - immr + 1
+				mask := (uint64(1) << width) - 1
+				extracted := (rnVal >> immr) & mask
+				// Sign-extend from bit (width-1)
+				signBit := uint64(1) << (width - 1)
+				if extracted&signBit != 0 {
+					extracted |= ^mask // Sign extend
+				}
+				result = extracted
+			} else {
+				// Shift and sign-extend
+				shift := 64 - immr
+				width := imms + 1
+				mask := (uint64(1) << width) - 1
+				result = (rnVal & mask) << shift
+			}
+		} else {
+			rn32 := uint32(rnVal)
+			if imms >= immr {
+				width := imms - immr + 1
+				mask := (uint32(1) << width) - 1
+				extracted := (rn32 >> immr) & mask
+				signBit := uint32(1) << (width - 1)
+				if extracted&signBit != 0 {
+					extracted |= ^mask
+				}
+				result = uint64(extracted)
+			} else {
+				shift := 32 - immr
+				width := imms + 1
+				mask := (uint32(1) << width) - 1
+				result = uint64((rn32 & mask) << shift)
+			}
+		}
+	case insts.OpBFM:
+		// BFM: Bitfield move (insert bits into destination)
+		rdVal := e.regFile.ReadReg(inst.Rd)
+		if inst.Is64Bit {
+			if imms >= immr {
+				width := imms - immr + 1
+				srcMask := (uint64(1) << width) - 1
+				bits := (rnVal >> immr) & srcMask
+				dstMask := srcMask
+				result = (rdVal &^ dstMask) | bits
+			} else {
+				shift := 64 - immr
+				width := imms + 1
+				srcMask := (uint64(1) << width) - 1
+				bits := (rnVal & srcMask) << shift
+				dstMask := srcMask << shift
+				result = (rdVal &^ dstMask) | bits
+			}
+		} else {
+			rd32 := uint32(rdVal)
+			rn32 := uint32(rnVal)
+			if imms >= immr {
+				width := imms - immr + 1
+				srcMask := (uint32(1) << width) - 1
+				bits := (rn32 >> immr) & srcMask
+				dstMask := srcMask
+				result = uint64((rd32 &^ dstMask) | bits)
+			} else {
+				shift := 32 - immr
+				width := imms + 1
+				srcMask := (uint32(1) << width) - 1
+				bits := (rn32 & srcMask) << shift
+				dstMask := srcMask << shift
+				result = uint64((rd32 &^ dstMask) | bits)
+			}
+		}
+	}
+
+	e.regFile.WriteReg(inst.Rd, result)
+}
+
 // executeBranch executes unconditional branch instructions (B, BL).
 func (e *Emulator) executeBranch(inst *insts.Instruction) {
 	switch inst.Op {
@@ -419,6 +544,27 @@ func (e *Emulator) executeLoadStore(inst *insts.Instruction) {
 	case insts.IndexPost:
 		// Post-index: address = base, then writeback base + offset
 		addr = base
+	case insts.IndexRegBase:
+		// Register offset: base + (extended Rm << shift)
+		rm := e.regFile.ReadReg(inst.Rm)
+		var offset uint64
+		// Handle extend type (stored in ShiftType)
+		// 010=UXTW, 011=LSL/UXTX, 110=SXTW, 111=SXTX
+		switch inst.ShiftType {
+		case 0b010: // UXTW - zero extend 32-bit
+			offset = uint64(uint32(rm))
+		case 0b011: // LSL or UXTX - use 64-bit value as-is
+			offset = rm
+		case 0b110: // SXTW - sign extend 32-bit
+			offset = uint64(int64(int32(rm)))
+		case 0b111: // SXTX - use 64-bit value as-is (signed)
+			offset = rm
+		default:
+			offset = rm // Fallback
+		}
+		// Apply scale shift
+		offset <<= inst.ShiftAmount
+		addr = base + offset
 	default:
 		// Unsigned offset (no writeback)
 		addr = base + inst.Imm
@@ -653,6 +799,68 @@ func (e *Emulator) executeCondSelect(inst *insts.Instruction) {
 	e.regFile.WriteReg(inst.Rd, result)
 }
 
+// executeCondCmp executes conditional compare instructions (CCMP, CCMN).
+// If condition is true: compare Rn with Rm/imm and set flags
+// If condition is false: set flags to nzcv value
+func (e *Emulator) executeCondCmp(inst *insts.Instruction) {
+	cond := Cond(inst.Cond)
+
+	if e.branchUnit.CheckCondition(cond) {
+		// Condition true: perform the comparison and set flags
+		rnVal := e.regFile.ReadReg(inst.Rn)
+
+		var operand uint64
+		if inst.Rm == 0xFF {
+			// Immediate form
+			operand = inst.Imm2
+		} else {
+			// Register form
+			operand = e.regFile.ReadReg(inst.Rm)
+		}
+
+		if inst.Is64Bit {
+			if inst.Op == insts.OpCCMP {
+				// CCMP: compare Rn - operand (sets flags like SUBS)
+				result := rnVal - operand
+				e.regFile.PSTATE.N = (result >> 63) == 1
+				e.regFile.PSTATE.Z = result == 0
+				e.regFile.PSTATE.C = rnVal >= operand
+				e.regFile.PSTATE.V = ((rnVal^operand)&(rnVal^result))>>63 == 1
+			} else {
+				// CCMN: compare Rn + operand (sets flags like ADDS)
+				result := rnVal + operand
+				e.regFile.PSTATE.N = (result >> 63) == 1
+				e.regFile.PSTATE.Z = result == 0
+				e.regFile.PSTATE.C = result < rnVal // Overflow in unsigned add
+				e.regFile.PSTATE.V = ((^(rnVal ^ operand)) & (rnVal ^ result) >> 63) == 1
+			}
+		} else {
+			rn32 := uint32(rnVal)
+			op32 := uint32(operand)
+			if inst.Op == insts.OpCCMP {
+				result := rn32 - op32
+				e.regFile.PSTATE.N = (result >> 31) == 1
+				e.regFile.PSTATE.Z = result == 0
+				e.regFile.PSTATE.C = rn32 >= op32
+				e.regFile.PSTATE.V = ((rn32^op32)&(rn32^result))>>31 == 1
+			} else {
+				result := rn32 + op32
+				e.regFile.PSTATE.N = (result >> 31) == 1
+				e.regFile.PSTATE.Z = result == 0
+				e.regFile.PSTATE.C = result < rn32
+				e.regFile.PSTATE.V = ((^(rn32 ^ op32)) & (rn32 ^ result) >> 31) == 1
+			}
+		}
+	} else {
+		// Condition false: set flags to nzcv value
+		nzcv := inst.Imm
+		e.regFile.PSTATE.N = (nzcv>>3)&1 == 1
+		e.regFile.PSTATE.Z = (nzcv>>2)&1 == 1
+		e.regFile.PSTATE.C = (nzcv>>1)&1 == 1
+		e.regFile.PSTATE.V = nzcv&1 == 1
+	}
+}
+
 // executeDataProc2Src executes two-source data processing instructions (UDIV, SDIV).
 func (e *Emulator) executeDataProc2Src(inst *insts.Instruction) {
 	rnVal := e.regFile.ReadReg(inst.Rn)
@@ -692,6 +900,43 @@ func (e *Emulator) executeDataProc2Src(inst *insts.Instruction) {
 			} else {
 				result = uint64(uint32(rn32 / rm32))
 			}
+		}
+	case insts.OpLSLV:
+		// Logical shift left by register
+		if inst.Is64Bit {
+			shift := rmVal & 0x3F // Shift amount mod 64
+			result = rnVal << shift
+		} else {
+			shift := uint32(rmVal) & 0x1F // Shift amount mod 32
+			result = uint64(uint32(rnVal) << shift)
+		}
+	case insts.OpLSRV:
+		// Logical shift right by register
+		if inst.Is64Bit {
+			shift := rmVal & 0x3F // Shift amount mod 64
+			result = rnVal >> shift
+		} else {
+			shift := uint32(rmVal) & 0x1F // Shift amount mod 32
+			result = uint64(uint32(rnVal) >> shift)
+		}
+	case insts.OpASRV:
+		// Arithmetic shift right by register
+		if inst.Is64Bit {
+			shift := rmVal & 0x3F // Shift amount mod 64
+			result = uint64(int64(rnVal) >> shift)
+		} else {
+			shift := uint32(rmVal) & 0x1F // Shift amount mod 32
+			result = uint64(uint32(int32(rnVal) >> shift))
+		}
+	case insts.OpRORV:
+		// Rotate right by register
+		if inst.Is64Bit {
+			shift := rmVal & 0x3F // Shift amount mod 64
+			result = (rnVal >> shift) | (rnVal << (64 - shift))
+		} else {
+			rn32 := uint32(rnVal)
+			shift := uint32(rmVal) & 0x1F // Shift amount mod 32
+			result = uint64((rn32 >> shift) | (rn32 << (32 - shift)))
 		}
 	}
 

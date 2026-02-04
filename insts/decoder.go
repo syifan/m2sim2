@@ -57,9 +57,21 @@ const (
 	// Division opcodes
 	OpUDIV // Unsigned divide
 	OpSDIV // Signed divide
+	// Shift register opcodes
+	OpLSLV // Logical shift left (variable/register)
+	OpLSRV // Logical shift right (variable/register)
+	OpASRV // Arithmetic shift right (variable/register)
+	OpRORV // Rotate right (variable/register)
+	// Bitfield opcodes
+	OpSBFM // Signed bitfield move (ASR imm, SXTB, etc.)
+	OpBFM  // Bitfield move (BFI, BFXIL)
+	OpUBFM // Unsigned bitfield move (LSL imm, LSR imm, UXTB, etc.)
 	// Multiply-add opcodes
 	OpMADD // Multiply-add
 	OpMSUB // Multiply-subtract
+	// Conditional compare opcodes
+	OpCCMN // Conditional compare negative
+	OpCCMP // Conditional compare
 	// Test and branch opcodes
 	OpTBZ  // Test bit and branch if zero
 	OpTBNZ // Test bit and branch if not zero
@@ -93,6 +105,8 @@ const (
 	FormatTestBranch           // Test and Branch (TBZ, TBNZ)
 	FormatCompareBranch        // Compare and Branch (CBZ, CBNZ)
 	FormatLogicalImm           // Logical Immediate (AND, ORR, EOR, ANDS)
+	FormatBitfield             // Bitfield (SBFM, BFM, UBFM / ASR, LSL, LSR imm)
+	FormatCondCmp              // Conditional compare (CCMP, CCMN)
 )
 
 // Cond represents an ARM64 condition code.
@@ -147,10 +161,11 @@ const (
 type IndexMode uint8
 
 const (
-	IndexNone   IndexMode = iota // No indexing (unsigned offset)
-	IndexPost                    // Post-index: [Rn], #imm
-	IndexPre                     // Pre-index: [Rn, #imm]!
-	IndexSigned                  // Signed offset (for load/store pair)
+	IndexNone    IndexMode = iota // No indexing (unsigned offset)
+	IndexRegBase                  // Register offset: [Xn, Xm{, extend}]
+	IndexPost                     // Post-index: [Rn], #imm
+	IndexPre                      // Pre-index: [Rn, #imm]!
+	IndexSigned                   // Signed offset (for load/store pair)
 )
 
 // Instruction represents a decoded ARM64 instruction.
@@ -167,6 +182,7 @@ type Instruction struct {
 
 	// Immediate operand
 	Imm   uint64 // Immediate value
+	Imm2  uint64 // Second immediate (for bitfield imms)
 	Shift uint8  // Shift amount for immediate
 
 	// Branch fields
@@ -214,6 +230,8 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		d.decodeLoadStorePair(word, inst)
 	case d.isLoadStoreLiteral(word):
 		d.decodeLoadStoreLiteral(word, inst)
+	case d.isLoadStoreRegOffset(word):
+		d.decodeLoadStoreRegOffset(word, inst)
 	case d.isLoadStoreRegIndexed(word):
 		d.decodeLoadStoreRegIndexed(word, inst)
 	case d.isLoadStoreImm(word):
@@ -222,6 +240,8 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		d.decodePCRelAddressing(word, inst)
 	case d.isMoveWide(word):
 		d.decodeMoveWide(word, inst)
+	case d.isCondCmp(word):
+		d.decodeCondCmp(word, inst)
 	case d.isConditionalSelect(word):
 		d.decodeConditionalSelect(word, inst)
 	case d.isDataProc2Src(word):
@@ -230,6 +250,8 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		d.decodeDataProc3Src(word, inst)
 	case d.isLogicalImm(word):
 		d.decodeLogicalImm(word, inst)
+	case d.isBitfield(word):
+		d.decodeBitfield(word, inst)
 	case d.isDataProcessingImm(word):
 		d.decodeDataProcessingImm(word, inst)
 	case d.isDataProcessingReg(word):
@@ -876,6 +898,96 @@ func (d *Decoder) decodeLoadStorePair(word uint32, inst *Instruction) {
 	}
 }
 
+// isLoadStoreRegOffset checks for load/store with register offset addressing.
+// Format: size | 111 | V | 00 | opc | 1 | Rm | option | S | 10 | Rn | Rt
+// bits [29:27] == 111, bits [25:24] == 00, bit 21 == 1, bits [11:10] == 10
+func (d *Decoder) isLoadStoreRegOffset(word uint32) bool {
+	op1 := (word >> 27) & 0x7      // bits [29:27]
+	op2 := (word >> 24) & 0x3      // bits [25:24]
+	bit21 := (word >> 21) & 0x1    // bit 21
+	bits1110 := (word >> 10) & 0x3 // bits [11:10]
+	return op1 == 0b111 && op2 == 0b00 && bit21 == 1 && bits1110 == 0b10
+}
+
+// decodeLoadStoreRegOffset decodes LDR/STR with register offset addressing.
+// Format: size | 111 | V | 00 | opc | 1 | Rm | option | S | 10 | Rn | Rt
+// size[31:30]: 00=byte, 01=halfword, 10=32-bit, 11=64-bit
+// V[26]: 0=GPR
+// opc[23:22]: 00=STR, 01=LDR
+// Rm[20:16]: offset register
+// option[15:13]: extend type (010=UXTW, 011=LSL, 110=SXTW, 111=SXTX)
+// S[12]: scale - if 1, shift by log2(size)
+func (d *Decoder) decodeLoadStoreRegOffset(word uint32, inst *Instruction) {
+	inst.Format = FormatLoadStore
+	inst.IndexMode = IndexRegBase
+
+	size := (word >> 30) & 0x3   // bits [31:30]
+	v := (word >> 26) & 0x1      // bit 26: 0=GPR
+	opc := (word >> 22) & 0x3    // bits [23:22]
+	rm := (word >> 16) & 0x1F    // bits [20:16]
+	option := (word >> 13) & 0x7 // bits [15:13]
+	s := (word >> 12) & 0x1      // bit 12: scale
+	rn := (word >> 5) & 0x1F     // bits [9:5]
+	rt := word & 0x1F            // bits [4:0]
+
+	inst.Rn = uint8(rn)
+	inst.Rd = uint8(rt)
+	inst.Rm = uint8(rm)
+	inst.IsSIMD = v == 1
+
+	// Store extend type in ShiftType (repurposing for this use)
+	// Option: 010=UXTW, 011=LSL, 110=SXTW, 111=SXTX
+	inst.ShiftType = ShiftType(option)
+
+	// Calculate shift amount
+	if s == 1 {
+		// Scale by size: 0=byte(0), 1=halfword(1), 2=word(2), 3=dword(3)
+		inst.ShiftAmount = uint8(size)
+	} else {
+		inst.ShiftAmount = 0
+	}
+
+	// Determine operation based on size and opc
+	switch size {
+	case 0b11: // 64-bit
+		inst.Is64Bit = true
+		if opc&0x1 == 1 {
+			inst.Op = OpLDR
+		} else {
+			inst.Op = OpSTR
+		}
+	case 0b10: // 32-bit
+		inst.Is64Bit = false
+		if opc&0x1 == 1 {
+			inst.Op = OpLDR
+		} else {
+			inst.Op = OpSTR
+		}
+	case 0b01: // 16-bit (halfword)
+		inst.Is64Bit = false
+		switch opc {
+		case 0b00:
+			inst.Op = OpSTRH
+		case 0b01:
+			inst.Op = OpLDRH
+		case 0b10, 0b11:
+			inst.Op = OpLDRSH
+			inst.Is64Bit = opc == 0b10
+		}
+	case 0b00: // 8-bit (byte)
+		inst.Is64Bit = false
+		switch opc {
+		case 0b00:
+			inst.Op = OpSTRB
+		case 0b01:
+			inst.Op = OpLDRB
+		case 0b10, 0b11:
+			inst.Op = OpLDRSB
+			inst.Is64Bit = opc == 0b10
+		}
+	}
+}
+
 // isLoadStoreRegIndexed checks for load/store register with pre/post-indexed addressing.
 // Format: size | 111 | V | 00 | opc | 0 | imm9 | mode | Rn | Rt
 // bits [29:27] == 111, bit 26 == V, bits [25:24] == 00, bit 21 == 0
@@ -973,6 +1085,59 @@ func (d *Decoder) decodeLoadStoreRegIndexed(word uint32, inst *Instruction) {
 }
 
 // isConditionalSelect checks for conditional select instructions (CSEL, CSINC, CSINV, CSNEG).
+// isCondCmp checks for conditional compare instructions (CCMP, CCMN).
+// Format: sf | op | 1 | 11010010 | Rm/imm5 | cond | 1/0 | o2 | Rn | o3 | nzcv
+// bits [29:21] = 0x1A4 or 0x1A5 (register or immediate)
+func (d *Decoder) isCondCmp(word uint32) bool {
+	op := (word >> 21) & 0x1FF // bits [29:21]
+	// 0b111010010 = 0x1D2 for immediate, 0b011010010 = 0x0D2 for register
+	// Actually: bits [29:25] = 11101 and bits [24:21] match pattern
+	bits2925 := (word >> 25) & 0x1F
+	bits2421 := (word >> 21) & 0xF
+	bit10 := (word >> 10) & 0x1
+	bit4 := (word >> 4) & 0x1
+	_ = op
+	// CCMP/CCMN: sf op 1 11010010 (reg) or sf op 1 11010010 (imm)
+	// bits [29:25] = x1101, bits [24:21] = 0010, bit[10], bit[4] = 0
+	return bits2925&0xF == 0b1101 && bits2421 == 0b0010 && bit10 == 0 && bit4 == 0
+}
+
+// decodeCondCmp decodes conditional compare instructions (CCMP, CCMN).
+// If condition is true: compare Rn with Rm/imm and set flags
+// If condition is false: set flags to nzcv value
+func (d *Decoder) decodeCondCmp(word uint32, inst *Instruction) {
+	inst.Format = FormatCondCmp
+
+	sf := (word >> 31) & 0x1   // bit 31: 1=64-bit, 0=32-bit
+	op := (word >> 30) & 0x1   // bit 30: 0=CCMN, 1=CCMP
+	imm := (word >> 11) & 0x1  // bit 11: 1=immediate, 0=register
+	rm := (word >> 16) & 0x1F  // bits [20:16]: Rm or imm5
+	cond := (word >> 12) & 0xF // bits [15:12]: condition
+	rn := (word >> 5) & 0x1F   // bits [9:5]: Rn
+	nzcv := word & 0xF         // bits [3:0]: flags when condition false
+
+	inst.Is64Bit = sf == 1
+	inst.Rn = uint8(rn)
+	inst.Cond = Cond(cond)
+	inst.Imm = uint64(nzcv) // Store nzcv for condition-false case
+
+	if imm == 1 {
+		// Immediate form
+		inst.Imm2 = uint64(rm) // Store immediate value
+		inst.Rm = 0xFF         // Mark as immediate (invalid reg)
+	} else {
+		// Register form
+		inst.Rm = uint8(rm)
+	}
+
+	if op == 0 {
+		inst.Op = OpCCMN
+	} else {
+		inst.Op = OpCCMP
+	}
+}
+
+// isConditionalSelect checks for conditional select instructions (CSEL, CSINC, CSINV, CSNEG).
 // Format: sf | op | S | 11010100 | Rm | cond | op2 | Rn | Rd
 // bits [29:21] == 0b011010100 (S=0 at bit 29, 11010100 at bits 28:21)
 func (d *Decoder) isConditionalSelect(word uint32) bool {
@@ -1048,11 +1213,23 @@ func (d *Decoder) decodeDataProc2Src(word uint32, inst *Instruction) {
 	// Decode operation based on opcode
 	// 000010 = UDIV
 	// 000011 = SDIV
+	// 001000 = LSLV (logical shift left variable)
+	// 001001 = LSRV (logical shift right variable)
+	// 001010 = ASRV (arithmetic shift right variable)
+	// 001011 = RORV (rotate right variable)
 	switch opcode {
 	case 0b000010:
 		inst.Op = OpUDIV
 	case 0b000011:
 		inst.Op = OpSDIV
+	case 0b001000:
+		inst.Op = OpLSLV
+	case 0b001001:
+		inst.Op = OpLSRV
+	case 0b001010:
+		inst.Op = OpASRV
+	case 0b001011:
+		inst.Op = OpRORV
 	default:
 		inst.Op = OpUnknown
 	}
@@ -1200,6 +1377,49 @@ func DecodeBitmaskImmediate(n, immr, imms uint8, is64bit bool) uint64 {
 	}
 
 	return result
+}
+
+// isBitfield checks for bitfield instructions (SBFM, BFM, UBFM).
+// Format: sf | opc | 100110 | N | immr | imms | Rn | Rd
+// bits [28:23] == 0b100110
+func (d *Decoder) isBitfield(word uint32) bool {
+	op := (word >> 23) & 0x3F // bits [28:23]
+	return op == 0b100110
+}
+
+// decodeBitfield decodes bitfield instructions.
+// SBFM (opc=00), BFM (opc=01), UBFM (opc=10)
+// Aliases: ASR imm, LSL imm, LSR imm, SXTB, SXTH, SXTW, UXTB, UXTH
+func (d *Decoder) decodeBitfield(word uint32, inst *Instruction) {
+	inst.Format = FormatBitfield
+
+	sf := (word >> 31) & 0x1    // bit 31
+	opc := (word >> 29) & 0x3   // bits [30:29]
+	n := (word >> 22) & 0x1     // bit 22
+	immr := (word >> 16) & 0x3F // bits [21:16]
+	imms := (word >> 10) & 0x3F // bits [15:10]
+	rn := (word >> 5) & 0x1F    // bits [9:5]
+	rd := word & 0x1F           // bits [4:0]
+
+	inst.Is64Bit = sf == 1
+	inst.Rd = uint8(rd)
+	inst.Rn = uint8(rn)
+	// Store immr and imms for execution
+	inst.Imm = uint64(immr)
+	inst.Imm2 = uint64(imms)
+
+	_ = n // N must match sf for valid encoding
+
+	switch opc {
+	case 0b00:
+		inst.Op = OpSBFM
+	case 0b01:
+		inst.Op = OpBFM
+	case 0b10:
+		inst.Op = OpUBFM
+	default:
+		inst.Op = OpUnknown
+	}
 }
 
 // isTestBranch checks for test and branch instructions (TBZ, TBNZ).
