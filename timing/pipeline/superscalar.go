@@ -24,6 +24,13 @@ func DualIssueConfig() SuperscalarConfig {
 	}
 }
 
+// QuadIssueConfig returns a 4-wide superscalar configuration.
+func QuadIssueConfig() SuperscalarConfig {
+	return SuperscalarConfig{
+		IssueWidth: 4,
+	}
+}
+
 // WithSuperscalar sets the superscalar configuration.
 func WithSuperscalar(config SuperscalarConfig) PipelineOption {
 	return func(p *Pipeline) {
@@ -35,13 +42,6 @@ func WithSuperscalar(config SuperscalarConfig) PipelineOption {
 func WithDualIssue() PipelineOption {
 	return func(p *Pipeline) {
 		p.superscalarConfig = DualIssueConfig()
-	}
-}
-
-// QuadIssueConfig returns a 4-wide superscalar configuration.
-func QuadIssueConfig() SuperscalarConfig {
-	return SuperscalarConfig{
-		IssueWidth: 4,
 	}
 }
 
@@ -110,23 +110,29 @@ type SecondaryIFIDRegister struct {
 	Valid           bool
 	PC              uint64
 	InstructionWord uint32
+	PredictedTaken  bool
+	PredictedTarget uint64
+	EarlyResolved   bool
 }
 
 // SecondaryIDEXRegister holds the second decoded instruction for dual-issue.
 type SecondaryIDEXRegister struct {
-	Valid    bool
-	PC       uint64
-	Inst     *insts.Instruction
-	RnValue  uint64
-	RmValue  uint64
-	Rd       uint8
-	Rn       uint8
-	Rm       uint8
-	MemRead  bool
-	MemWrite bool
-	RegWrite bool
-	MemToReg bool
-	IsBranch bool
+	Valid           bool
+	PC              uint64
+	Inst            *insts.Instruction
+	RnValue         uint64
+	RmValue         uint64
+	Rd              uint8
+	Rn              uint8
+	Rm              uint8
+	MemRead         bool
+	MemWrite        bool
+	RegWrite        bool
+	MemToReg        bool
+	IsBranch        bool
+	PredictedTaken  bool
+	PredictedTarget uint64
+	EarlyResolved   bool
 }
 
 // SecondaryEXMEMRegister holds the second execute result for dual-issue.
@@ -160,6 +166,9 @@ func (r *SecondaryIFIDRegister) Clear() {
 	r.Valid = false
 	r.PC = 0
 	r.InstructionWord = 0
+	r.PredictedTaken = false
+	r.PredictedTarget = 0
+	r.EarlyResolved = false
 }
 
 // Clear resets the secondary ID/EX register.
@@ -177,6 +186,9 @@ func (r *SecondaryIDEXRegister) Clear() {
 	r.RegWrite = false
 	r.MemToReg = false
 	r.IsBranch = false
+	r.PredictedTaken = false
+	r.PredictedTarget = 0
+	r.EarlyResolved = false
 }
 
 // Clear resets the secondary EX/MEM register.
@@ -208,19 +220,22 @@ func (r *SecondaryMEMWBRegister) Clear() {
 // toIDEX converts SecondaryIDEXRegister to IDEXRegister for use with existing hazard/execute logic.
 func (r *SecondaryIDEXRegister) toIDEX() IDEXRegister {
 	return IDEXRegister{
-		Valid:    r.Valid,
-		PC:       r.PC,
-		Inst:     r.Inst,
-		RnValue:  r.RnValue,
-		RmValue:  r.RmValue,
-		Rd:       r.Rd,
-		Rn:       r.Rn,
-		Rm:       r.Rm,
-		MemRead:  r.MemRead,
-		MemWrite: r.MemWrite,
-		RegWrite: r.RegWrite,
-		MemToReg: r.MemToReg,
-		IsBranch: r.IsBranch,
+		Valid:           r.Valid,
+		PC:              r.PC,
+		Inst:            r.Inst,
+		RnValue:         r.RnValue,
+		RmValue:         r.RmValue,
+		Rd:              r.Rd,
+		Rn:              r.Rn,
+		Rm:              r.Rm,
+		MemRead:         r.MemRead,
+		MemWrite:        r.MemWrite,
+		RegWrite:        r.RegWrite,
+		MemToReg:        r.MemToReg,
+		IsBranch:        r.IsBranch,
+		PredictedTaken:  r.PredictedTaken,
+		PredictedTarget: r.PredictedTarget,
+		EarlyResolved:   r.EarlyResolved,
 	}
 }
 
@@ -239,6 +254,9 @@ func (r *SecondaryIDEXRegister) fromIDEX(idex *IDEXRegister) {
 	r.RegWrite = idex.RegWrite
 	r.MemToReg = idex.MemToReg
 	r.IsBranch = idex.IsBranch
+	r.PredictedTaken = idex.PredictedTaken
+	r.PredictedTarget = idex.PredictedTarget
+	r.EarlyResolved = idex.EarlyResolved
 }
 
 // TertiaryIFIDRegister holds the third fetched instruction for 4-wide issue.
@@ -342,6 +360,8 @@ func (r *TertiaryMEMWBRegister) Clear() {
 }
 
 // toIDEX converts TertiaryIDEXRegister to IDEXRegister.
+//
+
 func (r *TertiaryIDEXRegister) toIDEX() IDEXRegister {
 	return IDEXRegister{
 		Valid:    r.Valid,
@@ -478,6 +498,8 @@ func (r *QuaternaryMEMWBRegister) Clear() {
 }
 
 // toIDEX converts QuaternaryIDEXRegister to IDEXRegister.
+//
+
 func (r *QuaternaryIDEXRegister) toIDEX() IDEXRegister {
 	return IDEXRegister{
 		Valid:    r.Valid,

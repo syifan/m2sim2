@@ -825,23 +825,63 @@ func (p *Pipeline) tickSuperscalar() {
 				MemToReg:   p.idex.MemToReg,
 			}
 
-			// Check for branch in primary slot
-			if execResult.BranchTaken {
-				p.pc = execResult.BranchTarget
-				p.ifid.Clear()
-				p.ifid2.Clear()
-				p.idex.Clear()
-				p.idex2.Clear()
-				p.stats.Flushes++
+			// Branch prediction verification for primary slot (same logic as single-issue)
+			if p.idex.IsBranch {
+				actualTaken := execResult.BranchTaken
+				actualTarget := execResult.BranchTarget
 
-				// Latch results and return early
-				if !memStall {
-					p.memwb = nextMEMWB
-					p.memwb2 = nextMEMWB2
-					p.exmem = nextEXMEM
-					p.exmem2.Clear()
+				p.stats.BranchPredictions++
+
+				// Use prediction info captured at fetch time
+				predictedTaken := p.idex.PredictedTaken
+				predictedTarget := p.idex.PredictedTarget
+				earlyResolved := p.idex.EarlyResolved
+
+				// Determine if misprediction occurred
+				wasMispredicted := false
+				if actualTaken {
+					if !predictedTaken {
+						wasMispredicted = true
+					} else if predictedTarget != actualTarget {
+						wasMispredicted = true
+					}
+				} else {
+					if predictedTaken {
+						wasMispredicted = true
+					}
 				}
-				return
+
+				// Early-resolved unconditional branches should always be correct
+				if earlyResolved && actualTaken {
+					wasMispredicted = false
+				}
+
+				// Update predictor
+				p.branchPredictor.Update(p.idex.PC, actualTaken, actualTarget)
+
+				if wasMispredicted {
+					p.stats.BranchMispredictions++
+					branchTarget := actualTarget
+					if !actualTaken {
+						branchTarget = p.idex.PC + 4
+					}
+					p.pc = branchTarget
+					p.ifid.Clear()
+					p.ifid2.Clear()
+					p.idex.Clear()
+					p.idex2.Clear()
+					p.stats.Flushes++
+
+					// Latch results and return early
+					if !memStall {
+						p.memwb = nextMEMWB
+						p.memwb2 = nextMEMWB2
+						p.exmem = nextEXMEM
+						p.exmem2.Clear()
+					}
+					return
+				}
+				p.stats.BranchCorrect++
 			}
 		}
 	}
@@ -964,38 +1004,44 @@ func (p *Pipeline) tickSuperscalar() {
 	if p.ifid.Valid && !stallResult.StallID && !stallResult.FlushID && !execStall && !memStall {
 		decResult := p.decodeStage.Decode(p.ifid.InstructionWord, p.ifid.PC)
 		nextIDEX = IDEXRegister{
-			Valid:    true,
-			PC:       p.ifid.PC,
-			Inst:     decResult.Inst,
-			RnValue:  decResult.RnValue,
-			RmValue:  decResult.RmValue,
-			Rd:       decResult.Rd,
-			Rn:       decResult.Rn,
-			Rm:       decResult.Rm,
-			MemRead:  decResult.MemRead,
-			MemWrite: decResult.MemWrite,
-			RegWrite: decResult.RegWrite,
-			MemToReg: decResult.MemToReg,
-			IsBranch: decResult.IsBranch,
+			Valid:           true,
+			PC:              p.ifid.PC,
+			Inst:            decResult.Inst,
+			RnValue:         decResult.RnValue,
+			RmValue:         decResult.RmValue,
+			Rd:              decResult.Rd,
+			Rn:              decResult.Rn,
+			Rm:              decResult.Rm,
+			MemRead:         decResult.MemRead,
+			MemWrite:        decResult.MemWrite,
+			RegWrite:        decResult.RegWrite,
+			MemToReg:        decResult.MemToReg,
+			IsBranch:        decResult.IsBranch,
+			PredictedTaken:  p.ifid.PredictedTaken,
+			PredictedTarget: p.ifid.PredictedTarget,
+			EarlyResolved:   p.ifid.EarlyResolved,
 		}
 
 		// Decode secondary slot if available
 		if p.ifid2.Valid {
 			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
 			tempIDEX2 := IDEXRegister{
-				Valid:    true,
-				PC:       p.ifid2.PC,
-				Inst:     decResult2.Inst,
-				RnValue:  decResult2.RnValue,
-				RmValue:  decResult2.RmValue,
-				Rd:       decResult2.Rd,
-				Rn:       decResult2.Rn,
-				Rm:       decResult2.Rm,
-				MemRead:  decResult2.MemRead,
-				MemWrite: decResult2.MemWrite,
-				RegWrite: decResult2.RegWrite,
-				MemToReg: decResult2.MemToReg,
-				IsBranch: decResult2.IsBranch,
+				Valid:           true,
+				PC:              p.ifid2.PC,
+				Inst:            decResult2.Inst,
+				RnValue:         decResult2.RnValue,
+				RmValue:         decResult2.RmValue,
+				Rd:              decResult2.Rd,
+				Rn:              decResult2.Rn,
+				Rm:              decResult2.Rm,
+				MemRead:         decResult2.MemRead,
+				MemWrite:        decResult2.MemWrite,
+				RegWrite:        decResult2.RegWrite,
+				MemToReg:        decResult2.MemToReg,
+				IsBranch:        decResult2.IsBranch,
+				PredictedTaken:  p.ifid2.PredictedTaken,
+				PredictedTarget: p.ifid2.PredictedTarget,
+				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
 
 			// Check if we can dual-issue these two instructions
@@ -1026,10 +1072,14 @@ func (p *Pipeline) tickSuperscalar() {
 		// becomes the first instruction for this cycle
 		if p.ifid2.Valid && !dualIssued {
 			// Carry over the second fetched instruction to the primary slot
+			// (including its prediction info)
 			nextIFID = IFIDRegister{
 				Valid:           true,
 				PC:              p.ifid2.PC,
 				InstructionWord: p.ifid2.InstructionWord,
+				PredictedTaken:  p.ifid2.PredictedTaken,
+				PredictedTarget: p.ifid2.PredictedTarget,
+				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
 			// Fetch a new second instruction
 			var word2 uint32
@@ -1045,12 +1095,32 @@ func (p *Pipeline) tickSuperscalar() {
 				word2, ok2 = p.fetchStage.Fetch(p.pc)
 			}
 			if ok2 && !stall2 {
+				// Apply branch prediction to secondary slot
+				isUncondBranch2, uncondTarget2 := isUnconditionalBranch(word2, p.pc)
+				pred2 := p.branchPredictor.Predict(p.pc)
+				earlyResolved2 := false
+				if isUncondBranch2 {
+					pred2.Taken = true
+					pred2.Target = uncondTarget2
+					pred2.TargetKnown = true
+					earlyResolved2 = true
+				}
+
 				nextIFID2 = SecondaryIFIDRegister{
 					Valid:           true,
 					PC:              p.pc,
 					InstructionWord: word2,
+					PredictedTaken:  pred2.Taken,
+					PredictedTarget: pred2.Target,
+					EarlyResolved:   earlyResolved2,
 				}
-				p.pc += 4
+
+				// Handle branch speculation for secondary slot
+				if pred2.Taken && pred2.TargetKnown {
+					p.pc = pred2.Target
+				} else {
+					p.pc += 4
+				}
 			} else if stall2 {
 				// When fetch stalls, preserve the entire pipeline state
 				nextIFID = p.ifid
@@ -1075,30 +1145,72 @@ func (p *Pipeline) tickSuperscalar() {
 			}
 
 			if ok && !fetchStall {
+				// Apply branch prediction to primary slot
+				isUncondBranch, uncondTarget := isUnconditionalBranch(word, p.pc)
+				pred := p.branchPredictor.Predict(p.pc)
+				earlyResolved := false
+				if isUncondBranch {
+					pred.Taken = true
+					pred.Target = uncondTarget
+					pred.TargetKnown = true
+					earlyResolved = true
+				}
+
 				nextIFID = IFIDRegister{
 					Valid:           true,
 					PC:              p.pc,
 					InstructionWord: word,
+					PredictedTaken:  pred.Taken,
+					PredictedTarget: pred.Target,
+					EarlyResolved:   earlyResolved,
 				}
 
-				// Fetch second instruction for dual-issue
-				var word2 uint32
-				var ok2 bool
-				if p.useICache && p.cachedFetchStage != nil {
-					word2, ok2, _ = p.cachedFetchStage.Fetch(p.pc + 4)
+				// Handle branch speculation for primary slot
+				if pred.Taken && pred.TargetKnown {
+					// Branch predicted taken - redirect PC
+					p.pc = pred.Target
+					// Don't fetch second instruction when branching
+					p.pc += 0 // PC already set to target
 				} else {
-					word2, ok2 = p.fetchStage.Fetch(p.pc + 4)
-				}
-
-				if ok2 {
-					nextIFID2 = SecondaryIFIDRegister{
-						Valid:           true,
-						PC:              p.pc + 4,
-						InstructionWord: word2,
+					// No branch or not taken - fetch second instruction
+					var word2 uint32
+					var ok2 bool
+					if p.useICache && p.cachedFetchStage != nil {
+						word2, ok2, _ = p.cachedFetchStage.Fetch(p.pc + 4)
+					} else {
+						word2, ok2 = p.fetchStage.Fetch(p.pc + 4)
 					}
-					p.pc += 8 // Advance PC by 2 instructions
-				} else {
-					p.pc += 4
+
+					if ok2 {
+						// Apply branch prediction to secondary slot
+						isUncondBranch2, uncondTarget2 := isUnconditionalBranch(word2, p.pc+4)
+						pred2 := p.branchPredictor.Predict(p.pc + 4)
+						earlyResolved2 := false
+						if isUncondBranch2 {
+							pred2.Taken = true
+							pred2.Target = uncondTarget2
+							pred2.TargetKnown = true
+							earlyResolved2 = true
+						}
+
+						nextIFID2 = SecondaryIFIDRegister{
+							Valid:           true,
+							PC:              p.pc + 4,
+							InstructionWord: word2,
+							PredictedTaken:  pred2.Taken,
+							PredictedTarget: pred2.Target,
+							EarlyResolved:   earlyResolved2,
+						}
+
+						// Handle branch speculation for secondary slot
+						if pred2.Taken && pred2.TargetKnown {
+							p.pc = pred2.Target
+						} else {
+							p.pc += 8 // Advance PC by 2 instructions
+						}
+					} else {
+						p.pc += 4
+					}
 				}
 			} else if fetchStall {
 				nextIFID = p.ifid
@@ -1142,6 +1254,9 @@ func (p *Pipeline) tickSuperscalar() {
 }
 
 // tickQuadIssue executes one cycle with 4-wide superscalar support.
+// This extends dual-issue to support up to 4 independent instructions per cycle.
+//
+//nolint:unused // Scaffolding for 4-wide implementation (PR #114)
 func (p *Pipeline) tickQuadIssue() {
 	// Stage 5: Writeback (all 4 slots)
 	savedMEMWB := p.memwb
@@ -1149,6 +1264,8 @@ func (p *Pipeline) tickQuadIssue() {
 	if p.memwb.Valid {
 		p.stats.Instructions++
 	}
+
+	// Writeback secondary slot
 	if p.memwb2.Valid && p.memwb2.RegWrite && p.memwb2.Rd != 31 {
 		var value uint64
 		if p.memwb2.MemToReg {
@@ -1159,6 +1276,8 @@ func (p *Pipeline) tickQuadIssue() {
 		p.regFile.WriteReg(p.memwb2.Rd, value)
 		p.stats.Instructions++
 	}
+
+	// Writeback tertiary slot
 	if p.memwb3.Valid && p.memwb3.RegWrite && p.memwb3.Rd != 31 {
 		var value uint64
 		if p.memwb3.MemToReg {
@@ -1169,6 +1288,8 @@ func (p *Pipeline) tickQuadIssue() {
 		p.regFile.WriteReg(p.memwb3.Rd, value)
 		p.stats.Instructions++
 	}
+
+	// Writeback quaternary slot
 	if p.memwb4.Valid && p.memwb4.RegWrite && p.memwb4.Rd != 31 {
 		var value uint64
 		if p.memwb4.MemToReg {
@@ -1237,35 +1358,45 @@ func (p *Pipeline) tickQuadIssue() {
 		}
 	}
 
-	// Secondary slots pass through ALU results (no memory access)
+	// Secondary slot memory (ALU results only, no memory access)
 	if p.exmem2.Valid && !memStall {
 		nextMEMWB2 = SecondaryMEMWBRegister{
 			Valid:     true,
 			PC:        p.exmem2.PC,
 			Inst:      p.exmem2.Inst,
 			ALUResult: p.exmem2.ALUResult,
+			MemData:   0,
 			Rd:        p.exmem2.Rd,
 			RegWrite:  p.exmem2.RegWrite,
+			MemToReg:  false,
 		}
 	}
+
+	// Tertiary slot memory (ALU results only)
 	if p.exmem3.Valid && !memStall {
 		nextMEMWB3 = TertiaryMEMWBRegister{
 			Valid:     true,
 			PC:        p.exmem3.PC,
 			Inst:      p.exmem3.Inst,
 			ALUResult: p.exmem3.ALUResult,
+			MemData:   0,
 			Rd:        p.exmem3.Rd,
 			RegWrite:  p.exmem3.RegWrite,
+			MemToReg:  false,
 		}
 	}
+
+	// Quaternary slot memory (ALU results only)
 	if p.exmem4.Valid && !memStall {
 		nextMEMWB4 = QuaternaryMEMWBRegister{
 			Valid:     true,
 			PC:        p.exmem4.PC,
 			Inst:      p.exmem4.Inst,
 			ALUResult: p.exmem4.ALUResult,
+			MemData:   0,
 			Rd:        p.exmem4.Rd,
 			RegWrite:  p.exmem4.RegWrite,
+			MemToReg:  false,
 		}
 	}
 
@@ -1276,6 +1407,7 @@ func (p *Pipeline) tickQuadIssue() {
 	var nextEXMEM4 QuaternaryEXMEMRegister
 	execStall := false
 
+	// Detect forwarding for primary slot
 	forwarding := p.hazardUnit.DetectForwarding(&p.idex, &p.exmem, &p.memwb)
 
 	// Execute primary slot
@@ -1287,17 +1419,21 @@ func (p *Pipeline) tickQuadIssue() {
 				p.exLatency = p.latencyTable.GetLatency(p.idex.Inst)
 			}
 		}
+
 		if p.exLatency > 0 {
 			p.exLatency--
 		}
+
 		if p.exLatency > 0 {
 			execStall = true
 			p.stats.ExecStalls++
 		} else {
-			rnValue := p.hazardUnit.GetForwardedValue(forwarding.ForwardRn, p.idex.RnValue, &p.exmem, &savedMEMWB)
-			rmValue := p.hazardUnit.GetForwardedValue(forwarding.ForwardRm, p.idex.RmValue, &p.exmem, &savedMEMWB)
+			rnValue := p.hazardUnit.GetForwardedValue(
+				forwarding.ForwardRn, p.idex.RnValue, &p.exmem, &savedMEMWB)
+			rmValue := p.hazardUnit.GetForwardedValue(
+				forwarding.ForwardRm, p.idex.RmValue, &p.exmem, &savedMEMWB)
 
-			// Forward from secondary/tertiary/quaternary pipeline stages
+			// Forward from all secondary pipeline stages to primary slot
 			rnValue = p.forwardFromAllSlots(p.idex.Rn, rnValue)
 			rmValue = p.forwardFromAllSlots(p.idex.Rm, rmValue)
 
@@ -1306,7 +1442,8 @@ func (p *Pipeline) tickQuadIssue() {
 			storeValue := execResult.StoreValue
 			if p.idex.MemWrite {
 				rdValue := p.regFile.ReadReg(p.idex.Rd)
-				storeValue = p.hazardUnit.GetForwardedValue(forwarding.ForwardRd, rdValue, &p.exmem, &savedMEMWB)
+				storeValue = p.hazardUnit.GetForwardedValue(
+					forwarding.ForwardRd, rdValue, &p.exmem, &savedMEMWB)
 			}
 
 			nextEXMEM = EXMEMRegister{
@@ -1322,17 +1459,14 @@ func (p *Pipeline) tickQuadIssue() {
 				MemToReg:   p.idex.MemToReg,
 			}
 
+			// Check for branch in primary slot
 			if execResult.BranchTaken {
 				p.pc = execResult.BranchTarget
-				p.ifid.Clear()
-				p.ifid2.Clear()
-				p.ifid3.Clear()
-				p.ifid4.Clear()
-				p.idex.Clear()
-				p.idex2.Clear()
-				p.idex3.Clear()
-				p.idex4.Clear()
+				p.flushAllIFID()
+				p.flushAllIDEX()
 				p.stats.Flushes++
+
+				// Latch results and return early
 				if !memStall {
 					p.memwb = nextMEMWB
 					p.memwb2 = nextMEMWB2
@@ -1348,26 +1482,25 @@ func (p *Pipeline) tickQuadIssue() {
 		}
 	}
 
-	// Execute secondary slot
+	// Execute secondary slot (if not stalled and slot is valid)
 	if p.idex2.Valid && !memStall && !execStall {
 		if p.latencyTable != nil && p.exLatency2 == 0 {
 			p.exLatency2 = p.latencyTable.GetLatency(p.idex2.Inst)
 		}
+
 		if p.exLatency2 > 0 {
 			p.exLatency2--
 		}
-		if p.exLatency2 == 0 {
-			// Detect forwarding from primary pipeline stages
-			idex2 := p.idex2.toIDEX()
-			forwarding2 := p.hazardUnit.DetectForwarding(&idex2, &p.exmem, &savedMEMWB)
-			rnValue := p.hazardUnit.GetForwardedValue(forwarding2.ForwardRn, p.idex2.RnValue, &p.exmem, &savedMEMWB)
-			rmValue := p.hazardUnit.GetForwardedValue(forwarding2.ForwardRm, p.idex2.RmValue, &p.exmem, &savedMEMWB)
 
-			// Forward from secondary/tertiary/quaternary pipeline stages
+		if p.exLatency2 == 0 {
+			rnValue := p.idex2.RnValue
+			rmValue := p.idex2.RmValue
+
+			// Forward from all pipeline stages
 			rnValue = p.forwardFromAllSlots(p.idex2.Rn, rnValue)
 			rmValue = p.forwardFromAllSlots(p.idex2.Rm, rmValue)
 
-			// Forward from current cycle's primary result (highest priority)
+			// Forward from current cycle's primary execution
 			if nextEXMEM.Valid && nextEXMEM.RegWrite && nextEXMEM.Rd != 31 {
 				if p.idex2.Rn == nextEXMEM.Rd {
 					rnValue = nextEXMEM.ALUResult
@@ -1376,7 +1509,10 @@ func (p *Pipeline) tickQuadIssue() {
 					rmValue = nextEXMEM.ALUResult
 				}
 			}
+
+			idex2 := p.idex2.toIDEX()
 			execResult := p.executeStage.Execute(&idex2, rnValue, rmValue)
+
 			nextEXMEM2 = SecondaryEXMEMRegister{
 				Valid:      true,
 				PC:         p.idex2.PC,
@@ -1397,20 +1533,20 @@ func (p *Pipeline) tickQuadIssue() {
 		if p.latencyTable != nil && p.exLatency3 == 0 {
 			p.exLatency3 = p.latencyTable.GetLatency(p.idex3.Inst)
 		}
+
 		if p.exLatency3 > 0 {
 			p.exLatency3--
 		}
-		if p.exLatency3 == 0 {
-			idex3 := p.idex3.toIDEX()
-			forwarding3 := p.hazardUnit.DetectForwarding(&idex3, &p.exmem, &savedMEMWB)
-			rnValue := p.hazardUnit.GetForwardedValue(forwarding3.ForwardRn, p.idex3.RnValue, &p.exmem, &savedMEMWB)
-			rmValue := p.hazardUnit.GetForwardedValue(forwarding3.ForwardRm, p.idex3.RmValue, &p.exmem, &savedMEMWB)
 
-			// Forward from secondary/tertiary/quaternary pipeline stages
+		if p.exLatency3 == 0 {
+			rnValue := p.idex3.RnValue
+			rmValue := p.idex3.RmValue
+
+			// Forward from all pipeline stages
 			rnValue = p.forwardFromAllSlots(p.idex3.Rn, rnValue)
 			rmValue = p.forwardFromAllSlots(p.idex3.Rm, rmValue)
 
-			// Forward from current cycle's slots (highest priority)
+			// Forward from current cycle's earlier executions
 			if nextEXMEM.Valid && nextEXMEM.RegWrite && nextEXMEM.Rd != 31 {
 				if p.idex3.Rn == nextEXMEM.Rd {
 					rnValue = nextEXMEM.ALUResult
@@ -1427,7 +1563,10 @@ func (p *Pipeline) tickQuadIssue() {
 					rmValue = nextEXMEM2.ALUResult
 				}
 			}
+
+			idex3 := p.idex3.toIDEX()
 			execResult := p.executeStage.Execute(&idex3, rnValue, rmValue)
+
 			nextEXMEM3 = TertiaryEXMEMRegister{
 				Valid:      true,
 				PC:         p.idex3.PC,
@@ -1448,20 +1587,20 @@ func (p *Pipeline) tickQuadIssue() {
 		if p.latencyTable != nil && p.exLatency4 == 0 {
 			p.exLatency4 = p.latencyTable.GetLatency(p.idex4.Inst)
 		}
+
 		if p.exLatency4 > 0 {
 			p.exLatency4--
 		}
-		if p.exLatency4 == 0 {
-			idex4 := p.idex4.toIDEX()
-			forwarding4 := p.hazardUnit.DetectForwarding(&idex4, &p.exmem, &savedMEMWB)
-			rnValue := p.hazardUnit.GetForwardedValue(forwarding4.ForwardRn, p.idex4.RnValue, &p.exmem, &savedMEMWB)
-			rmValue := p.hazardUnit.GetForwardedValue(forwarding4.ForwardRm, p.idex4.RmValue, &p.exmem, &savedMEMWB)
 
-			// Forward from secondary/tertiary/quaternary pipeline stages
+		if p.exLatency4 == 0 {
+			rnValue := p.idex4.RnValue
+			rmValue := p.idex4.RmValue
+
+			// Forward from all pipeline stages
 			rnValue = p.forwardFromAllSlots(p.idex4.Rn, rnValue)
 			rmValue = p.forwardFromAllSlots(p.idex4.Rm, rmValue)
 
-			// Forward from current cycle's slots (highest priority)
+			// Forward from current cycle's earlier executions
 			if nextEXMEM.Valid && nextEXMEM.RegWrite && nextEXMEM.Rd != 31 {
 				if p.idex4.Rn == nextEXMEM.Rd {
 					rnValue = nextEXMEM.ALUResult
@@ -1486,7 +1625,10 @@ func (p *Pipeline) tickQuadIssue() {
 					rmValue = nextEXMEM3.ALUResult
 				}
 			}
+
+			idex4 := p.idex4.toIDEX()
 			execResult := p.executeStage.Execute(&idex4, rnValue, rmValue)
+
 			nextEXMEM4 = QuaternaryEXMEMRegister{
 				Valid:      true,
 				PC:         p.idex4.PC,
@@ -1502,20 +1644,23 @@ func (p *Pipeline) tickQuadIssue() {
 		}
 	}
 
-	// Detect load-use hazards
+	// Detect load-use hazards for primary decode
 	loadUseHazard := false
 	if p.idex.Valid && p.idex.MemRead && p.idex.Rd != 31 && p.ifid.Valid {
 		nextInst := p.decodeStage.decoder.Decode(p.ifid.InstructionWord)
 		if nextInst != nil && nextInst.Op != insts.OpUnknown {
 			usesRn := true
 			usesRm := nextInst.Format == insts.FormatDPReg
+
 			sourceRm := nextInst.Rm
 			switch nextInst.Op {
 			case insts.OpSTR, insts.OpSTRQ:
 				usesRm = true
 				sourceRm = nextInst.Rd
 			}
-			loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(p.idex.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
+
+			loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
+				p.idex.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
 		}
 	}
 
@@ -1545,53 +1690,78 @@ func (p *Pipeline) tickQuadIssue() {
 			IsBranch: decResult.IsBranch,
 		}
 
+		// Try to issue instructions 2, 3, 4 if they can issue with earlier instructions
 		issuedInsts := []*IDEXRegister{&nextIDEX}
 
-		// Try to issue slot 2
+		// Decode slot 2
 		if p.ifid2.Valid {
 			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
 			tempIDEX2 := IDEXRegister{
-				Valid: true, PC: p.ifid2.PC, Inst: decResult2.Inst,
-				RnValue: decResult2.RnValue, RmValue: decResult2.RmValue,
-				Rd: decResult2.Rd, Rn: decResult2.Rn, Rm: decResult2.Rm,
-				MemRead: decResult2.MemRead, MemWrite: decResult2.MemWrite,
-				RegWrite: decResult2.RegWrite, MemToReg: decResult2.MemToReg,
+				Valid:    true,
+				PC:       p.ifid2.PC,
+				Inst:     decResult2.Inst,
+				RnValue:  decResult2.RnValue,
+				RmValue:  decResult2.RmValue,
+				Rd:       decResult2.Rd,
+				Rn:       decResult2.Rn,
+				Rm:       decResult2.Rm,
+				MemRead:  decResult2.MemRead,
+				MemWrite: decResult2.MemWrite,
+				RegWrite: decResult2.RegWrite,
+				MemToReg: decResult2.MemToReg,
 				IsBranch: decResult2.IsBranch,
 			}
+
 			if canIssueWith(&tempIDEX2, issuedInsts) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
 				issuedInsts = append(issuedInsts, &tempIDEX2)
 			}
 		}
 
-		// Try to issue slot 3
+		// Decode slot 3
 		if p.ifid3.Valid && nextIDEX2.Valid {
 			decResult3 := p.decodeStage.Decode(p.ifid3.InstructionWord, p.ifid3.PC)
 			tempIDEX3 := IDEXRegister{
-				Valid: true, PC: p.ifid3.PC, Inst: decResult3.Inst,
-				RnValue: decResult3.RnValue, RmValue: decResult3.RmValue,
-				Rd: decResult3.Rd, Rn: decResult3.Rn, Rm: decResult3.Rm,
-				MemRead: decResult3.MemRead, MemWrite: decResult3.MemWrite,
-				RegWrite: decResult3.RegWrite, MemToReg: decResult3.MemToReg,
+				Valid:    true,
+				PC:       p.ifid3.PC,
+				Inst:     decResult3.Inst,
+				RnValue:  decResult3.RnValue,
+				RmValue:  decResult3.RmValue,
+				Rd:       decResult3.Rd,
+				Rn:       decResult3.Rn,
+				Rm:       decResult3.Rm,
+				MemRead:  decResult3.MemRead,
+				MemWrite: decResult3.MemWrite,
+				RegWrite: decResult3.RegWrite,
+				MemToReg: decResult3.MemToReg,
 				IsBranch: decResult3.IsBranch,
 			}
+
 			if canIssueWith(&tempIDEX3, issuedInsts) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
 				issuedInsts = append(issuedInsts, &tempIDEX3)
 			}
 		}
 
-		// Try to issue slot 4
+		// Decode slot 4
 		if p.ifid4.Valid && nextIDEX3.Valid {
 			decResult4 := p.decodeStage.Decode(p.ifid4.InstructionWord, p.ifid4.PC)
 			tempIDEX4 := IDEXRegister{
-				Valid: true, PC: p.ifid4.PC, Inst: decResult4.Inst,
-				RnValue: decResult4.RnValue, RmValue: decResult4.RmValue,
-				Rd: decResult4.Rd, Rn: decResult4.Rn, Rm: decResult4.Rm,
-				MemRead: decResult4.MemRead, MemWrite: decResult4.MemWrite,
-				RegWrite: decResult4.RegWrite, MemToReg: decResult4.MemToReg,
+				Valid:    true,
+				PC:       p.ifid4.PC,
+				Inst:     decResult4.Inst,
+				RnValue:  decResult4.RnValue,
+				RmValue:  decResult4.RmValue,
+				Rd:       decResult4.Rd,
+				Rn:       decResult4.Rn,
+				Rm:       decResult4.Rm,
+				MemRead:  decResult4.MemRead,
+				MemWrite: decResult4.MemWrite,
+				RegWrite: decResult4.RegWrite,
+				MemToReg: decResult4.MemToReg,
 				IsBranch: decResult4.IsBranch,
 			}
+
 			if canIssueWith(&tempIDEX4, issuedInsts) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
 			}
@@ -1603,7 +1773,7 @@ func (p *Pipeline) tickQuadIssue() {
 		nextIDEX4 = p.idex4
 	}
 
-	// Count issued instructions
+	// Count how many instructions were issued this cycle for fetch advancement
 	issueCount := 0
 	if nextIDEX.Valid {
 		issueCount++
@@ -1626,62 +1796,29 @@ func (p *Pipeline) tickQuadIssue() {
 	fetchStall := false
 
 	if !stallResult.StallIF && !stallResult.FlushIF && !memStall && !execStall {
-		// Collect unissued instructions
-		var pending []struct {
-			PC   uint64
-			Word uint32
-		}
-		allFetched := []struct {
-			PC   uint64
-			Word uint32
-		}{}
-		if p.ifid.Valid {
-			allFetched = append(allFetched, struct {
-				PC   uint64
-				Word uint32
-			}{p.ifid.PC, p.ifid.InstructionWord})
-		}
-		if p.ifid2.Valid {
-			allFetched = append(allFetched, struct {
-				PC   uint64
-				Word uint32
-			}{p.ifid2.PC, p.ifid2.InstructionWord})
-		}
-		if p.ifid3.Valid {
-			allFetched = append(allFetched, struct {
-				PC   uint64
-				Word uint32
-			}{p.ifid3.PC, p.ifid3.InstructionWord})
-		}
-		if p.ifid4.Valid {
-			allFetched = append(allFetched, struct {
-				PC   uint64
-				Word uint32
-			}{p.ifid4.PC, p.ifid4.InstructionWord})
-		}
-		if issueCount < len(allFetched) {
-			pending = allFetched[issueCount:]
-		}
+		// Shift unissued instructions forward
+		pendingInsts := p.collectPendingFetchInstructions(issueCount)
 
+		// Fill slots with pending instructions first, then fetch new ones
 		fetchPC := p.pc
 		slotIdx := 0
 
-		// Place pending instructions first
-		for _, pend := range pending {
+		// Place pending instructions
+		for _, pending := range pendingInsts {
 			switch slotIdx {
 			case 0:
-				nextIFID = IFIDRegister{Valid: true, PC: pend.PC, InstructionWord: pend.Word}
+				nextIFID = IFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word}
 			case 1:
-				nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: pend.PC, InstructionWord: pend.Word}
+				nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word}
 			case 2:
-				nextIFID3 = TertiaryIFIDRegister{Valid: true, PC: pend.PC, InstructionWord: pend.Word}
+				nextIFID3 = TertiaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word}
 			case 3:
-				nextIFID4 = QuaternaryIFIDRegister{Valid: true, PC: pend.PC, InstructionWord: pend.Word}
+				nextIFID4 = QuaternaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word}
 			}
 			slotIdx++
 		}
 
-		// Fetch new instructions
+		// Fetch new instructions to fill remaining slots
 		for slotIdx < 4 {
 			var word uint32
 			var ok bool
@@ -1716,6 +1853,7 @@ func (p *Pipeline) tickQuadIssue() {
 		p.pc = fetchPC
 
 		if fetchStall {
+			// Preserve all pipeline state on fetch stall
 			nextIFID = p.ifid
 			nextIFID2 = p.ifid2
 			nextIFID3 = p.ifid3
@@ -1772,14 +1910,60 @@ func (p *Pipeline) tickQuadIssue() {
 	p.ifid4 = nextIFID4
 }
 
+// pendingFetchInst represents an instruction waiting in fetch buffer.
+//
+//nolint:unused // Scaffolding for 4-wide implementation (PR #114)
+type pendingFetchInst struct {
+	PC   uint64
+	Word uint32
+}
+
+// collectPendingFetchInstructions returns unissued instructions that need to remain in fetch.
+// issueCount is how many instructions were issued from the current IF/ID registers.
+//
+//nolint:unused // Scaffolding for 4-wide implementation (PR #114)
+func (p *Pipeline) collectPendingFetchInstructions(issueCount int) []pendingFetchInst {
+	var pending []pendingFetchInst
+
+	// All fetched instructions in order
+	allFetched := []pendingFetchInst{}
+	if p.ifid.Valid {
+		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord})
+	}
+	if p.ifid2.Valid {
+		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord})
+	}
+	if p.ifid3.Valid {
+		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord})
+	}
+	if p.ifid4.Valid {
+		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord})
+	}
+
+	// Skip the first issueCount instructions (they were issued)
+	if issueCount < len(allFetched) {
+		pending = allFetched[issueCount:]
+	}
+
+	return pending
+}
+
 // forwardFromAllSlots checks all secondary pipeline stages for forwarding.
-// It returns the forwarded value from the most recent pipeline stage that writes to reg.
+//
+//nolint:unused // Scaffolding for 4-wide implementation (PR #114)
 func (p *Pipeline) forwardFromAllSlots(reg uint8, currentValue uint64) uint64 {
 	if reg == 31 {
 		return currentValue
 	}
 
-	// Check memwb stages (oldest first, then newer stages override)
+	// Check memwb stages (oldest first, primary slot first)
+	if p.memwb.Valid && p.memwb.RegWrite && p.memwb.Rd == reg {
+		if p.memwb.MemToReg {
+			currentValue = p.memwb.MemData
+		} else {
+			currentValue = p.memwb.ALUResult
+		}
+	}
 	if p.memwb2.Valid && p.memwb2.RegWrite && p.memwb2.Rd == reg {
 		currentValue = p.memwb2.ALUResult
 	}
@@ -1790,7 +1974,10 @@ func (p *Pipeline) forwardFromAllSlots(reg uint8, currentValue uint64) uint64 {
 		currentValue = p.memwb4.ALUResult
 	}
 
-	// Check exmem stages (newer, higher priority than memwb)
+	// Check exmem stages (newer, higher priority, primary slot first)
+	if p.exmem.Valid && p.exmem.RegWrite && p.exmem.Rd == reg {
+		currentValue = p.exmem.ALUResult
+	}
 	if p.exmem2.Valid && p.exmem2.RegWrite && p.exmem2.Rd == reg {
 		currentValue = p.exmem2.ALUResult
 	}
@@ -1802,6 +1989,26 @@ func (p *Pipeline) forwardFromAllSlots(reg uint8, currentValue uint64) uint64 {
 	}
 
 	return currentValue
+}
+
+// flushAllIFID clears all IF/ID pipeline registers.
+//
+//nolint:unused // Scaffolding for 4-wide implementation (PR #114)
+func (p *Pipeline) flushAllIFID() {
+	p.ifid.Clear()
+	p.ifid2.Clear()
+	p.ifid3.Clear()
+	p.ifid4.Clear()
+}
+
+// flushAllIDEX clears all ID/EX pipeline registers.
+//
+//nolint:unused // Scaffolding for 4-wide implementation (PR #114)
+func (p *Pipeline) flushAllIDEX() {
+	p.idex.Clear()
+	p.idex2.Clear()
+	p.idex3.Clear()
+	p.idex4.Clear()
 }
 
 // Reset clears all pipeline state.
