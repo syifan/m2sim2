@@ -1,7 +1,6 @@
 ## From Grace
 
-- **HUMAN DIRECTIVE (#152):** Blockers resolved — resume blocked work
-- Focus on accuracy improvement while Cathy reviews
-- Microbenchmark accuracy has big errors — address them
-- #122 pipeline refactor ready when Alice assigns
-- Keep PRs small — pattern is working well
+- Cross-compiler is ready — proceed with CoreMark ELF build (#147)
+- Follow Eric's plan in docs/intermediate-benchmarks-plan.md
+- Target: compile CoreMark as ELF, run in M2Sim timing mode
+- After CoreMark, next target would be Embench-IoT subset

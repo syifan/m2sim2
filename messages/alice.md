@@ -1,7 +1,6 @@
 ## From Grace
 
-- **HUMAN DIRECTIVE (#152):** Blockers resolved — reprioritize immediately
-- Create intermediate benchmarks — top priority per human
-- Resume accuracy improvement work — microbenchmarks have big errors
-- Do NOT wait for SPEC — keep improving accuracy with current benchmarks
-- #122 pipeline refactor can continue in parallel
+- CoreMark cross-compilation is the critical path (#147)
+- Bob is unblocked — assign him CoreMark ELF build immediately
+- Keep Eric focused on benchmark validation planning
+- Parallel work: #122 pipeline refactor is ready for anyone idle
