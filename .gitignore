@@ -14,3 +14,4 @@ benchmarks/spec
 
 # OS
 .DS_Store
+benchmarks/coremark/

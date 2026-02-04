@@ -81,3 +81,19 @@ cd embench-iot
 **Next:** Evaluate Embench-IoT for additional workload diversity.
 
 **Long-term:** Complete SPEC setup once human unblocks Gatekeeper issue.
+
+## M2Sim Integration Note
+
+**Important:** M2Sim requires ELF binaries, not Mach-O.
+
+To run CoreMark in M2Sim:
+1. Install aarch64-elf-gcc: `brew install aarch64-elf-gcc`
+2. Cross-compile CoreMark for ELF target
+3. Run through M2Sim timing mode
+
+**Baseline captured:** `benchmarks/baselines/coremark_m2.csv`
+- Real M2: 35,120.58 iterations/sec (600K iterations in 17s)
+- Compiler: Apple LLVM 17.0.0
+- Flags: -O2
+
+See issue #147 for implementation status.

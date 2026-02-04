@@ -1,0 +1,8 @@
+# CoreMark Baseline - Apple M2
+# Date: 2026-02-04
+# System: macOS ARM64 (Apple M2)
+# Compiler: Apple LLVM 17.0.0 (clang-1700.6.3.2)
+# Flags: -O2 -DPERFORMANCE_RUN=1
+# Iterations: 600000
+benchmark,iterations_per_sec,total_time_sec,total_ticks,crc_final
+coremark,35120.58,17.084,17084,0xa14c
