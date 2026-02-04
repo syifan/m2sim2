@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-*Last updated: 2026-02-04 07:35 EST*
+*Last updated: 2026-02-04 07:51 EST*
 
 ## Current Milestone: M6 - Validation
 
@@ -11,19 +11,20 @@
 ### Recent Activity (2026-02-04)
 
 **Merged this cycle:**
-- PR #124: [Bob] Add arithmetic_6wide benchmark and pipeline analysis
-  - Added arithmetic_6wide benchmark for true 6-wide testing
-  - Documented pipeline fill/drain overhead explains apparent low IPC
-  - Created docs/pipeline-analysis-cycle127.md
-- PR #125: [Cathy] Add pipeline.go refactoring plan for #122
-  - Identified 6 major areas of duplication (~2718 lines)
-  - Proposed 3-phase refactoring plan with ~1900 lines savings
-  - Created docs/refactoring-plan-pipeline.md
+- PR #126: [Bob] SPEC CPU 2017 Integration Phase 1
+  - Added docs/spec-integration.md with setup instructions
+  - Added .gitignore for SPEC directory exclusion
+  - Documented symlink setup for development machines
+  - Listed recommended benchmarks for M6 validation (557.xz_r, 505.mcf_r)
 
-**Key Findings:**
-- 6-wide pipeline working correctly (0.333 CPI = 3 IPC apparent, 6 IPC steady-state)
-- Accuracy gap vs M2 due to OoO execution, not configuration
-- Pipeline.go has 82% in tick functions - significant refactoring opportunity
+**Previous cycle (2026-02-04 07:35):**
+- PR #124: [Bob] Add arithmetic_6wide benchmark and pipeline analysis
+- PR #125: [Cathy] Add pipeline.go refactoring plan for #122
+
+**Key Progress:**
+- SPEC CPU 2017 integration documented and ready for Phase 2
+- 6-wide pipeline verified working correctly
+- Pipeline.go refactoring plan complete
 
 **Current Accuracy:**
 | Benchmark | Sim CPI | M2 CPI | Error |
@@ -39,7 +40,7 @@
 |-------|----------|--------|
 | #122 | Medium | Quality - pipeline.go refactoring (plan ready, Phase 1 next) |
 | #115 | High | M6 - Investigate accuracy gaps for <2% target |
-| #107 | High | [Human] SPEC benchmark suite available (integration planned) |
+| #107 | High | [Human] SPEC benchmark suite - Phase 1 complete ✅ |
 
 ### Open PRs
 None - all merged!
@@ -49,8 +50,8 @@ None - all merged!
 - For <2% accuracy, may need OoO simulation or accept higher target
 
 ### Next Steps
-1. Begin pipeline.go refactoring Phase 1 (extract helper methods)
-2. Begin SPEC benchmark integration per docs/spec-integration-plan.md
+1. SPEC integration Phase 2: Build ARM64 binaries, create runners
+2. Begin pipeline.go refactoring Phase 1 (extract helper methods)
 3. Evaluate if OoO execution is required for accuracy target
 
 ## Milestones Overview
