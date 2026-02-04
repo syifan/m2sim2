@@ -86,6 +86,9 @@ type HarnessConfig struct {
 	// EnableDCache enables data cache simulation
 	EnableDCache bool
 
+	// EnableDualIssue enables superscalar dual-issue execution
+	EnableDualIssue bool
+
 	// Output is where to write results (default: os.Stdout)
 	Output io.Writer
 
@@ -96,10 +99,11 @@ type HarnessConfig struct {
 // DefaultConfig returns a default harness configuration.
 func DefaultConfig() HarnessConfig {
 	return HarnessConfig{
-		EnableICache: true,
-		EnableDCache: true,
-		Output:       os.Stdout,
-		Verbose:      false,
+		EnableICache:    true,
+		EnableDCache:    true,
+		EnableDualIssue: true, // Enable superscalar dual-issue by default
+		Output:          os.Stdout,
+		Verbose:         false,
 	}
 }
 
@@ -166,6 +170,9 @@ func (h *Harness) runBenchmark(bench Benchmark) BenchmarkResult {
 	opts := []pipeline.PipelineOption{}
 	if h.config.EnableICache || h.config.EnableDCache {
 		opts = append(opts, pipeline.WithDefaultCaches())
+	}
+	if h.config.EnableDualIssue {
+		opts = append(opts, pipeline.WithDualIssue())
 	}
 
 	pipe := pipeline.NewPipeline(regFile, memory, opts...)

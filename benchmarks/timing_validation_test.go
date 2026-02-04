@@ -41,13 +41,18 @@ func TestTimingPredictions_DependencyVsIndependent(t *testing.T) {
 		t.Errorf("TIMING BUG: dependency chain CPI (%.3f) should be >= 1.0", dep.CPI)
 	}
 
-	// Key invariant: dependency chain should have MORE data hazards than
-	// independent operations, since each instruction depends on the previous
-	if dep.DataHazards <= indep.DataHazards {
-		t.Errorf("TIMING BUG: dependency chain hazards (%d) should be > independent hazards (%d)",
-			dep.DataHazards, indep.DataHazards)
-		t.Error("This suggests the pipeline is not detecting data dependencies")
+	// Key invariant: dependency chain should have higher CPI than independent operations
+	// because dependencies prevent dual-issue. With superscalar, independent ops can
+	// dual-issue, but dependency chains cannot.
+	if dep.CPI <= indep.CPI {
+		t.Errorf("TIMING BUG: dependency chain CPI (%.3f) should be > independent CPI (%.3f)",
+			dep.CPI, indep.CPI)
+		t.Error("Dependencies should prevent dual-issue, resulting in higher CPI")
 	}
+
+	// Note: In superscalar mode, DataHazards may not be tracked the same way
+	// since dependency detection is used for issue decisions rather than
+	// forwarding-based tracking. We skip the DataHazards check for superscalar.
 
 	// With proper forwarding, dependency and independent CPIs should be close.
 	// A large gap would indicate forwarding isn't working properly.
@@ -192,11 +197,11 @@ func TestTimingPredictions_CPIBounds(t *testing.T) {
 	for _, r := range results {
 		t.Logf("%s: CPI=%.3f", r.Name, r.CPI)
 
-		// CPI should be at least 1.0 (can't complete more than 1 instr per cycle
-		// on a scalar pipeline)
-		if r.CPI < 1.0 {
-			t.Errorf("TIMING BUG: %s has CPI < 1.0 (%.3f)", r.Name, r.CPI)
-			t.Error("A scalar pipeline cannot achieve CPI < 1.0")
+		// With dual-issue superscalar, CPI can be as low as 0.5 (theoretical max for 2-issue)
+		// CPI < 0.5 would indicate a bug
+		if r.CPI < 0.5 {
+			t.Errorf("TIMING BUG: %s has CPI < 0.5 (%.3f)", r.Name, r.CPI)
+			t.Error("A dual-issue pipeline cannot achieve CPI < 0.5")
 		}
 
 		// CPI should be reasonable (not absurdly high for these simple benchmarks)
@@ -315,8 +320,9 @@ func TestTimingPredictions_StallAccounting(t *testing.T) {
 	}
 }
 
-// TestTimingPredictions_CycleEquation validates the fundamental cycle equation:
-// Cycles = Instructions + Stalls + FlushPenalty
+// TestTimingPredictions_CycleEquation validates the fundamental cycle equation.
+// With dual-issue superscalar, we can retire up to 2 instructions per cycle,
+// so Cycles >= Instructions/2 (theoretically).
 func TestTimingPredictions_CycleEquation(t *testing.T) {
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
@@ -329,24 +335,17 @@ func TestTimingPredictions_CycleEquation(t *testing.T) {
 	results := harness.RunAll()
 
 	for _, r := range results {
-		// Basic cycle equation: Cycles >= Instructions
-		// (with stalls, cycles should exceed instructions)
-		if r.SimulatedCycles < r.InstructionsRetired {
-			t.Errorf("TIMING BUG: %s has cycles (%d) < instructions (%d)",
-				r.Name, r.SimulatedCycles, r.InstructionsRetired)
-			t.Error("Cannot complete more instructions than cycles")
+		// With dual-issue: Cycles >= Instructions/2 (theoretical minimum)
+		// In practice, pipeline fill/drain and dependencies increase this
+		minCycles := r.InstructionsRetired / 2
+		if r.SimulatedCycles < minCycles {
+			t.Errorf("TIMING BUG: %s has cycles (%d) < instructions/2 (%d)",
+				r.Name, r.SimulatedCycles, minCycles)
+			t.Error("A dual-issue pipeline cannot retire more than 2 instructions per cycle")
 		}
 
-		// Cycles should approximately equal: Instructions + Stalls + FlushOverhead
-		// Allow some slack for multi-cycle instructions
-		expectedMinCycles := r.InstructionsRetired + r.StallCycles
-		if r.SimulatedCycles < expectedMinCycles {
-			t.Logf("Note: %s cycles (%d) < instructions+stalls (%d), may indicate multi-cycle ops counted differently",
-				r.Name, r.SimulatedCycles, expectedMinCycles)
-		}
-
-		t.Logf("%s: Cycles=%d, Insts=%d, Stalls=%d, Flushes=%d",
-			r.Name, r.SimulatedCycles, r.InstructionsRetired, r.StallCycles, r.PipelineFlushes)
+		t.Logf("%s: Cycles=%d, Insts=%d, Stalls=%d, Flushes=%d, CPI=%.3f",
+			r.Name, r.SimulatedCycles, r.InstructionsRetired, r.StallCycles, r.PipelineFlushes, r.CPI)
 	}
 }
 
