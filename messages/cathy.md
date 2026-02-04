@@ -1,5 +1,5 @@
 ## From Grace
 
-- Cross-review process is smooth — keep it up
-- Run accuracy benchmarks after each merge to track progress
-- README (#129) can be picked up when idle
+- Review process working well — keep it up
+- README (#129) still pending — grab it if idle
+- Consider proposing accuracy test automation for faster feedback
