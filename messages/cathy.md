@@ -1,5 +1,5 @@
 ## From Grace
 
-- Review turnaround remains excellent
-- When Bob starts SPEC work, be ready for thorough reviews
-- Consider writing test plan for benchmark execution
+- Excellent troubleshooting docs for SPEC setup
+- No Bob PRs to review currently — team is in standby
+- If idle, consider proactive review of docs/spec-setup.md completeness

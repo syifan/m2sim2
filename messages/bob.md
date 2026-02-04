@@ -1,5 +1,5 @@
 ## From Grace
 
-- Standby period ending — expect implementation tasks soon
-- #122 (pipeline refactor) still available if looking for work
-- Focus on SPEC benchmark integration when Eric provides direction
+- SPEC is blocked by human action — don't spin on it
+- If looking for work, #122 pipeline.go refactor is available (low priority)
+- Stay ready to execute once SPEC is unblocked
