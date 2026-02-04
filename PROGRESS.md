@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-*Last updated: 2026-02-04 14:49 EST*
+*Last updated: 2026-02-04 14:55 EST*
 
 ## Current Milestone: M6 - Validation
 
@@ -10,29 +10,30 @@
 
 ### Recent Activity (2026-02-04)
 
-**This cycle (14:49):**
-- Human directive #152: Blockers resolved!
-- Grace: Updated guidance — prioritize accuracy and intermediate benchmarks
-- Alice: Assigned accuracy improvement work
-- Eric: Verified blockers resolved, created intermediate benchmark plan
-- Bob: Created accuracy analysis (docs/accuracy-analysis.md)
-- Cathy: Approved PR #153
-- Dana: **Merged PR #153** (accuracy analysis)
+**This cycle (14:55):**
+- Grace: Updated guidance — CoreMark cross-compilation is critical path
+- Alice: Assigned Bob to CoreMark ELF build (#147)
+- Eric: Closed #149 (cross-compiler resolved), planned Embench phase 2
+- Bob: Created CoreMark cross-compilation infrastructure → PR #155
+- Cathy: Reviewed and approved PR #155
+- Dana: (current) updating progress
 
 **Progress:**
-- ✅ **MERGED:** PR #153 — Accuracy analysis and documentation
-- ✅ **BLOCKERS RESOLVED:** Cross-compiler installed, SPEC ready
 - ✅ Cross-compiler: aarch64-elf-gcc 15.2.0 installed
 - ✅ SPEC: benchspec/CPU exists with all benchmarks
 - ✅ Intermediate benchmark plan: docs/intermediate-benchmarks-plan.md
-- 🔜 CoreMark ELF cross-compilation — next priority
-- 🔜 #122 pipeline refactor — parallel work
+- 🔄 **PR #155** (CoreMark ELF) — approved, CI running
+- ⚠️ **NEW:** Issue #156 (instruction decoder expansion) — blocks ELF execution
 
 ### Blockers Status
 
 **RESOLVED ✅**
 - Cross-compiler: `aarch64-elf-gcc 15.2.0` installed
 - SPEC: `benchspec/CPU` exists
+
+**NEW BLOCKER ⚠️**
+- **Issue #156:** M2Sim needs ADRP, MOV, LDR literal instruction support
+- CoreMark ELF builds correctly but cannot execute until decoder is expanded
 
 ### Current Accuracy (microbenchmarks)
 
@@ -61,23 +62,29 @@
 
 ### Open PRs
 
-None — clean slate
+| PR | Title | Status |
+|----|-------|--------|
+| #155 | CoreMark cross-compilation infrastructure | `cathy-approved`, CI running |
 
 ### Open Issues
 
 | Issue | Priority | Status |
 |-------|----------|--------|
+| #156 | High | Instruction decoder expansion (ADRP, MOV, LDR literal) |
 | #152 | — | Human directive (blockers resolved) |
-| #149 | High | Cross-compiler ✅ RESOLVED |
-| #147 | High | CoreMark integration — ready to proceed |
-| #146 | High | SPEC installation ✅ RESOLVED |
+| #147 | High | CoreMark integration — PR #155 open |
+| #146 | High | SPEC installation ✅ resolved |
+| #145 | Low | Reduce CLAUDE.md |
 | #141 | High | 20% error target — approved |
+| #139 | Low | Multi-core (long-term) |
+| #138 | High | SPEC execution |
 | #132 | High | Intermediate benchmarks — plan created |
-| #122 | Medium | Pipeline refactor — ready |
+| #122 | Medium | Pipeline refactor |
 | #115 | High | Accuracy gaps — analyzed |
+| #107 | High | SPEC suite available |
 
 ### 📊 Velocity
 
 - **Total PRs merged:** 33
-- **Today's merges:** PR #153 (accuracy analysis)
-- **Team status:** Productive, blockers resolved, ready for intermediate benchmarks
+- **Open PRs:** 1 (PR #155)
+- **Team status:** Productive, CoreMark infrastructure complete, awaiting merge
