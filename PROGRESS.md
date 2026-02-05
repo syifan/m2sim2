@@ -1,39 +1,41 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 06:32 EST (Cycle 228)
+**Last updated:** 2026-02-05 06:52 EST (Cycle 229)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Total PRs Merged | 58 |
+| Total PRs Merged | 59 |
 | Open PRs | 1 |
 | Open Issues | 13 |
 | Pipeline Coverage | 77.0% |
 
-## Cycle 228 Updates
+## Cycle 229 Updates
 
-- **Alice:** Updated task board, action count 227 → 228
-- **Eric:** Created issue #213 (8-wide decode) for arithmetic accuracy
-- **Bob:** Reviewed issue #213, posted implementation plan
-- **Cathy:** Created PR #214 (emu ALU32 coverage tests)
-- **Dana:** Updated PROGRESS.md
+- **Alice:** Updated task board, action count 228 → 229
+- **Eric:** Analyzed accuracy, projected 8-wide impact (~27% avg after implementation)
+- **Bob:** Created PR #215 (8-wide decode infrastructure), reviewed PR #214
+- **Cathy:** Reviewed and approved PR #215
+- **Dana:** Merged PR #214, updated PROGRESS.md
 
 ## Key Progress This Cycle
 
-**Issue #213 — 8-wide decode (NEW)**
-
-Eric identified the next accuracy optimization target:
-- Arithmetic benchmark remains at 49.3% error
-- M2 has 8-wide decode vs our 6-wide
-- Implementing 8-wide expected to reduce error to ~30%
-
-**PR #214 — emu ALU32 coverage tests (OPEN)**
+**PR #214 — emu ALU32 coverage tests (MERGED ✅)**
 
 Cathy's coverage improvement for emu package:
 - Coverage: 42.1% → 47.4% (+5.3pp)
 - Tests for: ADD32Imm, SUB32Imm, AND/ORR/EOR 32/64 Imm
 - 11 functions now at 100% coverage
+
+**PR #215 — 8-wide decode infrastructure (IN REVIEW)**
+
+Bob's infrastructure for 8-wide superscalar:
+- OctupleIssueConfig, WithOctupleIssue
+- Septenary + Octonary register types (slots 7-8)
+- Forwarding and flush helpers updated
+- Currently falls back to 6-wide (full implementation pending)
+- CI in progress
 
 ## Accuracy Status (Microbenchmarks)
 
@@ -52,18 +54,18 @@ Cathy's coverage improvement for emu package:
 | timing/pipeline | 77.0% | ✅ |
 | timing/latency | 73.3% | ✅ |
 | timing/core | 100% | ✅ |
-| emu | 47.4% | ⚠️ PR #214 pending |
+| emu | 47.4% | ✅ Up from 42.1% |
 
 ## Active Work
 
-- **Issue #213** — 8-wide decode (Bob ready to implement)
-- **PR #214** — emu coverage tests (awaiting Bob review)
+- **PR #215** — 8-wide decode infrastructure (awaiting CI)
+- **Issue #213** — Full 8-wide implementation (follow-up needed)
 
 ## Potential Accuracy Improvements
 
 Per Eric's analysis:
 1. ~~CMP + B.cond fusion~~ — **DONE** (PR #212)
-2. 8-wide decode — **Issue #213** (highest impact)
+2. 8-wide decode — **Issue #213** (infrastructure in PR #215)
 3. Branch predictor effectiveness tuning
 4. Pipeline stall reduction
 
@@ -77,7 +79,7 @@ Per Eric's analysis:
 
 ## Stats
 
-- 58 PRs merged total
+- 59 PRs merged total
 - 205+ tests passing
 - timing/core coverage: 100% ✓
-- emu coverage: 42.1% → 47.4% (PR #214)
+- emu coverage: 47.4% ✓
