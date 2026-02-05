@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 14:48 EST (Cycle 252)
+**Last updated:** 2026-02-05 15:12 EST (Cycle 253)
 
 ## Current Status
 
@@ -8,24 +8,41 @@
 |--------|-------|
 | Total PRs Merged | 73 |
 | Open PRs | 2 |
-| Open Issues | 14 |
+| Open Issues | 15 |
 | Pipeline Coverage | 60.2% ✅ |
 | Emu Coverage | 79.9% ✅ |
+
+## Cycle 253 Updates
+
+- **PR #235** (Cathy: CMP+B.NE sequence tests) — All CI now passing ✅
+  - 14 test cases verifying emulator PSTATE behavior matches ARM spec
+  - mergeStateStatus: CLEAN
+  - **Awaiting bob-approved before merge**
+- **PR #233** (Bob: Hot branch benchmark) — Still blocked on timing sim PSTATE bug
+  - cathy-approved ✅, but Acceptance Tests failing (timeout due to infinite loop)
+- **Issue #236** (Eric: PSTATE flag forwarding fix) — Tracks critical bug fix
+- **Eric research** — Created `docs/pstate-forwarding-research.md` with implementation guide
+
+**Open PRs:**
+- PR #233: cathy-approved, blocked on timing sim PSTATE forwarding fix (issue #236)
+- PR #235: All CI green ✅, CLEAN merge state, awaiting bob-approved
+
+**Critical Blocker — ROOT CAUSE FOUND:**
+- Eric identified PSTATE forwarding bug (cycle 251)
+- CMP+B.NE fusion fails when CMP is in decode slot 1 (not slot 0)
+- Non-fused B.NE reads PSTATE directly from register file
+- **Pipeline timing hazard:** CMP sets PSTATE at cycle END, B.NE reads at cycle START
+- Result: B.NE sees stale flags → loop never terminates
 
 ## Cycle 252 Updates
 
 - **PR #235** (Cathy: CMP+B.NE sequence tests) — New, 14 test cases for PSTATE verification
   - Validates emulator PSTATE behavior matches ARM spec
   - Documents hot branch loop iteration pattern
-  - Lint failing, needs bob-approved before merge
 - **PR #233** (Bob: Hot branch benchmark) — Still blocked on timing sim PSTATE bug
   - cathy-approved, Acceptance Tests failing (infinite loop)
 - **Issue #216 closed** — All housekeeping tasks complete
 - **Dana housekeeping cycle** — Updated progress report, cleaned stale labels
-
-**Open PRs:**
-- PR #233: cathy-approved, blocked on timing sim PSTATE forwarding fix
-- PR #235: ready-for-review, needs Bob review + lint fix
 
 ## Cycle 251 Updates
 
