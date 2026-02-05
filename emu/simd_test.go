@@ -255,6 +255,206 @@ var _ = Describe("SIMD", func() {
 		})
 	})
 
+	Describe("VADD (Vector Integer Add) - Halfword Arrangements", func() {
+		Context("16-bit elements (4H arrangement - 64-bit)", func() {
+			It("should add 4 halfword elements", func() {
+				simdRegFile.WriteLane16(0, 0, 100)
+				simdRegFile.WriteLane16(0, 1, 200)
+				simdRegFile.WriteLane16(0, 2, 300)
+				simdRegFile.WriteLane16(0, 3, 400)
+
+				simdRegFile.WriteLane16(1, 0, 10)
+				simdRegFile.WriteLane16(1, 1, 20)
+				simdRegFile.WriteLane16(1, 2, 30)
+				simdRegFile.WriteLane16(1, 3, 40)
+
+				simd.VADD(2, 0, 1, emu.Arr4H)
+
+				Expect(simdRegFile.ReadLane16(2, 0)).To(Equal(uint16(110)))
+				Expect(simdRegFile.ReadLane16(2, 1)).To(Equal(uint16(220)))
+				Expect(simdRegFile.ReadLane16(2, 2)).To(Equal(uint16(330)))
+				Expect(simdRegFile.ReadLane16(2, 3)).To(Equal(uint16(440)))
+				// Upper 64 bits should be zeroed for 64-bit arrangement
+				Expect(simdRegFile.ReadLane64(2, 1)).To(Equal(uint64(0)))
+			})
+		})
+
+		Context("16-bit elements (8H arrangement - 128-bit)", func() {
+			It("should add 8 halfword elements", func() {
+				for i := 0; i < 8; i++ {
+					simdRegFile.WriteLane16(0, uint8(i), uint16(i*10+100))
+					simdRegFile.WriteLane16(1, uint8(i), uint16(i+1))
+				}
+
+				simd.VADD(2, 0, 1, emu.Arr8H)
+
+				Expect(simdRegFile.ReadLane16(2, 0)).To(Equal(uint16(101)))
+				Expect(simdRegFile.ReadLane16(2, 1)).To(Equal(uint16(112)))
+				Expect(simdRegFile.ReadLane16(2, 7)).To(Equal(uint16(178)))
+			})
+		})
+	})
+
+	Describe("VSUB (Vector Integer Subtract) - Byte Arrangements", func() {
+		Context("8-bit elements (8B arrangement - 64-bit)", func() {
+			It("should subtract 8 byte elements", func() {
+				for i := 0; i < 8; i++ {
+					simdRegFile.WriteLane8(0, uint8(i), uint8(100+i*10))
+					simdRegFile.WriteLane8(1, uint8(i), uint8(i+1))
+				}
+
+				simd.VSUB(2, 0, 1, emu.Arr8B)
+
+				Expect(simdRegFile.ReadLane8(2, 0)).To(Equal(uint8(99)))  // 100-1
+				Expect(simdRegFile.ReadLane8(2, 1)).To(Equal(uint8(108))) // 110-2
+				Expect(simdRegFile.ReadLane8(2, 7)).To(Equal(uint8(162))) // 170-8
+				// Upper 64 bits should be zeroed
+				Expect(simdRegFile.ReadLane64(2, 1)).To(Equal(uint64(0)))
+			})
+		})
+
+		Context("8-bit elements (16B arrangement - 128-bit)", func() {
+			It("should subtract 16 byte elements", func() {
+				for i := 0; i < 16; i++ {
+					simdRegFile.WriteLane8(0, uint8(i), uint8(200))
+					simdRegFile.WriteLane8(1, uint8(i), uint8(i))
+				}
+
+				simd.VSUB(2, 0, 1, emu.Arr16B)
+
+				Expect(simdRegFile.ReadLane8(2, 0)).To(Equal(uint8(200)))  // 200-0
+				Expect(simdRegFile.ReadLane8(2, 5)).To(Equal(uint8(195)))  // 200-5
+				Expect(simdRegFile.ReadLane8(2, 15)).To(Equal(uint8(185))) // 200-15
+			})
+		})
+	})
+
+	Describe("VSUB (Vector Integer Subtract) - Halfword Arrangements", func() {
+		Context("16-bit elements (4H arrangement - 64-bit)", func() {
+			It("should subtract 4 halfword elements", func() {
+				simdRegFile.WriteLane16(0, 0, 1000)
+				simdRegFile.WriteLane16(0, 1, 2000)
+				simdRegFile.WriteLane16(0, 2, 3000)
+				simdRegFile.WriteLane16(0, 3, 4000)
+
+				simdRegFile.WriteLane16(1, 0, 100)
+				simdRegFile.WriteLane16(1, 1, 200)
+				simdRegFile.WriteLane16(1, 2, 300)
+				simdRegFile.WriteLane16(1, 3, 400)
+
+				simd.VSUB(2, 0, 1, emu.Arr4H)
+
+				Expect(simdRegFile.ReadLane16(2, 0)).To(Equal(uint16(900)))
+				Expect(simdRegFile.ReadLane16(2, 1)).To(Equal(uint16(1800)))
+				Expect(simdRegFile.ReadLane16(2, 2)).To(Equal(uint16(2700)))
+				Expect(simdRegFile.ReadLane16(2, 3)).To(Equal(uint16(3600)))
+				// Upper 64 bits should be zeroed
+				Expect(simdRegFile.ReadLane64(2, 1)).To(Equal(uint64(0)))
+			})
+		})
+
+		Context("16-bit elements (8H arrangement - 128-bit)", func() {
+			It("should subtract 8 halfword elements", func() {
+				for i := 0; i < 8; i++ {
+					simdRegFile.WriteLane16(0, uint8(i), uint16(5000))
+					simdRegFile.WriteLane16(1, uint8(i), uint16(i*100))
+				}
+
+				simd.VSUB(2, 0, 1, emu.Arr8H)
+
+				Expect(simdRegFile.ReadLane16(2, 0)).To(Equal(uint16(5000))) // 5000-0
+				Expect(simdRegFile.ReadLane16(2, 5)).To(Equal(uint16(4500))) // 5000-500
+				Expect(simdRegFile.ReadLane16(2, 7)).To(Equal(uint16(4300))) // 5000-700
+			})
+		})
+	})
+
+	Describe("VSUB (Vector Integer Subtract) - Doubleword Arrangements", func() {
+		Context("64-bit elements (2D arrangement)", func() {
+			It("should subtract 2 doubleword elements", func() {
+				simdRegFile.WriteLane64(0, 0, 0x1234567890ABCDEF)
+				simdRegFile.WriteLane64(0, 1, 0xFEDCBA0987654321)
+				simdRegFile.WriteLane64(1, 0, 0x0000000000000001)
+				simdRegFile.WriteLane64(1, 1, 0x0000000000000020)
+
+				simd.VSUB(2, 0, 1, emu.Arr2D)
+
+				Expect(simdRegFile.ReadLane64(2, 0)).To(Equal(uint64(0x1234567890ABCDEE)))
+				Expect(simdRegFile.ReadLane64(2, 1)).To(Equal(uint64(0xFEDCBA0987654301)))
+			})
+		})
+	})
+
+	Describe("VMUL (Vector Integer Multiply) - Byte Arrangements", func() {
+		Context("8-bit elements (8B arrangement - 64-bit)", func() {
+			It("should multiply 8 byte elements", func() {
+				for i := 0; i < 8; i++ {
+					simdRegFile.WriteLane8(0, uint8(i), uint8(i+1))
+					simdRegFile.WriteLane8(1, uint8(i), uint8(2))
+				}
+
+				simd.VMUL(2, 0, 1, emu.Arr8B)
+
+				Expect(simdRegFile.ReadLane8(2, 0)).To(Equal(uint8(2)))  // 1*2
+				Expect(simdRegFile.ReadLane8(2, 1)).To(Equal(uint8(4)))  // 2*2
+				Expect(simdRegFile.ReadLane8(2, 7)).To(Equal(uint8(16))) // 8*2
+				// Upper 64 bits should be zeroed
+				Expect(simdRegFile.ReadLane64(2, 1)).To(Equal(uint64(0)))
+			})
+		})
+
+		Context("8-bit elements (16B arrangement - 128-bit)", func() {
+			It("should multiply 16 byte elements", func() {
+				for i := 0; i < 16; i++ {
+					simdRegFile.WriteLane8(0, uint8(i), uint8(i+1))
+					simdRegFile.WriteLane8(1, uint8(i), uint8(3))
+				}
+
+				simd.VMUL(2, 0, 1, emu.Arr16B)
+
+				Expect(simdRegFile.ReadLane8(2, 0)).To(Equal(uint8(3)))   // 1*3
+				Expect(simdRegFile.ReadLane8(2, 5)).To(Equal(uint8(18)))  // 6*3
+				Expect(simdRegFile.ReadLane8(2, 15)).To(Equal(uint8(48))) // 16*3
+			})
+		})
+	})
+
+	Describe("VFSUB (Vector Floating-Point Subtract) - 2D arrangement", func() {
+		It("should subtract 2 float64 elements", func() {
+			simdRegFile.WriteLane64(0, 0, math.Float64bits(100.5))
+			simdRegFile.WriteLane64(0, 1, math.Float64bits(200.25))
+
+			simdRegFile.WriteLane64(1, 0, math.Float64bits(10.5))
+			simdRegFile.WriteLane64(1, 1, math.Float64bits(50.25))
+
+			simd.VFSUB(2, 0, 1, emu.Arr2D)
+
+			r0 := math.Float64frombits(simdRegFile.ReadLane64(2, 0))
+			r1 := math.Float64frombits(simdRegFile.ReadLane64(2, 1))
+
+			Expect(r0).To(BeNumerically("~", 90.0, 0.0001))
+			Expect(r1).To(BeNumerically("~", 150.0, 0.0001))
+		})
+	})
+
+	Describe("VFMUL (Vector Floating-Point Multiply) - 2D arrangement", func() {
+		It("should multiply 2 float64 elements", func() {
+			simdRegFile.WriteLane64(0, 0, math.Float64bits(2.5))
+			simdRegFile.WriteLane64(0, 1, math.Float64bits(3.5))
+
+			simdRegFile.WriteLane64(1, 0, math.Float64bits(4.0))
+			simdRegFile.WriteLane64(1, 1, math.Float64bits(2.0))
+
+			simd.VFMUL(2, 0, 1, emu.Arr2D)
+
+			r0 := math.Float64frombits(simdRegFile.ReadLane64(2, 0))
+			r1 := math.Float64frombits(simdRegFile.ReadLane64(2, 1))
+
+			Expect(r0).To(BeNumerically("~", 10.0, 0.0001))
+			Expect(r1).To(BeNumerically("~", 7.0, 0.0001))
+		})
+	})
+
 	Describe("Vector Load/Store", func() {
 		Context("LDR128", func() {
 			It("should load 128 bits from memory", func() {
