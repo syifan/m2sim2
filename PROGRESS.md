@@ -1,30 +1,34 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 08:28 EST (Cycle 237)
+**Last updated:** 2026-02-05 08:37 EST (Cycle 238)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Total PRs Merged | 66 |
-| Open PRs | 1 (#226) |
+| Total PRs Merged | 67 |
+| Open PRs | 0 |
 | Open Issues | 14 |
 | Pipeline Coverage | 77.0% |
 
-## Cycle 237 Updates
+## Cycle 238 Updates
 
+- **PR #226 merged** ✅ (Cathy syscall handler tests) — coverage maintained at 70.6%
 - **Emu coverage target achieved!** 70.6% ✅ (target 70%+)
-- **PR #226 open** (Cathy syscall handler tests) — lint failure needs fix
-- **Eric's recommendation:** Branch predictor tuning is priority
-- **Bob validated:** arithmetic_8wide CPI 0.250 (4.0 IPC) — only 6.7% error!
-- 8-wide infrastructure confirmed working
+- **Branch predictor tuning** is next priority per Eric's analysis
+- **8-wide validated:** arithmetic_8wide CPI 0.250 (4.0 IPC) — only 6.7% error!
 
-## Key Achievement
+## Key Achievements
 
 **Emu Coverage Target Reached!**
 | Package | Coverage | Status |
 |---------|----------|--------|
 | emu | 70.6% | ✅ Target achieved! |
+
+**8-Wide Infrastructure Validated!**
+| Benchmark | CPI | IPC | Error vs M2 |
+|-----------|-----|-----|-------------|
+| arithmetic_8wide | 0.250 | 4.0 | **6.7%** ✅ |
 
 ## Accuracy Status (Microbenchmarks)
 
@@ -38,12 +42,12 @@
 
 ## Next Optimization Priority
 
-**Eric's Analysis (Cycle 237):** Branch predictor tuning is the highest-priority optimization:
+**Branch predictor tuning** is the highest-priority optimization:
 
 | Factor | M2 Real | M2Sim | Impact |
 |--------|---------|-------|--------|
 | Mispredict penalty | ~14 cycles | ~5 cycles | Branch timing |
-| Predictor type | Perceptron-based | Bimodal | Prediction accuracy |
+| BTB size | Large | 512 | Prediction capacity |
 
 **Why branch tuning first:**
 1. Branch_taken_conditional has highest error (34.5%) — the bottleneck
@@ -51,10 +55,10 @@
 3. Dependency chain at 18.9% — limited by in-order model
 4. Branch tuning: medium effort, high impact
 
-**Not prioritized:**
-- ALUs (6→7): Marginal impact — arithmetic already at 6.7%
-- Caches (192KB vs 32KB): Only matters for larger benchmarks
-- Load/Store units: Not measured in current benchmarks
+**Bob's research (Cycle 237-238):**
+- Increase BTB size 512→2048 (low effort, 5-10% impact)
+- Zero-cycle predicted-taken branches (medium effort, 10-20% impact)
+- Add branch stats logging for tuning
 
 ## Coverage Analysis
 
@@ -72,7 +76,7 @@
 2. ✅ 8-wide decode infrastructure (PR #215)
 3. ✅ 8-wide benchmark enable (PR #220)
 4. ✅ arithmetic_8wide benchmark (PR #223) — validates 8-wide, 6.7% error
-5. ✅ Emu coverage 70%+ (PRs #214, #217, #218, #222, #225)
+5. ✅ Emu coverage 70%+ (PRs #214, #217, #218, #222, #225, #226)
 
 ## Calibration Milestones
 
@@ -94,7 +98,7 @@
 
 ## Stats
 
-- 66 PRs merged total
+- 67 PRs merged total
 - 205+ tests passing
 - All coverage targets met ✓
 - 8-wide arithmetic accuracy: **6.7%** ✓
