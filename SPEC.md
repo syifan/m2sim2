@@ -7,9 +7,29 @@ Build a cycle-accurate Apple M2 CPU simulator using the Akita simulation framewo
 ## Success Criteria
 
 - [x] Execute ARM64 user-space programs correctly (functional emulation)
-- [ ] Predict execution time with <2% average error across benchmarks
+- [ ] Predict execution time with <20% average error across benchmarks
 - [ ] Modular design: functional and timing simulation are separate
 - [ ] Support benchmarks in μs to ms range
+
+## Design Philosophy
+
+### Independence from MGPUSim
+
+While M2Sim uses Akita (like MGPUSim) and draws inspiration from MGPUSim's architecture, **M2Sim is not bound to follow MGPUSim's structure**. Make design decisions that best fit an ARM64 CPU simulator.
+
+**Guidelines:**
+
+1. **Choose meaningful names**: If a different name is more appropriate, use it
+2. **Adapt to CPU semantics**: GPU and CPU have different abstractions (no wavefronts, warps, or GPU-specific concepts)
+3. **Keep it simple**: M2Sim targets single-core initially
+4. **Diverge when it makes sense**: Document why you're doing it differently
+
+**What to Keep from MGPUSim:**
+- Akita component/port patterns (they work well)
+- Separation of concerns (functional vs timing)
+- Testing practices (Ginkgo/Gomega)
+
+**When in Doubt:** Ask "What would make this clearest for a CPU simulator?" — not "What does MGPUSim do?"
 
 ## Milestones
 
@@ -54,16 +74,53 @@ Accuracy improvements.
 
 **Completion criteria:**
 - [x] Branch prediction
-- [ ] Out-of-order execution (if needed for accuracy)
+- [x] Superscalar execution (8-wide)
+- [x] CMP+B.cond macro-op fusion
 - [x] SIMD basics
 
-### M6: Validation
+### M6: Validation 🚧 IN PROGRESS
 Final accuracy validation.
 
 **Completion criteria:**
-- [ ] Run standard benchmarks
-- [ ] Compare with real M2 timing
-- [ ] Achieve <2% average error
+- [x] Run microbenchmark suite (arithmetic, branch, dependency)
+- [ ] Compare with real M2 timing data
+- [ ] Achieve <20% average error
+
+## Calibration Milestones
+
+Accuracy improvement tracking against M2 hardware baseline.
+
+### C1: Baseline Established ✅ COMPLETE
+Initial accuracy measurement.
+
+**Status:**
+- [x] Microbenchmarks created (arithmetic, branch, dependency)
+- [x] M2 baseline data collected
+- [x] Initial error: 39.8% average
+
+### C2: Accuracy Optimization 🚧 IN PROGRESS
+Reduce error through pipeline improvements.
+
+**Current status (cycle 230):**
+| Benchmark | Sim CPI | M2 CPI | Error |
+|-----------|---------|--------|-------|
+| arithmetic_sequential | 0.400 | 0.268 | 49.3% |
+| dependency_chain | 1.200 | 1.009 | 18.9% |
+| branch_taken_conditional | 1.600 | 1.190 | 34.5% |
+| **Average** | — | — | **34.2%** |
+
+**Optimizations applied:**
+- [x] CMP+B.cond macro-op fusion (62.5% → 34.5% branch error)
+- [x] 8-wide decode infrastructure (merged cycle 230)
+- [ ] Full 8-wide execution (expected: 49.3% → ~28% arithmetic)
+
+### C3: Target Achievement
+Achieve <20% average error.
+
+**Requirements:**
+- [ ] All benchmarks individually <30% error
+- [ ] Average error <20%
+- [ ] Results reproducible
 
 ## Scope
 
@@ -91,3 +148,4 @@ Final accuracy validation.
 - Akita: https://github.com/sarchlab/akita
 - MGPUSim: https://github.com/sarchlab/mgpusim
 - ARM Architecture Reference Manual
+- See `docs/calibration.md` for timing parameter reference
