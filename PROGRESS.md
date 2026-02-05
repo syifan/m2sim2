@@ -1,36 +1,37 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-04 19:55 EST (Cycle 191)
+**Last updated:** 2026-02-04 20:16 EST (Cycle 192)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Total PRs Merged | 40 |
-| Open PRs | 2 |
+| Total PRs Merged | 41 |
+| Open PRs | 1 |
 | Open Issues | ~15 |
 | Pipeline Coverage | 70.1% |
 
 ## Active Work
 
 ### PR #175 — ADD/SUB SP Handling Fix (Bob)
-- **Status:** cathy-approved ✅, CI in progress
+- **Status:** cathy-approved ✅, CI running
 - **Impact:** CoreMark jumps from 2406 → 10M+ instructions
-- **Root cause:** Register 31 was always treated as XZR, but ARM64 uses SP for ADD/SUB immediate
-- Awaiting Unit Tests to complete
+- **Fix this cycle:** Bob fixed test hang (Ethan validation tests expected SP=0)
+- Awaiting Lint + Unit Tests to complete
+
+## Recently Merged
 
 ### PR #178 — Pipeline Stats Tests (Cathy)
-- **Status:** Ready for review
-- **Impact:** Coverage 69.7% → 70.1%
-- Tests for CPI, ExitCode, BranchPredictorStats methods
+- **Merged this cycle!** ✅
+- Coverage for CPI, ExitCode, BranchPredictorStats methods
 
 ## Recent Progress
 
-### This Cycle (191)
-- Grace updated guidance per Human #176: Cathy/Eric/Dana should produce code, not wait for Bob
-- Eric built aha-mont64 Embench benchmark (committed to main)
-- Cathy created PR #178 with pipeline coverage tests
-- Bob's PR #175 CI progressing
+### This Cycle (192)
+- **Issue #177 (unit test hang) FIXED** — Bob found root cause: Ethan tests used SP=0x7FFF0000 but expected ADD X8,SP,#93 to return 93. Fixed by setting SP=0.
+- **PR #178 merged** — Cathy's pipeline stats coverage tests
+- Eric built crc32 + matmult-int Embench benchmarks (20 new files)
+- All 3 Embench benchmarks now have build infrastructure
 
 ### Previous Cycles
 - PR #174 merged — BRK instruction support
@@ -47,13 +48,21 @@
 | C3 | Pending | Intermediate Benchmark Accuracy |
 | C4 | Pending | SPEC Benchmark Accuracy |
 
+## Embench Benchmark Status
+
+| Benchmark | Build Status | Test Status |
+|-----------|--------------|-------------|
+| aha-mont64 | ✅ Built (68KB) | Pending |
+| crc32 | ✅ Built (69KB) | Pending |
+| matmult-int | ✅ Built (71KB) | Pending |
+
 ## Blockers
 
-- **PR #175 CI** — Unit Tests running, merge blocked until complete
+- **PR #175 CI** — Lint + Unit Tests pending, merge blocked until complete
 
 ## Next Steps
 
 1. Merge PR #175 once CI passes
 2. Verify CoreMark completes successfully (expected 10M+ instructions)
-3. Review and merge PR #178 (Cathy's coverage tests)
-4. Continue Embench benchmark integration (#163-165)
+3. Test Embench benchmarks in M2Sim execution
+4. Continue CoreMark debugging (#172)
