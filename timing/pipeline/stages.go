@@ -217,7 +217,22 @@ func (s *ExecuteStage) Execute(idex *IDEXRegister, rnValue, rmValue uint64) Exec
 		result.ALUResult = idex.PC + 4 // Return address
 	case insts.OpBCond:
 		// Conditional branch
-		if s.checkCondition(inst.Cond) {
+		var conditionMet bool
+		if idex.IsFused {
+			// Fused CMP+B.cond: compute flags from fused operands
+			var op2 uint64
+			if idex.FusedIsImm {
+				op2 = idex.FusedImmVal
+			} else {
+				op2 = idex.FusedRmVal
+			}
+			n, z, c, v := ComputeSubFlags(idex.FusedRnVal, op2, idex.FusedIs64)
+			conditionMet = EvaluateConditionWithFlags(inst.Cond, n, z, c, v)
+		} else {
+			// Non-fused: read condition from PSTATE (set by previous CMP)
+			conditionMet = s.checkCondition(inst.Cond)
+		}
+		if conditionMet {
 			result.BranchTaken = true
 			result.BranchTarget = uint64(int64(idex.PC) + inst.BranchOffset)
 		} else {
@@ -522,6 +537,7 @@ type WritebackSlot interface {
 	GetMemToReg() bool
 	GetALUResult() uint64
 	GetMemData() uint64
+	GetIsFused() bool
 }
 
 // writebackSlot performs writeback for any MEMWB slot.
@@ -545,4 +561,87 @@ func (s *WritebackStage) WritebackSlot(slot WritebackSlot) bool {
 
 	s.regFile.WriteReg(slot.GetRd(), value)
 	return true
+}
+
+// IsCMP returns true if the instruction is a CMP (compare) operation.
+// CMP is encoded as SUB/SUBS with Rd=31 (XZR) and SetFlags=true.
+func IsCMP(inst *insts.Instruction) bool {
+	if inst == nil {
+		return false
+	}
+	return inst.Op == insts.OpSUB && inst.SetFlags && inst.Rd == 31
+}
+
+// IsBCond returns true if the instruction is a conditional branch (B.cond).
+func IsBCond(inst *insts.Instruction) bool {
+	if inst == nil {
+		return false
+	}
+	return inst.Op == insts.OpBCond
+}
+
+// ComputeSubFlags computes PSTATE flags from a SUB/CMP operation.
+// Returns N, Z, C, V flags.
+func ComputeSubFlags(op1, op2 uint64, is64Bit bool) (n, z, c, v bool) {
+	if is64Bit {
+		result := op1 - op2
+		n = (result >> 63) == 1
+		z = result == 0
+		c = op1 >= op2 // no borrow
+		// V: signed overflow - subtracting different signs gives wrong sign
+		op1Sign := op1 >> 63
+		op2Sign := op2 >> 63
+		resultSign := result >> 63
+		v = (op1Sign != op2Sign) && (op2Sign == resultSign)
+	} else {
+		o1 := uint32(op1)
+		o2 := uint32(op2)
+		r32 := o1 - o2
+		n = (r32 >> 31) == 1
+		z = r32 == 0
+		c = o1 >= o2
+		op1Sign := o1 >> 31
+		op2Sign := o2 >> 31
+		resultSign := r32 >> 31
+		v = (op1Sign != op2Sign) && (op2Sign == resultSign)
+	}
+	return
+}
+
+// EvaluateConditionWithFlags evaluates a branch condition with given PSTATE flags.
+func EvaluateConditionWithFlags(cond insts.Cond, n, z, c, v bool) bool {
+	switch cond {
+	case insts.CondEQ:
+		return z
+	case insts.CondNE:
+		return !z
+	case insts.CondCS:
+		return c
+	case insts.CondCC:
+		return !c
+	case insts.CondMI:
+		return n
+	case insts.CondPL:
+		return !n
+	case insts.CondVS:
+		return v
+	case insts.CondVC:
+		return !v
+	case insts.CondHI:
+		return c && !z
+	case insts.CondLS:
+		return !c || z
+	case insts.CondGE:
+		return n == v
+	case insts.CondLT:
+		return n != v
+	case insts.CondGT:
+		return !z && (n == v)
+	case insts.CondLE:
+		return z || (n != v)
+	case insts.CondAL, insts.CondNV:
+		return true
+	default:
+		return false
+	}
 }

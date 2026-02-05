@@ -1007,6 +1007,9 @@ func (r *SecondaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
 // GetMemData returns the data loaded from memory.
 func (r *SecondaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
 
+// GetIsFused returns false as fusion only occurs in slot 0.
+func (r *SecondaryMEMWBRegister) GetIsFused() bool { return false }
+
 // WritebackSlot interface implementation for TertiaryMEMWBRegister
 
 // IsValid returns true if the register contains valid data.
@@ -1026,6 +1029,9 @@ func (r *TertiaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
 
 // GetMemData returns the data loaded from memory.
 func (r *TertiaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
+
+// GetIsFused returns false as fusion only occurs in slot 0.
+func (r *TertiaryMEMWBRegister) GetIsFused() bool { return false }
 
 // WritebackSlot interface implementation for QuaternaryMEMWBRegister
 
@@ -1047,6 +1053,9 @@ func (r *QuaternaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
 // GetMemData returns the data loaded from memory.
 func (r *QuaternaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
 
+// GetIsFused returns false as fusion only occurs in slot 0.
+func (r *QuaternaryMEMWBRegister) GetIsFused() bool { return false }
+
 // WritebackSlot interface implementation for QuinaryMEMWBRegister
 
 // IsValid returns true if the register contains valid data.
@@ -1067,6 +1076,9 @@ func (r *QuinaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
 // GetMemData returns the data loaded from memory.
 func (r *QuinaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
 
+// GetIsFused returns false as fusion only occurs in slot 0.
+func (r *QuinaryMEMWBRegister) GetIsFused() bool { return false }
+
 // WritebackSlot interface implementation for SenaryMEMWBRegister
 
 // IsValid returns true if the register contains valid data.
@@ -1086,3 +1098,6 @@ func (r *SenaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
 
 // GetMemData returns the data loaded from memory.
 func (r *SenaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
+
+// GetIsFused returns false as fusion only occurs in slot 0.
+func (r *SenaryMEMWBRegister) GetIsFused() bool { return false }

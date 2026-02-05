@@ -471,6 +471,7 @@ func (p *Pipeline) tickSingleIssue() {
 				Rd:        p.exmem.Rd,
 				RegWrite:  p.exmem.RegWrite,
 				MemToReg:  p.exmem.MemToReg,
+				IsFused:   p.exmem.IsFused,
 			}
 		}
 	}
@@ -772,6 +773,7 @@ func (p *Pipeline) tickSuperscalar() {
 				Rd:        p.exmem.Rd,
 				RegWrite:  p.exmem.RegWrite,
 				MemToReg:  p.exmem.MemToReg,
+				IsFused:   p.exmem.IsFused,
 			}
 		}
 	}
@@ -1395,6 +1397,7 @@ func (p *Pipeline) tickQuadIssue() {
 				Rd:        p.exmem.Rd,
 				RegWrite:  p.exmem.RegWrite,
 				MemToReg:  p.exmem.MemToReg,
+				IsFused:   p.exmem.IsFused,
 			}
 		}
 	}
@@ -2184,6 +2187,10 @@ func (p *Pipeline) tickSextupleIssue() {
 	savedMEMWB := p.memwb
 	if p.writebackStage.WritebackSlot(&p.memwb) {
 		p.stats.Instructions++
+		// Fused CMP+B.cond counts as 2 instructions
+		if p.memwb.IsFused {
+			p.stats.Instructions++
+		}
 	}
 
 	// Writeback secondary slot
@@ -2266,6 +2273,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				Rd:        p.exmem.Rd,
 				RegWrite:  p.exmem.RegWrite,
 				MemToReg:  p.exmem.MemToReg,
+				IsFused:   p.exmem.IsFused,
 			}
 		}
 	}
@@ -2399,6 +2407,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				MemWrite:   p.idex.MemWrite,
 				RegWrite:   p.idex.RegWrite,
 				MemToReg:   p.idex.MemToReg,
+				IsFused:    p.idex.IsFused,
 			}
 
 			// Branch prediction verification for primary slot
@@ -2754,32 +2763,88 @@ func (p *Pipeline) tickSextupleIssue() {
 	var nextIDEX5 QuinaryIDEXRegister
 	var nextIDEX6 SenaryIDEXRegister
 
+	// Track CMP+B.cond fusion for issue count adjustment
+	fusedCMPBcond := false
+
 	if p.ifid.Valid && !stallResult.StallID && !stallResult.FlushID && !execStall && !memStall {
 		decResult := p.decodeStage.Decode(p.ifid.InstructionWord, p.ifid.PC)
-		nextIDEX = IDEXRegister{
-			Valid:           true,
-			PC:              p.ifid.PC,
-			Inst:            decResult.Inst,
-			RnValue:         decResult.RnValue,
-			RmValue:         decResult.RmValue,
-			Rd:              decResult.Rd,
-			Rn:              decResult.Rn,
-			Rm:              decResult.Rm,
-			MemRead:         decResult.MemRead,
-			MemWrite:        decResult.MemWrite,
-			RegWrite:        decResult.RegWrite,
-			MemToReg:        decResult.MemToReg,
-			IsBranch:        decResult.IsBranch,
-			PredictedTaken:  p.ifid.PredictedTaken,
-			PredictedTarget: p.ifid.PredictedTarget,
-			EarlyResolved:   p.ifid.EarlyResolved,
+
+		// CMP+B.cond fusion detection: check if slot 0 is CMP and slot 1 is B.cond
+		if IsCMP(decResult.Inst) && p.ifid2.Valid {
+			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
+			if IsBCond(decResult2.Inst) {
+				// Fuse CMP+B.cond: put B.cond in slot 0 with CMP operands
+				fusedCMPBcond = true
+				nextIDEX = IDEXRegister{
+					Valid:           true,
+					PC:              p.ifid2.PC,
+					Inst:            decResult2.Inst,
+					RnValue:         decResult2.RnValue,
+					RmValue:         decResult2.RmValue,
+					Rd:              decResult2.Rd,
+					Rn:              decResult2.Rn,
+					Rm:              decResult2.Rm,
+					MemRead:         decResult2.MemRead,
+					MemWrite:        decResult2.MemWrite,
+					RegWrite:        decResult2.RegWrite,
+					MemToReg:        decResult2.MemToReg,
+					IsBranch:        decResult2.IsBranch,
+					PredictedTaken:  p.ifid2.PredictedTaken,
+					PredictedTarget: p.ifid2.PredictedTarget,
+					EarlyResolved:   p.ifid2.EarlyResolved,
+					// Fusion fields from CMP
+					IsFused:    true,
+					FusedRnVal: decResult.RnValue,
+					FusedRmVal: decResult.RmValue,
+					FusedIs64:  decResult.Inst.Is64Bit,
+					FusedIsImm: decResult.Inst.Format == insts.FormatDPImm,
+					FusedImmVal: func() uint64 {
+						if decResult.Inst.Format == insts.FormatDPImm {
+							imm := decResult.Inst.Imm
+							if decResult.Inst.Shift > 0 {
+								imm <<= decResult.Inst.Shift
+							}
+							return imm
+						}
+						return 0
+					}(),
+				}
+				// Mark both instructions as consumed (CMP + B.cond count as 2 issued)
+				// This will be reflected in the issueCount later
+				// Note: IsFused flag is propagated through the pipeline.
+				// When the fused instruction retires, it counts as 2 instructions.
+			}
+		}
+
+		if !fusedCMPBcond {
+			nextIDEX = IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid.PC,
+				Inst:            decResult.Inst,
+				RnValue:         decResult.RnValue,
+				RmValue:         decResult.RmValue,
+				Rd:              decResult.Rd,
+				Rn:              decResult.Rn,
+				Rm:              decResult.Rm,
+				MemRead:         decResult.MemRead,
+				MemWrite:        decResult.MemWrite,
+				RegWrite:        decResult.RegWrite,
+				MemToReg:        decResult.MemToReg,
+				IsBranch:        decResult.IsBranch,
+				PredictedTaken:  p.ifid.PredictedTaken,
+				PredictedTarget: p.ifid.PredictedTarget,
+				EarlyResolved:   p.ifid.EarlyResolved,
+			}
 		}
 
 		// Try to issue instructions 2-6 if they can issue with earlier instructions
 		issuedInsts := []*IDEXRegister{&nextIDEX}
 
-		// Decode slot 2
-		if p.ifid2.Valid {
+		// Track if IFID2 was consumed by fusion (skip its decode)
+		ifid2ConsumedByFusion := fusedCMPBcond
+
+		// Decode slot 2 (IFID2) - skip if consumed by fusion
+		if p.ifid2.Valid && !ifid2ConsumedByFusion {
 			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
 			tempIDEX2 := IDEXRegister{
 				Valid:    true,
@@ -2923,6 +2988,11 @@ func (p *Pipeline) tickSextupleIssue() {
 		issueCount++
 	}
 	if nextIDEX6.Valid {
+		issueCount++
+	}
+	// CMP+B.cond fusion consumes 2 IFID slots but produces 1 IDEX,
+	// so add 1 to issueCount to advance fetch properly
+	if fusedCMPBcond {
 		issueCount++
 	}
 

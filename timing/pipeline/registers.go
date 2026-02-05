@@ -65,6 +65,17 @@ type IDEXRegister struct {
 	PredictedTaken  bool   // Whether predicted taken
 	PredictedTarget uint64 // Predicted target address
 	EarlyResolved   bool   // Whether resolved at fetch time (unconditional branch)
+
+	// CMP+B.cond fusion fields.
+	// When a CMP is immediately followed by B.cond, they are fused into a single
+	// operation. The B.cond instruction carries the CMP operands and evaluates
+	// the condition directly without reading PSTATE, eliminating the flag dependency.
+	IsFused     bool   // True if this B.cond is fused with preceding CMP
+	FusedRnVal  uint64 // CMP's Rn operand value
+	FusedRmVal  uint64 // CMP's Rm operand value (or immediate)
+	FusedIs64   bool   // CMP was 64-bit operation
+	FusedIsImm  bool   // CMP used immediate operand
+	FusedImmVal uint64 // CMP's immediate value (if FusedIsImm)
 }
 
 // Clear resets the ID/EX register to empty state.
@@ -85,6 +96,12 @@ func (r *IDEXRegister) Clear() {
 	r.PredictedTaken = false
 	r.PredictedTarget = 0
 	r.EarlyResolved = false
+	r.IsFused = false
+	r.FusedRnVal = 0
+	r.FusedRmVal = 0
+	r.FusedIs64 = false
+	r.FusedIsImm = false
+	r.FusedImmVal = 0
 }
 
 // EXMEMRegister holds state between Execute and Memory stages.
@@ -112,6 +129,10 @@ type EXMEMRegister struct {
 	MemWrite bool
 	RegWrite bool
 	MemToReg bool
+
+	// IsFused indicates this is a fused CMP+B.cond operation.
+	// When this instruction retires, it counts as 2 instructions.
+	IsFused bool
 }
 
 // Clear resets the EX/MEM register to empty state.
@@ -126,6 +147,7 @@ func (r *EXMEMRegister) Clear() {
 	r.MemWrite = false
 	r.RegWrite = false
 	r.MemToReg = false
+	r.IsFused = false
 }
 
 // MemorySlot interface implementation for EXMEMRegister
@@ -171,6 +193,10 @@ type MEMWBRegister struct {
 	// Control signals.
 	RegWrite bool
 	MemToReg bool // True if result comes from memory
+
+	// IsFused indicates this is a fused CMP+B.cond operation.
+	// When this instruction retires, it counts as 2 instructions.
+	IsFused bool
 }
 
 // Clear resets the MEM/WB register to empty state.
@@ -183,6 +209,7 @@ func (r *MEMWBRegister) Clear() {
 	r.Rd = 0
 	r.RegWrite = false
 	r.MemToReg = false
+	r.IsFused = false
 }
 
 // WritebackSlot interface implementation for MEMWBRegister
@@ -204,3 +231,6 @@ func (r *MEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
 
 // GetMemData returns the data loaded from memory.
 func (r *MEMWBRegister) GetMemData() uint64 { return r.MemData }
+
+// GetIsFused returns true if this is a fused macro-op (e.g., CMP+B.cond).
+func (r *MEMWBRegister) GetIsFused() bool { return r.IsFused }
