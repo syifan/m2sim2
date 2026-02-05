@@ -21,9 +21,9 @@ var _ = Describe("BranchPredictor", func() {
 	})
 
 	Describe("Prediction", func() {
-		It("should initially predict taken (biased)", func() {
+		It("should initially predict not-taken (matches M2 behavior)", func() {
 			pred := bp.Predict(0x1000)
-			Expect(pred.Taken).To(BeTrue())
+			Expect(pred.Taken).To(BeFalse())
 		})
 
 		It("should not know target initially", func() {
@@ -167,11 +167,10 @@ var _ = Describe("BranchPredictor", func() {
 
 		It("should track correct predictions", func() {
 			pc := uint64(0x1000)
-			target := uint64(0x2000)
 
-			// Initially predicts taken, update with taken -> correct
+			// Initially predicts not-taken, update with not-taken -> correct
 			bp.Predict(pc) // Prediction made
-			bp.Update(pc, true, target)
+			bp.Update(pc, false, 0)
 
 			stats := bp.Stats()
 			Expect(stats.Correct).To(Equal(uint64(1)))
@@ -180,10 +179,11 @@ var _ = Describe("BranchPredictor", func() {
 
 		It("should track mispredictions", func() {
 			pc := uint64(0x1000)
+			target := uint64(0x2000)
 
-			// Initially predicts taken, update with not-taken -> misprediction
+			// Initially predicts not-taken, update with taken -> misprediction
 			bp.Predict(pc)
-			bp.Update(pc, false, 0)
+			bp.Update(pc, true, target)
 
 			stats := bp.Stats()
 			Expect(stats.Mispredictions).To(Equal(uint64(1)))
@@ -201,19 +201,19 @@ var _ = Describe("BranchPredictor", func() {
 			pc := uint64(0x1000)
 			target := uint64(0x2000)
 
-			// Initial state: counter=2 (weakly taken), so predicts taken
-			// Predict + Update 1: taken -> correct (counter -> 3)
+			// Initial state: counter=1 (weakly not-taken), so predicts not-taken
+			// Predict + Update 1: taken -> misprediction (counter -> 2)
 			bp.Predict(pc)
 			bp.Update(pc, true, target)
-			// Predict + Update 2: taken -> correct (counter stays 3)
+			// Predict + Update 2: taken -> correct (counter -> 3)
 			bp.Predict(pc)
 			bp.Update(pc, true, target)
 			// Predict + Update 3: taken -> correct (counter stays 3)
 			bp.Predict(pc)
 			bp.Update(pc, true, target)
-			// Predict + Update 4: not-taken -> misprediction (counter -> 2)
+			// Predict + Update 4: taken -> correct (counter stays 3)
 			bp.Predict(pc)
-			bp.Update(pc, false, 0)
+			bp.Update(pc, true, target)
 
 			stats := bp.Stats()
 			Expect(stats.Predictions).To(Equal(uint64(4)))
@@ -331,15 +331,19 @@ var _ = Describe("BranchPredictor", func() {
 			pc := uint64(0x1000)
 			target := uint64(0x2000)
 
-			// Make predictions
-			for i := 0; i < 5; i++ {
+			// Make many predictions to ensure both predictors get trained
+			// Gshare uses global history which changes with each outcome,
+			// so we need more iterations to see the same gshare entry twice
+			for i := 0; i < 20; i++ {
 				bp.Predict(pc)
 				bp.Update(pc, true, target)
 			}
 
 			stats := bp.Stats()
-			// Both predictors should have some correct predictions
+			// Bimodal should have correct predictions (same index each time)
 			Expect(stats.BimodalCorrect).To(BeNumerically(">", uint64(0)))
+			// Gshare may have fewer due to global history aliasing,
+			// but with enough iterations it should also have some
 			Expect(stats.GshareCorrect).To(BeNumerically(">", uint64(0)))
 		})
 	})
