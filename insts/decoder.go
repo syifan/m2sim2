@@ -80,6 +80,8 @@ const (
 	OpCBZ  // Compare and branch if zero
 	OpCBNZ // Compare and branch if not zero
 	OpNOP  // No operation (HINT #0)
+	// Extract register opcode
+	OpEXTR // Extract register (bitfield from register pair)
 )
 
 // Format represents an instruction encoding format.
@@ -109,6 +111,7 @@ const (
 	FormatLogicalImm           // Logical Immediate (AND, ORR, EOR, ANDS)
 	FormatBitfield             // Bitfield (SBFM, BFM, UBFM / ASR, LSL, LSR imm)
 	FormatCondCmp              // Conditional compare (CCMP, CCMN)
+	FormatExtract              // Extract register (EXTR)
 )
 
 // Cond represents an ARM64 condition code.
@@ -252,6 +255,8 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		d.decodeDataProc3Src(word, inst)
 	case d.isLogicalImm(word):
 		d.decodeLogicalImm(word, inst)
+	case d.isExtract(word):
+		d.decodeExtract(word, inst)
 	case d.isBitfield(word):
 		d.decodeBitfield(word, inst)
 	case d.isDataProcessingImm(word):
@@ -1403,6 +1408,37 @@ func DecodeBitmaskImmediate(n, immr, imms uint8, is64bit bool) uint64 {
 	}
 
 	return result
+}
+
+// isExtract checks for extract register instruction (EXTR).
+// Format: sf | op21 | 100111 | N | o0 | Rm | imms | Rn | Rd
+// bits [28:23] == 0b100111 and op21 == 00 and o0 == 0
+func (d *Decoder) isExtract(word uint32) bool {
+	op := (word >> 23) & 0x3F  // bits [28:23]
+	op21 := (word >> 29) & 0x3 // bits [30:29]
+	o0 := (word >> 21) & 0x1   // bit 21
+	return op == 0b100111 && op21 == 0b00 && o0 == 0
+}
+
+// decodeExtract decodes the EXTR instruction.
+// Format: sf | 00 | 100111 | N | 0 | Rm | imms | Rn | Rd
+// EXTR Rd, Rn, Rm, #lsb - Extract register from pair
+// Result = (Rm:Rn >> lsb)[datasize-1:0]
+func (d *Decoder) decodeExtract(word uint32, inst *Instruction) {
+	inst.Format = FormatExtract
+	inst.Op = OpEXTR
+
+	sf := (word >> 31) & 0x1    // bit 31
+	rm := (word >> 16) & 0x1F   // bits [20:16]
+	imms := (word >> 10) & 0x3F // bits [15:10] - lsb position
+	rn := (word >> 5) & 0x1F    // bits [9:5]
+	rd := word & 0x1F           // bits [4:0]
+
+	inst.Is64Bit = sf == 1
+	inst.Rd = uint8(rd)
+	inst.Rn = uint8(rn)
+	inst.Rm = uint8(rm)
+	inst.Imm = uint64(imms) // lsb position
 }
 
 // isBitfield checks for bitfield instructions (SBFM, BFM, UBFM).

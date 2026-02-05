@@ -241,6 +241,8 @@ func (e *Emulator) execute(inst *insts.Instruction) StepResult {
 		e.executeLogicalImm(inst)
 	case insts.FormatBitfield:
 		e.executeBitfield(inst)
+	case insts.FormatExtract:
+		e.executeExtract(inst)
 	case insts.FormatBranch:
 		e.executeBranch(inst)
 		return StepResult{} // PC already updated by branch
@@ -497,6 +499,44 @@ func (e *Emulator) executeBitfield(inst *insts.Instruction) {
 				dstMask := srcMask << shift
 				result = uint64((rd32 &^ dstMask) | bits)
 			}
+		}
+	}
+
+	e.regFile.WriteReg(inst.Rd, result)
+}
+
+// executeExtract executes the EXTR instruction.
+// EXTR Rd, Rn, Rm, #lsb
+// Result = (Rm:Rn >> lsb)[datasize-1:0]
+// Conceptually concatenates Rm (high) and Rn (low), then extracts datasize bits starting at lsb.
+func (e *Emulator) executeExtract(inst *insts.Instruction) {
+	rnVal := e.regFile.ReadReg(inst.Rn)
+	rmVal := e.regFile.ReadReg(inst.Rm)
+	lsb := uint32(inst.Imm)
+
+	var result uint64
+
+	if inst.Is64Bit {
+		// 64-bit: concatenate Rm:Rn (128 bits), extract 64 bits at position lsb
+		if lsb == 0 {
+			result = rnVal
+		} else if lsb == 64 {
+			result = rmVal
+		} else {
+			// result = (Rn >> lsb) | (Rm << (64 - lsb))
+			result = (rnVal >> lsb) | (rmVal << (64 - lsb))
+		}
+	} else {
+		// 32-bit: concatenate Rm:Rn (64 bits), extract 32 bits at position lsb
+		rn32 := uint32(rnVal)
+		rm32 := uint32(rmVal)
+		if lsb == 0 {
+			result = uint64(rn32)
+		} else if lsb == 32 {
+			result = uint64(rm32)
+		} else {
+			// result = (Rn >> lsb) | (Rm << (32 - lsb))
+			result = uint64((rn32 >> lsb) | (rm32 << (32 - lsb)))
 		}
 	}
 
