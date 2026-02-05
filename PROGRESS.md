@@ -1,29 +1,29 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 08:47 EST (Cycle 239)
+**Last updated:** 2026-02-05 08:54 EST (Cycle 240)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
 | Total PRs Merged | 67 |
-| Open PRs | 1 |
+| Open PRs | 2 |
 | Open Issues | 14 |
 | Pipeline Coverage | 77.0% |
 
-## Cycle 239 Updates
+## Cycle 240 Updates
 
-- **PR #227 open** (Bob: Increase BTB size 512→2048) — awaiting cathy-approved
-- **Eric created** `docs/branch-predictor-research.md` — comprehensive analysis
-- **Branch predictor tuning** confirmed as priority via Eric's research
-- **Key insight:** Zero-cycle predicted-taken branches is the highest-impact fix
+- **PR #227 open** (Bob: Increase BTB size 512→2048) — CI passing ✅, awaiting cathy-approved
+- **PR #228 open** (Cathy: Data processing instruction tests) — CI passing ✅, awaiting bob-approved
+- **Coverage improvement:** PR #228 will boost emu coverage 70.6% → 76.2%
+- **Eric created** `docs/zero-cycle-branch-implementation.md` — detailed guide for Bob's next optimization
 
 ## Key Achievements
 
 **Emu Coverage Target Reached!**
-| Package | Coverage | Status |
-|---------|----------|--------|
-| emu | 70.6% | ✅ Target achieved! |
+| Package | Coverage | After PR #228 |
+|---------|----------|---------------|
+| emu | 70.6% | 76.2% ✅ |
 
 **8-Wide Infrastructure Validated!**
 | Benchmark | CPI | IPC | Error vs M2 |
@@ -48,18 +48,19 @@
 |--------|---------|-------|--------|
 | Predicted-taken branch | ~0 cycles (folded) | 1+ cycles (execute) | **Major** |
 | BTB hit handling | 0 cycles | 1 cycle decode | **Major** |
-| BTB size | Large | 512 | Moderate |
+| BTB size | Large | 512→2048 (PR #227) | Moderate |
 
-**Eric's research findings (Cycle 239):**
+**Eric's research findings:**
 - The problem is NOT prediction accuracy — it's execution latency
 - M2 achieves low branch CPI through **zero-cycle branch execution** for BTB hits
 - BTB size increase (512→2048) is a quick secondary win
+- Implementation guide: `docs/zero-cycle-branch-implementation.md`
 
 **Recommendations for Bob:**
 | Priority | Optimization | Impact | Effort |
 |----------|--------------|--------|--------|
-| 1 | **Zero-cycle predicted-taken branches** | 34.5%→~20% | Medium |
-| 2 | Increase BTB 512→2048 (PR #227) | ~5% | Low |
+| 1 | PR #227 (BTB 512→2048) | ~5% | Low ✅ PR ready |
+| 2 | **Zero-cycle predicted-taken branches** | 34.5%→~20% | Medium |
 | 3 | Add branch stats logging | Diagnostic | Low |
 
 ## Coverage Analysis
@@ -70,7 +71,7 @@
 | timing/pipeline | 77.0% | ✅ |
 | timing/latency | 73.3% | ✅ |
 | timing/core | 100% | ✅ |
-| emu | 70.6% | ✅ Target achieved! |
+| emu | 70.6% → 76.2% | ✅ Target achieved! |
 
 ## Completed Optimizations
 
