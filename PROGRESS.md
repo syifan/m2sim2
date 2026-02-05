@@ -1,30 +1,35 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 04:37 EST (Cycle 221)
+**Last updated:** 2026-02-05 04:55 EST (Cycle 222)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Total PRs Merged | 54 |
-| Open PRs | 0 |
-| Open Issues | 11 |
+| Total PRs Merged | 55 |
+| Open PRs | 1 |
+| Open Issues | 12 |
 | Pipeline Coverage | 76.2% |
 
-## Cycle 221 Updates
+## Cycle 222 Updates
 
-- **Grace:** Advisor cycle (cycle 220) — guidance updated for all agents
-- **Alice:** Updated task board, action count 220 → 221
-- **Eric:** Commented on #191 with PolyBench setup instructions
-- **Bob:** Ran quick-calibration.sh — accuracy unchanged at 39.8% avg error
-- **Cathy:** Coverage analysis — timing/core at 60% (lowest), pipeline at 76.2%
-- **Dana:** Updated PROGRESS.md, cleaned labels
+- **Alice:** Updated task board, action count 221 → 222
+- **Eric:** Created issue #207 (wire conditional benchmark to accuracy_test.go)
+- **Bob:** Implemented #207 → PR #208 (merged ✅)
+- **Cathy:** Reviewed PR #208 (approved), created PR #209 (PSTATE flag tests)
+- **Dana:** Merged PR #208, updated PROGRESS.md
 
-## Key Finding This Cycle
+## Key Progress This Cycle
 
-**Accuracy test not using conditional benchmark yet**
+**Conditional benchmark now wired to accuracy tests**
 
-Bob ran quick-calibration.sh and found results unchanged (39.8% avg error). The accuracy_test.go still uses `branch_taken` (unconditional) instead of `branch_taken_conditional`. Need follow-up to wire up conditional benchmark to accuracy test.
+PR #208 merged — accuracy_test.go now uses `branch_taken_conditional` instead of `branch_taken`. This aligns simulator testing with native M2 benchmark pattern (CMP + B.GE).
+
+**New accuracy baseline:**
+- Branch error: 62.5% (was 51.3% with unconditional)
+- Average error: 43.5% (was 39.8%)
+
+This increase is expected — we're now measuring against the correct benchmark pattern. Shows conditional branch timing needs improvement.
 
 ## Accuracy Status (Microbenchmarks)
 
@@ -32,8 +37,8 @@ Bob ran quick-calibration.sh and found results unchanged (39.8% avg error). The 
 |-----------|---------------|-------------|-------|-------|
 | arithmetic | 0.400 | 0.268 | 49.3% | 4-wide vs 6-wide issue |
 | dependency | 1.200 | 1.009 | 18.9% | Closest to target |
-| branch_taken | 1.800 | 1.190 | 51.3% | Using unconditional B |
-| **Average** | — | — | 39.8% | |
+| branch_taken_conditional | 1.933 | 1.190 | 62.5% | Now using conditional B.GE |
+| **Average** | — | — | 43.5% | |
 
 **Target:** <20% average error (#141)
 
@@ -46,29 +51,28 @@ Bob ran quick-calibration.sh and found results unchanged (39.8% avg error). The 
 | timing/latency | 73.3% ✅ |
 | timing/core | 60.0% ⚠️ |
 
-Weak spots in timing/core: `ExitCode()`, `Run()`, `RunCycles()`, `Reset()` at 0%.
+PR #209 pending — adds 8 new PSTATE flag unit tests.
 
 ## Active Investigations
 
 - **#197** — Embench timing run request (waiting on human)
 - **#132** — Research intermediate benchmarks (PolyBench research complete)
-- **#191** — PolyBench setup instructions provided
-- **Benchmark wiring** — Need to update accuracy test to use conditional benchmark
+- **Conditional branch timing** — Main accuracy gap now exposed with proper benchmark
 
 ## Calibration Milestones
 
 | Milestone | Status | Description |
 |-----------|--------|-------------|
 | C1 | ✅ Complete | Benchmarks execute to completion |
-| C2 | 🚧 In Progress | Accuracy calibration — need conditional benchmark wiring |
+| C2 | 🚧 In Progress | Accuracy calibration — conditional branch timing is key gap |
 | C3 | Pending | Intermediate benchmark timing |
 
 ## Stats
 
-- 54 PRs merged total
+- 55 PRs merged total
 - 205+ tests passing
 - Zero-cycle branch elimination: working ✓
 - Branch predictor: working ✓
 - PSTATE flag updates: working ✓
-- Conditional branch benchmark: added ✓
+- Conditional branch benchmark: now in accuracy tests ✓
 - Coverage: 76.2% (target: 70% ✓)
