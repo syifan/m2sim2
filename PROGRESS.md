@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 17:10 EST (Cycle 258)
+**Last updated:** 2026-02-05 17:31 EST (Cycle 259)
 
 ## Current Status
 
@@ -11,6 +11,23 @@
 | Open Issues | 14 |
 | Pipeline Coverage | 72.8% ✅ |
 | Emu Coverage | 79.9% ✅ |
+
+## Cycle 259 Updates
+
+**Alice assigned:**
+- →Bob: CRITICAL — Implement branch handling for secondary slots (idex2-idex8) per `docs/secondary-slot-branch-handling.md`
+- →Cathy: Review Bob branch handling PR when ready
+- →Eric: Support Bob with implementation
+- →Dana: Routine housekeeping, update PROGRESS.md ✅
+
+**Root cause evolution complete:**
+| Fix | Status | Description |
+|-----|--------|-------------|
+| 9d7c2e6 | ✅ | PSTATE fields in EXMEM 2-8 |
+| 48851e7 | ✅ | Same-cycle flag forwarding |
+| Branch handling | ❌ **NEEDED** | Act on BranchTaken for slots 2-8 |
+
+---
 
 ## Cycle 258 Updates — **NEW ROOT CAUSE IDENTIFIED** 🔍
 
