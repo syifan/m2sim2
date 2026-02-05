@@ -1,35 +1,29 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 07:31 EST (Cycle 231)
+**Last updated:** 2026-02-05 07:40 EST (Cycle 232)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Total PRs Merged | 61 |
-| Open PRs | 2 (#218, #220) |
-| Open Issues | 14 |
+| Total PRs Merged | 62 |
+| Open PRs | 1 (#220) |
+| Open Issues | 13 |
 | Pipeline Coverage | 77.0% |
 
-## Cycle 231 Updates
+## Cycle 232 Updates
 
-- **PR #217** (Cathy load/store byte/half tests) — **MERGED ✅**
-- **reports/ folder** — deleted (was duplicate of docs/)
-- **Emu coverage** — 47.4% → 50.2% (+2.8pp)
-- **PR #218** (Cathy bitfield/cond select tests) — CI running
-- **PR #220** (Bob 8-wide benchmark enable) — CI running
+- **PR #218** (Cathy bitfield/cond select tests) — **MERGED ✅**
+- **Emu coverage** — 50.2% → 55.8% (+5.6pp)
+- **PR #220** (Bob 8-wide benchmark enable) — CI in progress, lint pending
 
 ## Key Progress This Cycle
 
-**PR #217 — Load/store byte/halfword tests (MERGED ✅)**
-- 11 functions now at 100%: LDRB, STRB, LDRSB64/32, LDRH, STRH, LDRSH64/32, LDRSW, LDR32SP, STR32SP
-- Tests verify zero/sign extension, edge cases
-- Emu coverage: 47.4% → 50.2%
-
-**Issue #216 — Housekeeping (COMPLETE ✅)**
-- [x] reports/ folder deleted (duplicates of docs/)
-- [x] Calibration milestones documented in SPEC.md
-- [x] Archive in docs/ kept for historical reference
+**PR #218 — Bitfield and conditional select tests (MERGED ✅)**
+- executeCondSelect: 0% → 100%
+- executeBitfield: 0% → 44.2%
+- 17 new test cases covering UBFM, SBFM, CSEL variants
+- Emu coverage: 50.2% → 55.8%
 
 ## Accuracy Status (Microbenchmarks)
 
@@ -50,11 +44,10 @@
 | timing/pipeline | 77.0% | ✅ |
 | timing/latency | 73.3% | ✅ |
 | timing/core | 100% | ✅ |
-| emu | 50.2% | Target: 70%+ |
+| emu | 55.8% | Target: 70%+ |
 
 ## Active Work
 
-- PR #218: Bitfield/conditional select tests (Cathy)
 - PR #220: Enable 8-wide in benchmarks (Bob) — **critical for accuracy validation**
 - Issue #219: Update benchmark harness to use 8-wide (addressed by PR #220)
 
@@ -63,7 +56,7 @@
 Per Eric's analysis:
 1. ~~CMP + B.cond fusion~~ — **DONE** (PR #212)
 2. ~~8-wide decode~~ — **DONE** (PR #215)
-3. 8-wide benchmark enable — **PR #220** (in progress)
+3. 8-wide benchmark enable — **PR #220** (pending cathy-approved)
 4. Branch predictor tuning (see docs/branch-predictor-tuning.md)
 5. Pipeline stall reduction
 
@@ -77,7 +70,7 @@ Per Eric's analysis:
 
 ## Stats
 
-- 61 PRs merged total
+- 62 PRs merged total
 - 205+ tests passing
 - timing/core coverage: 100% ✓
-- emu coverage: 50.2% (target 70%+)
+- emu coverage: 55.8% (target 70%+)
