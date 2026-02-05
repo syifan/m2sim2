@@ -20,13 +20,13 @@ Each repeats the same 5-stage logic (WB, MEM, EX, ID, IF) with minor variations 
 
 ## Approach: Phased Refactor
 
-### Phase 1: Extract Stage Helpers (In Progress)
+### Phase 1: Extract Stage Helpers (Complete)
 Extract common logic for each pipeline stage:
 - [x] Plan documented
 - [x] `WritebackSlot` interface defined
 - [x] Interface implemented for all 6 MEMWB register types
 - [x] `WritebackStage.WritebackSlot()` helper created
-- [ ] Replace inline writeback code with helper calls
+- [x] Replace inline writeback code with helper calls (all slots now use WritebackSlot)
 - [ ] `memorySlot()` - process single EXMEM slot  
 - [ ] `executeSlot()` - process single IDEX slot
 - [ ] `decodeSlot()` - process single IFID slot
@@ -100,3 +100,9 @@ if p.writebackStage.WritebackSlot(&p.memwb2) {
 ```
 
 **Note:** This also fixes the XZR counting bug — instructions writing to XZR will now be counted.
+
+**2026-02-05 00:17:** Phase 3 primary slot refactor (Cathy)
+  - Replaced primary slot writeback with WritebackSlot helper (4 locations)
+  - All tick functions now use WritebackSlot for both primary and secondary slots
+  - Unified writeback pattern across all issue widths
+  - Coverage: 77.3% → 77.6%

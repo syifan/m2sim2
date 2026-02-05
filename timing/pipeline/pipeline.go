@@ -416,10 +416,9 @@ func (p *Pipeline) tickSingleIssue() {
 	branchMispredicted := false
 	var branchTarget uint64
 
-	// Stage 5: Writeback
+	// Stage 5: Writeback (using WritebackSlot helper)
 	savedMEMWB := p.memwb
-	p.writebackStage.Writeback(&p.memwb)
-	if p.memwb.Valid {
+	if p.writebackStage.WritebackSlot(&p.memwb) {
 		p.stats.Instructions++
 	}
 
@@ -712,13 +711,12 @@ func (p *Pipeline) tickSingleIssue() {
 // tickSuperscalar executes one cycle with dual-issue support.
 // Independent instructions are executed in parallel when possible.
 func (p *Pipeline) tickSuperscalar() {
-	// Stage 5: Writeback (both slots)
+	// Stage 5: Writeback (both slots using WritebackSlot helper)
 	savedMEMWB := p.memwb
-	p.writebackStage.Writeback(&p.memwb)
-	if p.memwb.Valid {
+	if p.writebackStage.WritebackSlot(&p.memwb) {
 		p.stats.Instructions++
 	}
-	// Writeback secondary slot (using WritebackSlot helper)
+	// Writeback secondary slot
 	if p.writebackStage.WritebackSlot(&p.memwb2) {
 		p.stats.Instructions++
 	}
@@ -1323,14 +1321,13 @@ func (p *Pipeline) tickSuperscalar() {
 //
 //nolint:unused // Scaffolding for 4-wide implementation (PR #114)
 func (p *Pipeline) tickQuadIssue() {
-	// Stage 5: Writeback (all 4 slots)
+	// Stage 5: Writeback (all 4 slots using WritebackSlot helper)
 	savedMEMWB := p.memwb
-	p.writebackStage.Writeback(&p.memwb)
-	if p.memwb.Valid {
+	if p.writebackStage.WritebackSlot(&p.memwb) {
 		p.stats.Instructions++
 	}
 
-	// Writeback secondary slot (using WritebackSlot helper)
+	// Writeback secondary slot
 	if p.writebackStage.WritebackSlot(&p.memwb2) {
 		p.stats.Instructions++
 	}
@@ -2183,14 +2180,13 @@ func (p *Pipeline) flushAllIDEX() {
 // tickSextupleIssue executes one cycle with 6-wide superscalar support.
 // This extends 4-wide to match the Apple M2's 6 integer ALUs.
 func (p *Pipeline) tickSextupleIssue() {
-	// Stage 5: Writeback (all 6 slots)
+	// Stage 5: Writeback (all 6 slots using WritebackSlot helper)
 	savedMEMWB := p.memwb
-	p.writebackStage.Writeback(&p.memwb)
-	if p.memwb.Valid {
+	if p.writebackStage.WritebackSlot(&p.memwb) {
 		p.stats.Instructions++
 	}
 
-	// Writeback secondary slot (using WritebackSlot helper)
+	// Writeback secondary slot
 	if p.writebackStage.WritebackSlot(&p.memwb2) {
 		p.stats.Instructions++
 	}
