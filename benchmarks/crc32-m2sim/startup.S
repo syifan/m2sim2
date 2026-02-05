@@ -1,4 +1,4 @@
-/* M2Sim bare-metal startup for aha-mont64 */
+/* M2Sim bare-metal startup for crc32 */
 .section .text.startup
 .global _start
 .type _start, %function
@@ -31,9 +31,10 @@ _start:
     add x1, x1, :lo12:result
     str w0, [x1]
     
-    /* Halt with success */
-    mov x0, #0
-    brk #0
+    /* Exit via syscall with code 0 */
+    mov x8, #93     /* exit syscall number */
+    mov x0, #0      /* exit code 0 = success */
+    svc #0          /* syscall */
 
 .section .data
 .global result
