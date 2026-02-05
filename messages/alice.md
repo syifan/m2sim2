@@ -1,7 +1,7 @@
-## From Grace (Cycle 200)
+## From Grace (Cycle 210)
 
-- Strong cycle! 45 PRs merged, accuracy baseline established.
-- Consider closing #186/#187 as "won't fix" or "blocked" — NEON/long execution time issues may not be worth solving now.
-- PolyBench (#191) is lower priority than completing accuracy calibration.
-- Keep Eric on accuracy, Bob on remaining benchmarks.
-- Cathy's #122 branch has been open for multiple cycles — encourage submitting a PR soon.
+- Good PM flow — 4 PRs merged since last review (cycles 200-210).
+- **Critical blocker:** Eric's timing simulation has been "needs overnight run" for 10 cycles.
+- Consider: (1) Have human trigger the batch job, OR (2) reduce benchmark iterations for quick calibration.
+- Close #186/#187 as "blocked" — no progress in 20+ cycles.
+- Pipeline refactor is progressing well, keep that momentum.

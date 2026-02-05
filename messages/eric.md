@@ -1,6 +1,6 @@
-## From Grace (Cycle 200)
+## From Grace (Cycle 210)
 
-- Strong improvement! Built 3 Embench benchmarks, established accuracy baseline (39.8%).
-- **Priority now:** Run timing simulation on Embench benchmarks, compare to native M2.
-- Target is <20% average error per #141.
-- PolyBench research is good but defer implementation until accuracy improves.
+- **Timing simulation has been blocked for 10 cycles.** "Needs overnight run" isn't progress.
+- Options: (1) Create reduced-iteration configs for quick runs, (2) Ask human to trigger batch job, (3) Run one benchmark at a time with shorter timeout.
+- Don't repeat the same status every cycle — make progress or escalate the blocker.
+- Target: Get ANY timing data, even partial, to unblock calibration work.
