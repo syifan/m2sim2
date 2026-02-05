@@ -221,6 +221,26 @@ func (r *SecondaryEXMEMRegister) Clear() {
 	r.MemToReg = false
 }
 
+// MemorySlot interface implementation for SecondaryEXMEMRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *SecondaryEXMEMRegister) IsValid() bool { return r.Valid }
+
+// GetMemRead returns true if this is a load instruction.
+func (r *SecondaryEXMEMRegister) GetMemRead() bool { return r.MemRead }
+
+// GetMemWrite returns true if this is a store instruction.
+func (r *SecondaryEXMEMRegister) GetMemWrite() bool { return r.MemWrite }
+
+// GetInst returns the instruction.
+func (r *SecondaryEXMEMRegister) GetInst() *insts.Instruction { return r.Inst }
+
+// GetALUResult returns the computed address/result.
+func (r *SecondaryEXMEMRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetStoreValue returns the value to store.
+func (r *SecondaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
+
 // Clear resets the secondary MEM/WB register.
 func (r *SecondaryMEMWBRegister) Clear() {
 	r.Valid = false
@@ -363,6 +383,26 @@ func (r *TertiaryEXMEMRegister) Clear() {
 	r.MemToReg = false
 }
 
+// MemorySlot interface implementation for TertiaryEXMEMRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *TertiaryEXMEMRegister) IsValid() bool { return r.Valid }
+
+// GetMemRead returns true if this is a load instruction.
+func (r *TertiaryEXMEMRegister) GetMemRead() bool { return r.MemRead }
+
+// GetMemWrite returns true if this is a store instruction.
+func (r *TertiaryEXMEMRegister) GetMemWrite() bool { return r.MemWrite }
+
+// GetInst returns the instruction.
+func (r *TertiaryEXMEMRegister) GetInst() *insts.Instruction { return r.Inst }
+
+// GetALUResult returns the computed address/result.
+func (r *TertiaryEXMEMRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetStoreValue returns the value to store.
+func (r *TertiaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
+
 // Clear resets the tertiary MEM/WB register.
 func (r *TertiaryMEMWBRegister) Clear() {
 	r.Valid = false
@@ -500,6 +540,26 @@ func (r *QuaternaryEXMEMRegister) Clear() {
 	r.RegWrite = false
 	r.MemToReg = false
 }
+
+// MemorySlot interface implementation for QuaternaryEXMEMRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *QuaternaryEXMEMRegister) IsValid() bool { return r.Valid }
+
+// GetMemRead returns true if this is a load instruction.
+func (r *QuaternaryEXMEMRegister) GetMemRead() bool { return r.MemRead }
+
+// GetMemWrite returns true if this is a store instruction.
+func (r *QuaternaryEXMEMRegister) GetMemWrite() bool { return r.MemWrite }
+
+// GetInst returns the instruction.
+func (r *QuaternaryEXMEMRegister) GetInst() *insts.Instruction { return r.Inst }
+
+// GetALUResult returns the computed address/result.
+func (r *QuaternaryEXMEMRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetStoreValue returns the value to store.
+func (r *QuaternaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 
 // Clear resets the quaternary MEM/WB register.
 func (r *QuaternaryMEMWBRegister) Clear() {
@@ -639,6 +699,26 @@ func (r *QuinaryEXMEMRegister) Clear() {
 	r.MemToReg = false
 }
 
+// MemorySlot interface implementation for QuinaryEXMEMRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *QuinaryEXMEMRegister) IsValid() bool { return r.Valid }
+
+// GetMemRead returns true if this is a load instruction.
+func (r *QuinaryEXMEMRegister) GetMemRead() bool { return r.MemRead }
+
+// GetMemWrite returns true if this is a store instruction.
+func (r *QuinaryEXMEMRegister) GetMemWrite() bool { return r.MemWrite }
+
+// GetInst returns the instruction.
+func (r *QuinaryEXMEMRegister) GetInst() *insts.Instruction { return r.Inst }
+
+// GetALUResult returns the computed address/result.
+func (r *QuinaryEXMEMRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetStoreValue returns the value to store.
+func (r *QuinaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
+
 // Clear resets the quinary MEM/WB register.
 func (r *QuinaryMEMWBRegister) Clear() {
 	r.Valid = false
@@ -774,6 +854,26 @@ func (r *SenaryEXMEMRegister) Clear() {
 	r.RegWrite = false
 	r.MemToReg = false
 }
+
+// MemorySlot interface implementation for SenaryEXMEMRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *SenaryEXMEMRegister) IsValid() bool { return r.Valid }
+
+// GetMemRead returns true if this is a load instruction.
+func (r *SenaryEXMEMRegister) GetMemRead() bool { return r.MemRead }
+
+// GetMemWrite returns true if this is a store instruction.
+func (r *SenaryEXMEMRegister) GetMemWrite() bool { return r.MemWrite }
+
+// GetInst returns the instruction.
+func (r *SenaryEXMEMRegister) GetInst() *insts.Instruction { return r.Inst }
+
+// GetALUResult returns the computed address/result.
+func (r *SenaryEXMEMRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetStoreValue returns the value to store.
+func (r *SenaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 
 // Clear resets the senary MEM/WB register.
 func (r *SenaryMEMWBRegister) Clear() {

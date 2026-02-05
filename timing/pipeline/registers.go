@@ -128,6 +128,26 @@ func (r *EXMEMRegister) Clear() {
 	r.MemToReg = false
 }
 
+// MemorySlot interface implementation for EXMEMRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *EXMEMRegister) IsValid() bool { return r.Valid }
+
+// GetMemRead returns true if this is a load instruction.
+func (r *EXMEMRegister) GetMemRead() bool { return r.MemRead }
+
+// GetMemWrite returns true if this is a store instruction.
+func (r *EXMEMRegister) GetMemWrite() bool { return r.MemWrite }
+
+// GetInst returns the instruction.
+func (r *EXMEMRegister) GetInst() *insts.Instruction { return r.Inst }
+
+// GetALUResult returns the computed address/result.
+func (r *EXMEMRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetStoreValue returns the value to store.
+func (r *EXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
+
 // MEMWBRegister holds state between Memory and Writeback stages.
 type MEMWBRegister struct {
 	// Valid indicates if this pipeline register contains valid data.

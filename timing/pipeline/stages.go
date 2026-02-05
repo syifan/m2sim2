@@ -378,6 +378,50 @@ func (s *MemoryStage) Access(exmem *EXMEMRegister) MemoryResult {
 	return result
 }
 
+// MemorySlot interface for memory stage processing.
+// Implemented by all EXMEM register types.
+type MemorySlot interface {
+	IsValid() bool
+	GetMemRead() bool
+	GetMemWrite() bool
+	GetInst() *insts.Instruction
+	GetALUResult() uint64
+	GetStoreValue() uint64
+}
+
+// MemorySlot performs memory access for any EXMEM slot.
+// Returns the memory result.
+func (s *MemoryStage) MemorySlot(slot MemorySlot) MemoryResult {
+	result := MemoryResult{}
+
+	if !slot.IsValid() {
+		return result
+	}
+
+	addr := slot.GetALUResult()
+	inst := slot.GetInst()
+
+	if slot.GetMemRead() {
+		// Load: read from memory
+		if inst != nil && inst.Is64Bit {
+			result.MemData = s.memory.Read64(addr)
+		} else {
+			result.MemData = uint64(s.memory.Read32(addr))
+		}
+	}
+
+	if slot.GetMemWrite() {
+		// Store: write to memory
+		if inst != nil && inst.Is64Bit {
+			s.memory.Write64(addr, slot.GetStoreValue())
+		} else {
+			s.memory.Write32(addr, uint32(slot.GetStoreValue()))
+		}
+	}
+
+	return result
+}
+
 // WritebackStage writes results back to the register file.
 type WritebackStage struct {
 	regFile *emu.RegFile
