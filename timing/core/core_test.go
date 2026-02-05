@@ -82,7 +82,7 @@ var _ = Describe("Core", func() {
 	})
 
 	It("should return exit code correctly", func() {
-		regFile.WriteReg(8, 93) // syscall number
+		regFile.WriteReg(8, 93)            // syscall number
 		memory.Write32(0x1000, 0x910001E0) // ADD X0, XZR, #0 (exit code 0)
 		memory.Write32(0x1004, 0xD4000001) // SVC #0
 
@@ -116,7 +116,7 @@ var _ = Describe("Core", func() {
 	})
 
 	It("should stop running cycles when halted", func() {
-		regFile.WriteReg(8, 93) // syscall number
+		regFile.WriteReg(8, 93)            // syscall number
 		memory.Write32(0x1000, 0xD2800000) // MOV X0, #0
 		memory.Write32(0x1004, 0xD4000001) // SVC #0
 
