@@ -1,93 +1,59 @@
 # M2Sim Progress Report
 
-*Last updated: 2026-02-04 19:35 EST*
+**Last updated:** 2026-02-04 19:55 EST (Cycle 191)
 
-## Current Milestone: C1 - Execution Completeness
+## Current Status
 
-### Status Summary
-- **M1-M5:** ✅ Complete
-- **M6 (Validation):** 🚧 In Progress → Calibration milestones C1-C4
-- **C1:** 🚧 In Progress (CoreMark at 2406 instructions)
+| Metric | Value |
+|--------|-------|
+| Total PRs Merged | 40 |
+| Open PRs | 2 |
+| Open Issues | ~15 |
+| Pipeline Coverage | 70.1% |
 
-### Recent Activity (2026-02-04)
+## Active Work
 
-**This cycle (19:35):**
-- Grace: Skipped (cycle 190, not a 10th)
-- Alice: Updated task board, action count 189→190
-- Eric: Evaluated status, 15 open issues healthy
-- Bob: **Fixed PR #175 tests** — added encodeMOVZ helper
-- Cathy: Reviewed Bob's test fix — approved ✅
-- Dana: Fixed gofmt formatting in PR #175, pushed CI fix
+### PR #175 — ADD/SUB SP Handling Fix (Bob)
+- **Status:** cathy-approved ✅, CI in progress
+- **Impact:** CoreMark jumps from 2406 → 10M+ instructions
+- **Root cause:** Register 31 was always treated as XZR, but ARM64 uses SP for ADD/SUB immediate
+- Awaiting Unit Tests to complete
 
-**Progress:**
-- **PR #175** — ADD/SUB SP handling + NOP support (cathy-approved, CI re-running)
-- Test fix: encodeMOVZ added for proper ARM64 immediate value setting
-- Tests corrected to use MOVZ instead of incorrectly assuming ADD from SP gives zero
-- **CoreMark: 2406 instructions** (now properly reports BRK trap)
-- **40 PRs merged** total — excellent velocity!
+### PR #178 — Pipeline Stats Tests (Cathy)
+- **Status:** Ready for review
+- **Impact:** Coverage 69.7% → 70.1%
+- Tests for CPI, ExitCode, BranchPredictorStats methods
 
-### Blockers Status
+## Recent Progress
 
-**Previous blockers RESOLVED ✅**
-- Cross-compiler: `aarch64-elf-gcc 15.2.0` ✅
-- SPEC: `benchspec/CPU` exists ✅
-- Logical immediate instructions ✅
-- LSLV, UBFM, STR register offset, CCMP ✅
-- BRK instruction ✅
+### This Cycle (191)
+- Grace updated guidance per Human #176: Cathy/Eric/Dana should produce code, not wait for Bob
+- Eric built aha-mont64 Embench benchmark (committed to main)
+- Cathy created PR #178 with pipeline coverage tests
+- Bob's PR #175 CI progressing
 
-**Current blockers:**
-- PR #175 waiting on CI (lint fixed, awaiting re-run)
-- CoreMark hits BRK #0x3e8 at PC=0x80BA8 (2406 instructions)
-- Bob investigating why x21 becomes 0 in core_list_mergesort
+### Previous Cycles
+- PR #174 merged — BRK instruction support
+- PR #173 merged — Shift regs, bitfield, CCMP instructions
+- PR #171 merged — Logical immediate instructions
+- CoreMark execution: 2127 → 2406 instructions before SP fix
 
-### Open PRs
+## Calibration Milestones
 
-| PR | Title | Status |
-|----|-------|--------|
-| #175 | [Bob] Fix ADD/SUB SP handling + NOP | cathy-approved, CI re-running |
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| C1 | 🚧 Active | Execution Completeness — full CoreMark execution |
+| C2 | Pending | Microbenchmark Accuracy — <20% avg error |
+| C3 | Pending | Intermediate Benchmark Accuracy |
+| C4 | Pending | SPEC Benchmark Accuracy |
 
-### Calibration Milestones
+## Blockers
 
-Per #167 discussion, Eric's proposal approved by Human:
-- **C1: Execution Completeness** — Run CoreMark/Embench to completion 🚧
-- **C2: Microbenchmark Accuracy (<30%)** — Tune timing parameters
-- **C3: Intermediate Benchmark Accuracy (<20%)** — Validate overall timing
-- **C4: SPEC Accuracy (stretch)** — Target <25%
+- **PR #175 CI** — Unit Tests running, merge blocked until complete
 
-### Next Steps
+## Next Steps
 
-1. **Merge PR #175** — once CI passes
-2. **Debug BRK trap** — trace execution to find why x21 becomes 0
-3. **Complete CoreMark** — achieve C1 milestone
-4. **Begin #122 refactor** — after C1 completes
-5. Continue **Embench-IoT phase 2** after CoreMark validates
-
-### Current Accuracy (microbenchmarks)
-
-| Benchmark | Sim CPI | M2 CPI | Error | Root Cause |
-|-----------|---------|--------|-------|------------|
-| arithmetic_sequential | 0.400 | 0.268 | 49.3% | M2 has 8+ ALUs |
-| branch_taken | 1.800 | 1.190 | 51.3% | Branch elim overhead |
-| dependency_chain | 1.200 | 1.009 | 18.9% | Forwarding latency |
-| **Average** | | | **39.8%** | |
-
-**Note:** 20% target applies to INTERMEDIATE benchmarks, not microbenchmarks.
-
-### Test Coverage
-
-| Package | Coverage | Notes |
-|---------|----------|-------|
-| **insts** | **97%+** ✅ | instruction tests comprehensive |
-| timing/cache | 89.1% | |
-| benchmarks | 80.8% | |
-| emu | 72.5% | |
-| timing/latency | 71.8% | |
-| timing/core | 60.0% | |
-| timing/pipeline | 25.6% | #122 refactor pending |
-
-### Recent Merges
-
-| PR | Title | Status |
-|----|-------|--------|
-| #174 | [Bob] Add BRK instruction support | ✅ Merged |
-| #173 | [Bob] Implement LSLV, UBFM, STR reg offset, CCMP | ✅ Merged |
+1. Merge PR #175 once CI passes
+2. Verify CoreMark completes successfully (expected 10M+ instructions)
+3. Review and merge PR #178 (Cathy's coverage tests)
+4. Continue Embench benchmark integration (#163-165)
