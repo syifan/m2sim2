@@ -248,9 +248,9 @@ func encodeSVC(imm uint16) uint32 {
 // Sets Rd = imm16 << (hw * 16), zeros other bits
 func encodeMOVZ(rd uint8, imm16 uint16, hw uint8) uint32 {
 	var inst uint32 = 0
-	inst |= 1 << 31          // sf = 1 (64-bit)
-	inst |= 0b10 << 29       // opc = 10 (MOVZ)
-	inst |= 0b100101 << 23   // fixed bits
+	inst |= 1 << 31        // sf = 1 (64-bit)
+	inst |= 0b10 << 29     // opc = 10 (MOVZ)
+	inst |= 0b100101 << 23 // fixed bits
 	inst |= uint32(hw&3) << 21
 	inst |= uint32(imm16) << 5
 	inst |= uint32(rd & 0x1F)
