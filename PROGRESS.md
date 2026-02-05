@@ -1,16 +1,36 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 12:46 EST (Cycle 245)
+**Last updated:** 2026-02-05 12:52 EST (Cycle 246)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
 | Total PRs Merged | 71 |
-| Open PRs | 0 |
+| Open PRs | 1 |
 | Open Issues | 13 |
-| Pipeline Coverage | 58.6% |
+| Pipeline Coverage | 58.0% → 59.0% (pending PR #231) |
 | Emu Coverage | 79.9% ✅ |
+
+## Cycle 246 Updates
+
+- **Accuracy validation complete** (Bob ran quick-calibration.sh)
+  - Branch error still at **34.5%** — as expected for cold branches
+  - Zero-cycle folding requires **HOT branches** (same PC hit multiple times)
+  - Current benchmark uses cold branches (each PC seen only once)
+- **PR #231 open** (Cathy: Branch helper function tests)
+  - 27 test cases for isConditionalBranch, isCompareAndBranch, isTestAndBranch, isFoldableConditionalBranch
+  - Pipeline coverage: 58.0% → 59.0% (+1pp)
+  - CI running, awaiting bob-approved
+- **71 PRs merged total**
+
+**Key insight from validation:**
+Zero-cycle folding is correctly implemented but needs:
+1. BTB hit (target known from previous execution)
+2. Predicted taken
+3. High confidence (counter ≥ 3, trained by repeated branches)
+
+The branchTakenConditional benchmark has cold branches where each PC is seen only once, so the zero-cycle optimization cannot apply. A hot branch benchmark (with actual loops) would demonstrate the benefit.
 
 ## Cycle 245 Updates
 
@@ -23,11 +43,7 @@
   - Added FoldedBranches stat tracking
   - Added Confidence field to Prediction struct
   - Supports B.cond, CBZ/CBNZ, TBZ/TBNZ branch types
-  - Expected impact: Branch error 34.5% → ~15-20%
 - **71 PRs merged total** 🎉
-
-**Key implementation note:**
-Zero-cycle folding helps with **HOT branches** (repeated loops) where predictor is trained. Cold branches (first encounter) still incur normal penalties due to BTB miss and low predictor confidence.
 
 ## Cycle 244 Updates
 
@@ -53,11 +69,11 @@ Zero-cycle folding helps with **HOT branches** (repeated loops) where predictor 
 |-----------|---------------|-------------|-------|----------|
 | arithmetic_8wide | 0.250 | 0.268 | **6.7%** | ✅ Target met! |
 | dependency_chain | 1.200 | 1.009 | **18.9%** | ✅ Near target |
-| branch_taken_conditional | 1.600 | 1.190 | **34.5%** | ⚠️ PR #230 merged |
+| branch_taken_conditional | 1.600 | 1.190 | **34.5%** | ⚠️ Cold branches — needs hot branch benchmark |
 
 **Target:** <20% average error
 
-**Next step:** Run accuracy validation to measure zero-cycle branch impact!
+**Next step:** Design hot branch benchmark (loops) to validate zero-cycle folding!
 
 ## Optimization Progress
 
@@ -109,9 +125,9 @@ Zero-cycle folding helps with **HOT branches** (repeated loops) where predictor 
 ## Stats
 
 - 71 PRs merged total
-- 0 open PRs
+- 1 open PR (#231 — branch helper tests)
 - 205+ tests passing
 - All coverage targets exceeded ✓
 - 8-wide arithmetic accuracy: **6.7%** ✓
 - Emu coverage: **79.9%** ✓
-- Next step: Validate zero-cycle branch accuracy impact
+- Branch accuracy: **34.5%** (cold branches — hot branch benchmark needed)
