@@ -164,3 +164,23 @@ func (r *MEMWBRegister) Clear() {
 	r.RegWrite = false
 	r.MemToReg = false
 }
+
+// WritebackSlot interface implementation for MEMWBRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *MEMWBRegister) IsValid() bool { return r.Valid }
+
+// GetRegWrite returns true if this instruction writes to a register.
+func (r *MEMWBRegister) GetRegWrite() bool { return r.RegWrite }
+
+// GetRd returns the destination register.
+func (r *MEMWBRegister) GetRd() uint8 { return r.Rd }
+
+// GetMemToReg returns true if the value comes from memory.
+func (r *MEMWBRegister) GetMemToReg() bool { return r.MemToReg }
+
+// GetALUResult returns the ALU computation result.
+func (r *MEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetMemData returns the data loaded from memory.
+func (r *MEMWBRegister) GetMemData() uint64 { return r.MemData }

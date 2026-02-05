@@ -886,3 +886,103 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 
 	return true
 }
+
+// WritebackSlot interface implementation for SecondaryMEMWBRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *SecondaryMEMWBRegister) IsValid() bool { return r.Valid }
+
+// GetRegWrite returns true if this instruction writes to a register.
+func (r *SecondaryMEMWBRegister) GetRegWrite() bool { return r.RegWrite }
+
+// GetRd returns the destination register.
+func (r *SecondaryMEMWBRegister) GetRd() uint8 { return r.Rd }
+
+// GetMemToReg returns true if the value comes from memory.
+func (r *SecondaryMEMWBRegister) GetMemToReg() bool { return r.MemToReg }
+
+// GetALUResult returns the ALU computation result.
+func (r *SecondaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetMemData returns the data loaded from memory.
+func (r *SecondaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
+
+// WritebackSlot interface implementation for TertiaryMEMWBRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *TertiaryMEMWBRegister) IsValid() bool { return r.Valid }
+
+// GetRegWrite returns true if this instruction writes to a register.
+func (r *TertiaryMEMWBRegister) GetRegWrite() bool { return r.RegWrite }
+
+// GetRd returns the destination register.
+func (r *TertiaryMEMWBRegister) GetRd() uint8 { return r.Rd }
+
+// GetMemToReg returns true if the value comes from memory.
+func (r *TertiaryMEMWBRegister) GetMemToReg() bool { return r.MemToReg }
+
+// GetALUResult returns the ALU computation result.
+func (r *TertiaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetMemData returns the data loaded from memory.
+func (r *TertiaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
+
+// WritebackSlot interface implementation for QuaternaryMEMWBRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *QuaternaryMEMWBRegister) IsValid() bool { return r.Valid }
+
+// GetRegWrite returns true if this instruction writes to a register.
+func (r *QuaternaryMEMWBRegister) GetRegWrite() bool { return r.RegWrite }
+
+// GetRd returns the destination register.
+func (r *QuaternaryMEMWBRegister) GetRd() uint8 { return r.Rd }
+
+// GetMemToReg returns true if the value comes from memory.
+func (r *QuaternaryMEMWBRegister) GetMemToReg() bool { return r.MemToReg }
+
+// GetALUResult returns the ALU computation result.
+func (r *QuaternaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetMemData returns the data loaded from memory.
+func (r *QuaternaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
+
+// WritebackSlot interface implementation for QuinaryMEMWBRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *QuinaryMEMWBRegister) IsValid() bool { return r.Valid }
+
+// GetRegWrite returns true if this instruction writes to a register.
+func (r *QuinaryMEMWBRegister) GetRegWrite() bool { return r.RegWrite }
+
+// GetRd returns the destination register.
+func (r *QuinaryMEMWBRegister) GetRd() uint8 { return r.Rd }
+
+// GetMemToReg returns true if the value comes from memory.
+func (r *QuinaryMEMWBRegister) GetMemToReg() bool { return r.MemToReg }
+
+// GetALUResult returns the ALU computation result.
+func (r *QuinaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetMemData returns the data loaded from memory.
+func (r *QuinaryMEMWBRegister) GetMemData() uint64 { return r.MemData }
+
+// WritebackSlot interface implementation for SenaryMEMWBRegister
+
+// IsValid returns true if the register contains valid data.
+func (r *SenaryMEMWBRegister) IsValid() bool { return r.Valid }
+
+// GetRegWrite returns true if this instruction writes to a register.
+func (r *SenaryMEMWBRegister) GetRegWrite() bool { return r.RegWrite }
+
+// GetRd returns the destination register.
+func (r *SenaryMEMWBRegister) GetRd() uint8 { return r.Rd }
+
+// GetMemToReg returns true if the value comes from memory.
+func (r *SenaryMEMWBRegister) GetMemToReg() bool { return r.MemToReg }
+
+// GetALUResult returns the ALU computation result.
+func (r *SenaryMEMWBRegister) GetALUResult() uint64 { return r.ALUResult }
+
+// GetMemData returns the data loaded from memory.
+func (r *SenaryMEMWBRegister) GetMemData() uint64 { return r.MemData }

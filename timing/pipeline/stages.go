@@ -408,3 +408,37 @@ func (s *WritebackStage) Writeback(memwb *MEMWBRegister) {
 
 	s.regFile.WriteReg(memwb.Rd, value)
 }
+
+// WritebackSlot interface for writeback stage processing.
+// Implemented by all MEMWB register types.
+type WritebackSlot interface {
+	IsValid() bool
+	GetRegWrite() bool
+	GetRd() uint8
+	GetMemToReg() bool
+	GetALUResult() uint64
+	GetMemData() uint64
+}
+
+// writebackSlot performs writeback for any MEMWB slot.
+// Returns true if an instruction was retired.
+func (s *WritebackStage) WritebackSlot(slot WritebackSlot) bool {
+	if !slot.IsValid() || !slot.GetRegWrite() {
+		return slot.IsValid() // Valid but no regwrite still counts as retired
+	}
+
+	// Don't write to XZR
+	if slot.GetRd() == 31 {
+		return true // Instruction retired
+	}
+
+	var value uint64
+	if slot.GetMemToReg() {
+		value = slot.GetMemData()
+	} else {
+		value = slot.GetALUResult()
+	}
+
+	s.regFile.WriteReg(slot.GetRd(), value)
+	return true
+}
