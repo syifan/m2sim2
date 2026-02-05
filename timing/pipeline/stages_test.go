@@ -555,6 +555,166 @@ var _ = Describe("Pipeline Stages", func() {
 			})
 		})
 
+		Context("PSTATE flag operations", func() {
+			It("should set Z flag when ADDS result is zero", func() {
+				regFile.PSTATE.Z = false // Clear Z flag
+				idex := &pipeline.IDEXRegister{
+					Valid: true,
+					Inst: &insts.Instruction{
+						Op:       insts.OpADD,
+						Format:   insts.FormatDPReg,
+						Is64Bit:  true,
+						SetFlags: true, // ADDS
+					},
+					RnValue: 0,
+					RmValue: 0,
+				}
+
+				executeStage.Execute(idex, idex.RnValue, idex.RmValue)
+
+				Expect(regFile.PSTATE.Z).To(BeTrue())
+			})
+
+			It("should set N flag when ADDS result is negative", func() {
+				regFile.PSTATE.N = false
+				idex := &pipeline.IDEXRegister{
+					Valid: true,
+					Inst: &insts.Instruction{
+						Op:       insts.OpADD,
+						Format:   insts.FormatDPReg,
+						Is64Bit:  true,
+						SetFlags: true, // ADDS
+					},
+					RnValue: 0x8000000000000000, // Large negative
+					RmValue: 0,
+				}
+
+				executeStage.Execute(idex, idex.RnValue, idex.RmValue)
+
+				Expect(regFile.PSTATE.N).To(BeTrue())
+			})
+
+			It("should set C flag on ADDS unsigned overflow", func() {
+				regFile.PSTATE.C = false
+				idex := &pipeline.IDEXRegister{
+					Valid: true,
+					Inst: &insts.Instruction{
+						Op:       insts.OpADD,
+						Format:   insts.FormatDPReg,
+						Is64Bit:  true,
+						SetFlags: true, // ADDS
+					},
+					RnValue: 0xFFFFFFFFFFFFFFFF,
+					RmValue: 1,
+				}
+
+				executeStage.Execute(idex, idex.RnValue, idex.RmValue)
+
+				Expect(regFile.PSTATE.C).To(BeTrue())
+			})
+
+			It("should set V flag on ADDS signed overflow", func() {
+				regFile.PSTATE.V = false
+				idex := &pipeline.IDEXRegister{
+					Valid: true,
+					Inst: &insts.Instruction{
+						Op:       insts.OpADD,
+						Format:   insts.FormatDPReg,
+						Is64Bit:  true,
+						SetFlags: true, // ADDS
+					},
+					RnValue: 0x7FFFFFFFFFFFFFFF, // Max positive
+					RmValue: 1,                  // Causes overflow
+				}
+
+				executeStage.Execute(idex, idex.RnValue, idex.RmValue)
+
+				Expect(regFile.PSTATE.V).To(BeTrue())
+			})
+
+			It("should set flags correctly for SUBS", func() {
+				regFile.PSTATE.Z = false
+				regFile.PSTATE.C = false
+				idex := &pipeline.IDEXRegister{
+					Valid: true,
+					Inst: &insts.Instruction{
+						Op:       insts.OpSUB,
+						Format:   insts.FormatDPReg,
+						Is64Bit:  true,
+						SetFlags: true, // SUBS
+					},
+					RnValue: 100,
+					RmValue: 100,
+				}
+
+				executeStage.Execute(idex, idex.RnValue, idex.RmValue)
+
+				Expect(regFile.PSTATE.Z).To(BeTrue())  // Result is zero
+				Expect(regFile.PSTATE.C).To(BeTrue())  // No borrow (op1 >= op2)
+				Expect(regFile.PSTATE.N).To(BeFalse()) // Result is not negative
+			})
+
+			It("should set N flag when SUBS result is negative", func() {
+				regFile.PSTATE.N = false
+				idex := &pipeline.IDEXRegister{
+					Valid: true,
+					Inst: &insts.Instruction{
+						Op:       insts.OpSUB,
+						Format:   insts.FormatDPReg,
+						Is64Bit:  true,
+						SetFlags: true, // SUBS
+					},
+					RnValue: 10,
+					RmValue: 20,
+				}
+
+				executeStage.Execute(idex, idex.RnValue, idex.RmValue)
+
+				Expect(regFile.PSTATE.N).To(BeTrue()) // 10 - 20 is negative
+			})
+
+			It("should clear C flag when SUBS has borrow", func() {
+				regFile.PSTATE.C = true
+				idex := &pipeline.IDEXRegister{
+					Valid: true,
+					Inst: &insts.Instruction{
+						Op:       insts.OpSUB,
+						Format:   insts.FormatDPReg,
+						Is64Bit:  true,
+						SetFlags: true, // SUBS
+					},
+					RnValue: 10,
+					RmValue: 20,
+				}
+
+				executeStage.Execute(idex, idex.RnValue, idex.RmValue)
+
+				Expect(regFile.PSTATE.C).To(BeFalse()) // Borrow occurred
+			})
+
+			It("should handle 32-bit ADDS flags correctly", func() {
+				regFile.PSTATE.Z = false
+				regFile.PSTATE.C = false
+				idex := &pipeline.IDEXRegister{
+					Valid: true,
+					Inst: &insts.Instruction{
+						Op:       insts.OpADD,
+						Format:   insts.FormatDPReg,
+						Is64Bit:  false, // 32-bit
+						SetFlags: true,  // ADDS
+					},
+					RnValue: 0xFFFFFFFF,
+					RmValue: 1,
+				}
+
+				result := executeStage.Execute(idex, idex.RnValue, idex.RmValue)
+
+				Expect(result.ALUResult).To(Equal(uint64(0))) // 32-bit wraps
+				Expect(regFile.PSTATE.Z).To(BeTrue())         // Result is zero
+				Expect(regFile.PSTATE.C).To(BeTrue())         // Carry occurred
+			})
+		})
+
 		Context("Invalid input handling", func() {
 			It("should return empty result for nil instruction", func() {
 				idex := &pipeline.IDEXRegister{
