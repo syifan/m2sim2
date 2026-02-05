@@ -1,12 +1,21 @@
 # Benchmark Alignment Strategy
 
 **Created:** 2026-02-05 (Cycle 217)
+**Updated:** 2026-02-05 (Cycle 219) — PSTATE flags implemented!
 **Author:** Eric (Research)
 
 ## Background
 
 Investigation in cycle 216 revealed that the 51.3% branch benchmark error is due to
 comparing different instruction types between native and simulator benchmarks.
+
+## Status Update (Cycle 219)
+
+**🎉 PSTATE flag support is now complete!** PR #205 merged in cycle 218.
+
+The timing pipeline now correctly updates PSTATE.{N, Z, C, V} flags from ALU
+operations, enabling conditional branch evaluation. Implementation of the aligned
+microbenchmark can now proceed.
 
 ## Current Mismatch
 
@@ -54,13 +63,14 @@ loop:
 - Matches typical program patterns
 - Exposes actual conditional branch overhead
 
-### Alternative: Align to Unconditional
+## Implementation Steps (for Bob)
 
-Modify native benchmark to use unconditional branches.
+Per Eric's guidance on #203:
 
-**Drawbacks:**
-- Less realistic
-- Unconditional loops are rare in real code
+1. Add `EncodeCMPImm(rn, imm)` to `benchmarks/encode.go`
+2. Add `EncodeBCond(offset, cond)` to `benchmarks/encode.go`
+3. Create `branchTakenConditional()` in `benchmarks/microbenchmarks.go`
+4. Run calibration and compare results
 
 ## Impact on Accuracy Metric
 
@@ -69,17 +79,8 @@ After alignment, expect:
 - More accurate measure of true simulator fidelity
 - May reveal new optimization opportunities (macro-op fusion)
 
-## Implementation
-
-See issue #203 for tracking.
-
-1. Create new microbenchmark with conditional branches
-2. Re-run calibration
-3. Update baseline metrics
-4. Compare results
-
 ## Related Issues
 
-- #203 — Align branch benchmarks
+- #203 — Align branch benchmarks (ready for implementation)
+- #204 — PSTATE flags (**✅ completed** — PR #205 merged)
 - #201 — Zero-cycle branches (already working)
-- #199 — Branch predictor investigation (closed)
