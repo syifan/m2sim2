@@ -6,9 +6,9 @@ import "github.com/sarchlab/m2sim/emu"
 // GetMicrobenchmarks returns the standard set of microbenchmarks for M2 calibration.
 // Each benchmark targets a specific CPU characteristic.
 //
-// NOTE: These benchmarks use unrolled code (no loops) because the timing pipeline
-// currently doesn't update PSTATE flags, which breaks conditional branch evaluation.
-// See issue tracking: need to update pipeline to set flags on SUBS/ADDS.
+// NOTE: The timing pipeline now supports PSTATE flags (PR #205). The
+// branchTakenConditional benchmark uses CMP + B.GE to match native benchmarks.
+// Other benchmarks still use unrolled code for simplicity.
 func GetMicrobenchmarks() []Benchmark {
 	return []Benchmark{
 		arithmeticSequential(),
@@ -17,6 +17,7 @@ func GetMicrobenchmarks() []Benchmark {
 		memorySequential(),
 		functionCalls(),
 		branchTaken(),
+		branchTakenConditional(),
 		mixedOperations(),
 		matrixMultiply2x2(),
 		loopSimulation(),
@@ -25,11 +26,12 @@ func GetMicrobenchmarks() []Benchmark {
 
 // GetCoreBenchmarks returns a minimal set of 3 core benchmarks for quick validation.
 // These correspond to the acceptance criteria: loop, matrix multiply, branch-heavy code.
+// Uses branchTakenConditional to match native benchmark pattern (CMP + B.GE).
 func GetCoreBenchmarks() []Benchmark {
 	return []Benchmark{
 		loopSimulation(),
 		matrixMultiply2x2(),
-		branchTaken(),
+		branchTakenConditional(),
 	}
 }
 
@@ -224,6 +226,51 @@ func branchTaken() Benchmark {
 			EncodeADDImm(0, 0, 1, false),  // X0 += 1
 
 			EncodeB(8),                    // B +8
+			EncodeADDImm(1, 1, 99, false), // skipped
+			EncodeADDImm(0, 0, 1, false),  // X0 += 1
+
+			EncodeSVC(0), // exit with X0 = 5
+		),
+		ExpectedExit: 5,
+	}
+}
+
+// 5b. Branch Taken Conditional - Uses CMP + B.GE to match native benchmark pattern
+// This aligns with branch_taken_long.s which uses conditional branches
+func branchTakenConditional() Benchmark {
+	return Benchmark{
+		Name:        "branch_taken_conditional",
+		Description: "5 conditional branches (CMP + B.GE) - matches native benchmark",
+		Setup: func(regFile *emu.RegFile, memory *emu.Memory) {
+			regFile.WriteReg(8, 93) // X8 = 93 (exit syscall)
+			regFile.WriteReg(0, 0)  // X0 = 0 (result, always >= 0)
+		},
+		Program: BuildProgram(
+			// Pattern: CMP X0, #0; B.GE +8 (always taken since X0 >= 0)
+			// Then ADD X0, X0, #1 to track execution
+
+			EncodeCMPImm(0, 0),            // CMP X0, #0
+			EncodeBCond(8, 10),            // B.GE +8 (CondGE = 10, always taken)
+			EncodeADDImm(1, 1, 99, false), // skipped
+			EncodeADDImm(0, 0, 1, false),  // X0 += 1
+
+			EncodeCMPImm(0, 0),            // CMP X0, #0
+			EncodeBCond(8, 10),            // B.GE +8
+			EncodeADDImm(1, 1, 99, false), // skipped
+			EncodeADDImm(0, 0, 1, false),  // X0 += 1
+
+			EncodeCMPImm(0, 0),            // CMP X0, #0
+			EncodeBCond(8, 10),            // B.GE +8
+			EncodeADDImm(1, 1, 99, false), // skipped
+			EncodeADDImm(0, 0, 1, false),  // X0 += 1
+
+			EncodeCMPImm(0, 0),            // CMP X0, #0
+			EncodeBCond(8, 10),            // B.GE +8
+			EncodeADDImm(1, 1, 99, false), // skipped
+			EncodeADDImm(0, 0, 1, false),  // X0 += 1
+
+			EncodeCMPImm(0, 0),            // CMP X0, #0
+			EncodeBCond(8, 10),            // B.GE +8
 			EncodeADDImm(1, 1, 99, false), // skipped
 			EncodeADDImm(0, 0, 1, false),  // X0 += 1
 

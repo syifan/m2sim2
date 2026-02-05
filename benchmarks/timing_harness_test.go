@@ -20,8 +20,8 @@ func TestHarnessRunsAllBenchmarks(t *testing.T) {
 
 	results := harness.RunAll()
 
-	if len(results) != 9 {
-		t.Errorf("expected 9 benchmark results, got %d", len(results))
+	if len(results) != 10 {
+		t.Errorf("expected 10 benchmark results, got %d", len(results))
 	}
 
 	// Verify each benchmark completed
@@ -294,8 +294,8 @@ func TestGetCoreBenchmarks(t *testing.T) {
 	if !names["matrix_operations"] {
 		t.Error("core benchmarks should include matrix_operations")
 	}
-	if !names["branch_taken"] {
-		t.Error("core benchmarks should include branch_taken")
+	if !names["branch_taken_conditional"] {
+		t.Error("core benchmarks should include branch_taken_conditional")
 	}
 }
 

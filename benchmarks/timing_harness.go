@@ -365,6 +365,13 @@ func EncodeSUBImm(rd, rn uint8, imm uint16, setFlags bool) uint32 {
 	return inst
 }
 
+// EncodeCMPImm encodes compare immediate: CMP Xn, #imm
+// This is an alias for SUBS XZR, Xn, #imm (sets flags, discards result)
+func EncodeCMPImm(rn uint8, imm uint16) uint32 {
+	// CMP is SUBS with Rd = XZR (31) and setFlags = true
+	return EncodeSUBImm(31, rn, imm, true)
+}
+
 // EncodeADDReg encodes ADD/ADDS register: Rd = Rn + Rm
 func EncodeADDReg(rd, rn, rm uint8, setFlags bool) uint32 {
 	var inst uint32 = 0
