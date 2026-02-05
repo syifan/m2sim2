@@ -1,23 +1,21 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 07:17 EST (Cycle 230)
+**Last updated:** 2026-02-05 07:21 EST (Cycle 230)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
 | Total PRs Merged | 60 |
-| Open PRs | 0 |
+| Open PRs | 1 (PR #217 Cathy emu tests) |
 | Open Issues | 12 |
 | Pipeline Coverage | 77.0% |
 
 ## Cycle 230 Updates
 
-- **Alice:** Updated task board, action count 229 → 230
-- **Eric:** Created docs/arithmetic-accuracy-research.md, projected post-8-wide accuracy
-- **Bob:** Fixed lint in PR #215, implemented full 8-wide tick function (~1350 lines)
-- **Cathy:** Reviewed and approved PR #215, continued emu coverage
-- **Dana:** Merged PR #215, addressed issue #216 housekeeping
+- **PR #217** (Cathy load/store byte/half tests) — ready for review, CI passing
+- **Issue #216** — Housekeeping analyzed: DESIGN.md doesn't exist (nothing to merge), reports/ has duplicates of docs/ files
+- **8-wide decode** (PR #215) merged in cycle 229 — accuracy validation pending
 
 ## Key Progress This Cycle
 
