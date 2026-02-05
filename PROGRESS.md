@@ -1,63 +1,76 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 02:55 EST (Cycle 215)
+**Last updated:** 2026-02-05 03:15 EST (Cycle 216)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
 | Total PRs Merged | 51 |
-| Open PRs | 0 |
-| Open Issues | 12 |
+| Open PRs | 1 (PR #202 awaiting review) |
+| Open Issues | 13 |
 | Pipeline Coverage | 76.5% |
 
-## Cycle 215 Updates
+## Cycle 216 Updates
 
-- **Alice:** Assigned benchmark re-run, updated task board
-- **Eric:** Evaluated status, timing run (#197) still blocked
-- **Bob:** Re-ran benchmarks — accuracy unchanged (39.8% avg error)
-- **Cathy:** Coverage analysis, confirmed dead code, no new PRs to review
+- **Alice:** Updated task board, assigned zero-cycle branch investigation
+- **Eric:** Created issue #201 (zero-cycle branches), updated docs
+- **Bob:** Investigated branch handling — found benchmark mismatch!
+- **Cathy:** Created PR #202 (dead code removal)
 - **Dana:** Cleanup, updated PROGRESS.md
 
 ## Key Finding This Cycle
 
-**PR #200 (branch predictor fix) did NOT improve benchmark accuracy.** Analysis:
-- branch_taken uses **unconditional branches** (always taken)
-- Predictor learns quickly regardless of initial state
-- The 51.3% branch gap is **handling overhead**, not misprediction
-- Need architectural changes: BTB improvements, zero-cycle unconditional branches
+**Zero-cycle branch elimination IS working correctly!**
+
+Bob's investigation revealed:
+- Unconditional `B` instructions ARE being eliminated at fetch time
+- `TestBranchTaken`: 9 cycles, 5 instructions (branches not counted)
+- The CPI of 1.8 is CORRECT for data-dependent ADD chain in 5-stage pipeline
+
+**The 51.3% "error" is due to BENCHMARK MISMATCH:**
+- Native baseline (m2_baseline.json): uses `b.ge` (conditional branches)
+- Simulator microbenchmark (branchTaken): uses `B` (unconditional branches)
+
+We are comparing different instruction types!
 
 ## Accuracy Status (Microbenchmarks)
 
-| Benchmark | Simulator CPI | M2 Real CPI | Error |
-|-----------|---------------|-------------|-------|
-| arithmetic | 0.400 | 0.268 | 49.3% |
-| dependency | 1.200 | 1.009 | 18.9% |
-| branch | 1.800 | 1.190 | 51.3% |
-| **Average** | — | — | **39.8%** |
+| Benchmark | Simulator CPI | M2 Real CPI | Error | Notes |
+|-----------|---------------|-------------|-------|-------|
+| arithmetic | 0.400 | 0.268 | 49.3% | 4-wide vs 6-wide issue |
+| dependency | 1.200 | 1.009 | 18.9% | Closest to target |
+| branch | 1.800 | 1.190 | 51.3% | **Benchmark mismatch** |
+| **Average** | — | — | **39.8%** | |
 
 **Target:** <20% average error (#141)
 
-## Pipeline Refactor Progress (#122) — COMPLETE! ✅
+## Next Steps
 
-All 4 phases complete + tests. Foundation ready for accuracy tuning.
+1. **Align benchmarks** — create matching native/simulator tests
+2. **Conditional branch optimization** — macro-op fusion (cmp+branch)
+3. **Review issue width** — 4-wide vs M2's 6-wide affecting arithmetic
+
+## Active PRs
+
+- **PR #202** — [Cathy] Remove dead code: DetectLoadUseHazard (awaiting bob-approved)
 
 ## Active Investigations
 
 - **#197** — Embench timing run request (waiting on human)
-- **#199** — Branch investigation complete, PR #200 merged but no accuracy gain
+- **#201** — Zero-cycle branches (investigation complete — already working!)
 
 ## Calibration Milestones
 
 | Milestone | Status | Description |
 |-----------|--------|-------------|
 | C1 | ✅ Complete | Benchmarks execute to completion |
-| C2 | 🚧 In Progress | Accuracy calibration — need architectural changes |
+| C2 | 🚧 In Progress | Accuracy calibration — benchmark alignment needed |
 | C3 | Pending | Intermediate benchmark timing |
 
-## Next Steps
+## Stats
 
-1. Investigate BTB cold miss penalty and branch handling overhead
-2. Consider 6-wide issue (M2 Avalanche is 6-wide, we're 4-wide)
-3. Implement zero-cycle handling for unconditional branches
-4. Wait for human to trigger Embench timing run (#197)
+- 51 PRs merged total
+- 205 pipeline tests passing
+- Zero-cycle branch elimination: working ✓
+- Branch predictor: working ✓
