@@ -132,3 +132,11 @@ func (lsu *LoadStoreUnit) LDRSH32(rd uint8, addr uint64) {
 	signExtended := int32(int16(value))
 	lsu.regFile.WriteReg(rd, uint64(uint32(signExtended)))
 }
+
+// LDRSW loads a signed word with sign extension to 64-bit
+func (lsu *LoadStoreUnit) LDRSW(rd uint8, addr uint64) {
+	value := lsu.memory.Read32(addr)
+	// Sign extend from 32 to 64 bits
+	signExtended := int64(int32(value))
+	lsu.regFile.WriteReg(rd, uint64(signExtended))
+}

@@ -325,38 +325,120 @@ func (e *Emulator) executeDPImm(inst *insts.Instruction) {
 	}
 }
 
+// applyShift64 applies a shift operation to a 64-bit value.
+func applyShift64(value uint64, shiftType insts.ShiftType, amount uint8) uint64 {
+	if amount == 0 {
+		return value
+	}
+	switch shiftType {
+	case insts.ShiftLSL:
+		return value << amount
+	case insts.ShiftLSR:
+		return value >> amount
+	case insts.ShiftASR:
+		return uint64(int64(value) >> amount)
+	case insts.ShiftROR:
+		return (value >> amount) | (value << (64 - amount))
+	default:
+		return value
+	}
+}
+
+// applyShift32 applies a shift operation to a 32-bit value.
+func applyShift32(value uint32, shiftType insts.ShiftType, amount uint8) uint32 {
+	if amount == 0 {
+		return value
+	}
+	switch shiftType {
+	case insts.ShiftLSL:
+		return value << amount
+	case insts.ShiftLSR:
+		return value >> amount
+	case insts.ShiftASR:
+		return uint32(int32(value) >> amount)
+	case insts.ShiftROR:
+		return (value >> amount) | (value << (32 - amount))
+	default:
+		return value
+	}
+}
+
 // executeDPReg executes Data Processing Register instructions.
 func (e *Emulator) executeDPReg(inst *insts.Instruction) {
 	switch inst.Op {
 	case insts.OpADD:
 		if inst.Is64Bit {
-			e.alu.ADD64(inst.Rd, inst.Rn, inst.Rm, inst.SetFlags)
+			op1 := e.regFile.ReadReg(inst.Rn)
+			op2 := applyShift64(e.regFile.ReadReg(inst.Rm), inst.ShiftType, inst.ShiftAmount)
+			result := op1 + op2
+			e.regFile.WriteReg(inst.Rd, result)
+			if inst.SetFlags {
+				e.alu.setAddFlags64(op1, op2, result)
+			}
 		} else {
-			e.alu.ADD32(inst.Rd, inst.Rn, inst.Rm, inst.SetFlags)
+			op1 := uint32(e.regFile.ReadReg(inst.Rn))
+			op2 := applyShift32(uint32(e.regFile.ReadReg(inst.Rm)), inst.ShiftType, inst.ShiftAmount)
+			result := op1 + op2
+			e.regFile.WriteReg(inst.Rd, uint64(result))
+			if inst.SetFlags {
+				e.alu.setAddFlags32(op1, op2, result)
+			}
 		}
 	case insts.OpSUB:
 		if inst.Is64Bit {
-			e.alu.SUB64(inst.Rd, inst.Rn, inst.Rm, inst.SetFlags)
+			op1 := e.regFile.ReadReg(inst.Rn)
+			op2 := applyShift64(e.regFile.ReadReg(inst.Rm), inst.ShiftType, inst.ShiftAmount)
+			result := op1 - op2
+			e.regFile.WriteReg(inst.Rd, result)
+			if inst.SetFlags {
+				e.alu.setSubFlags64(op1, op2, result)
+			}
 		} else {
-			e.alu.SUB32(inst.Rd, inst.Rn, inst.Rm, inst.SetFlags)
+			op1 := uint32(e.regFile.ReadReg(inst.Rn))
+			op2 := applyShift32(uint32(e.regFile.ReadReg(inst.Rm)), inst.ShiftType, inst.ShiftAmount)
+			result := op1 - op2
+			e.regFile.WriteReg(inst.Rd, uint64(result))
+			if inst.SetFlags {
+				e.alu.setSubFlags32(op1, op2, result)
+			}
 		}
 	case insts.OpAND:
 		if inst.Is64Bit {
-			e.alu.AND64(inst.Rd, inst.Rn, inst.Rm, inst.SetFlags)
+			op1 := e.regFile.ReadReg(inst.Rn)
+			op2 := applyShift64(e.regFile.ReadReg(inst.Rm), inst.ShiftType, inst.ShiftAmount)
+			result := op1 & op2
+			e.regFile.WriteReg(inst.Rd, result)
+			if inst.SetFlags {
+				e.alu.setLogicFlags64(result)
+			}
 		} else {
-			e.alu.AND32(inst.Rd, inst.Rn, inst.Rm, inst.SetFlags)
+			op1 := uint32(e.regFile.ReadReg(inst.Rn))
+			op2 := applyShift32(uint32(e.regFile.ReadReg(inst.Rm)), inst.ShiftType, inst.ShiftAmount)
+			result := op1 & op2
+			e.regFile.WriteReg(inst.Rd, uint64(result))
+			if inst.SetFlags {
+				e.alu.setLogicFlags32(result)
+			}
 		}
 	case insts.OpORR:
 		if inst.Is64Bit {
-			e.alu.ORR64(inst.Rd, inst.Rn, inst.Rm)
+			op1 := e.regFile.ReadReg(inst.Rn)
+			op2 := applyShift64(e.regFile.ReadReg(inst.Rm), inst.ShiftType, inst.ShiftAmount)
+			e.regFile.WriteReg(inst.Rd, op1|op2)
 		} else {
-			e.alu.ORR32(inst.Rd, inst.Rn, inst.Rm)
+			op1 := uint32(e.regFile.ReadReg(inst.Rn))
+			op2 := applyShift32(uint32(e.regFile.ReadReg(inst.Rm)), inst.ShiftType, inst.ShiftAmount)
+			e.regFile.WriteReg(inst.Rd, uint64(op1|op2))
 		}
 	case insts.OpEOR:
 		if inst.Is64Bit {
-			e.alu.EOR64(inst.Rd, inst.Rn, inst.Rm)
+			op1 := e.regFile.ReadReg(inst.Rn)
+			op2 := applyShift64(e.regFile.ReadReg(inst.Rm), inst.ShiftType, inst.ShiftAmount)
+			e.regFile.WriteReg(inst.Rd, op1^op2)
 		} else {
-			e.alu.EOR32(inst.Rd, inst.Rn, inst.Rm)
+			op1 := uint32(e.regFile.ReadReg(inst.Rn))
+			op2 := applyShift32(uint32(e.regFile.ReadReg(inst.Rm)), inst.ShiftType, inst.ShiftAmount)
+			e.regFile.WriteReg(inst.Rd, uint64(op1^op2))
 		}
 	}
 }
@@ -426,7 +508,7 @@ func (e *Emulator) executeBitfield(inst *insts.Instruction) {
 			}
 		}
 	case insts.OpSBFM:
-		// SBFM: Signed bitfield move (ASR, SXTB, SXTH, SXTW)
+		// SBFM: Signed bitfield move (ASR, SXTB, SXTH, SXTW, SBFIZ)
 		if inst.Is64Bit {
 			if imms >= immr {
 				// ASR, SXTB, SXTH style: extract and sign-extend
@@ -440,11 +522,17 @@ func (e *Emulator) executeBitfield(inst *insts.Instruction) {
 				}
 				result = extracted
 			} else {
-				// Shift and sign-extend
+				// SBFIZ: extract bits [imms:0], sign-extend, then shift left
 				shift := 64 - immr
 				width := imms + 1
 				mask := (uint64(1) << width) - 1
-				result = (rnVal & mask) << shift
+				extracted := rnVal & mask
+				// Sign-extend from bit (width-1)
+				signBit := uint64(1) << (width - 1)
+				if extracted&signBit != 0 {
+					extracted |= ^mask // Sign extend
+				}
+				result = extracted << shift
 			}
 		} else {
 			rn32 := uint32(rnVal)
@@ -458,10 +546,17 @@ func (e *Emulator) executeBitfield(inst *insts.Instruction) {
 				}
 				result = uint64(extracted)
 			} else {
+				// SBFIZ: extract bits [imms:0], sign-extend, then shift left
 				shift := 32 - immr
 				width := imms + 1
 				mask := (uint32(1) << width) - 1
-				result = uint64((rn32 & mask) << shift)
+				extracted := rn32 & mask
+				// Sign-extend from bit (width-1)
+				signBit := uint32(1) << (width - 1)
+				if extracted&signBit != 0 {
+					extracted |= ^mask
+				}
+				result = uint64(extracted << shift)
 			}
 		}
 	case insts.OpBFM:
@@ -663,6 +758,9 @@ func (e *Emulator) executeLoadStore(inst *insts.Instruction) {
 		} else {
 			e.lsu.LDRSH32(inst.Rd, addr)
 		}
+	case insts.OpLDRSW:
+		// LDRSW: Load 32-bit word and sign-extend to 64-bit
+		e.lsu.LDRSW(inst.Rd, addr)
 	}
 
 	// Handle writeback for pre/post-indexed modes

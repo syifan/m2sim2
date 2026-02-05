@@ -40,6 +40,7 @@ const (
 	OpLDRH  // Load register halfword (zero-extend)
 	OpSTRH  // Store register halfword
 	OpLDRSH // Load register signed halfword
+	OpLDRSW // Load register signed word (32-bit sign-extended to 64-bit)
 	// SIMD opcodes
 	OpVADD  // Vector ADD
 	OpVSUB  // Vector SUB
@@ -500,11 +501,12 @@ func (d *Decoder) isLoadStoreImm(word uint32) bool {
 	return op1 == 0b111 && op2 == 0 && op3 == 0b01
 }
 
-// decodeLoadStoreImm decodes LDR and STR with unsigned immediate offset.
+// decodeLoadStoreImm decodes LDR, STR, and LDRSW with unsigned immediate offset.
 // Format: size | 111 | V | 01 | opc | imm12 | Rn | Rt
-// size: 11=64-bit, 10=32-bit
+// size: 11=64-bit, 10=32-bit, 01=16-bit, 00=8-bit
 // V: 0 for integer registers
-// opc: 00=STR, 01=LDR
+// For size=10: opc: 00=STR, 01=LDR, 10=LDRSW
+// For size=11: opc: 00=STR, 01=LDR
 func (d *Decoder) decodeLoadStoreImm(word uint32, inst *Instruction) {
 	inst.Format = FormatLoadStore
 
@@ -517,9 +519,6 @@ func (d *Decoder) decodeLoadStoreImm(word uint32, inst *Instruction) {
 	inst.Rn = uint8(rn)
 	inst.Rd = uint8(rt) // Rt uses Rd field
 
-	// Determine 64-bit vs 32-bit
-	inst.Is64Bit = size == 0b11
-
 	// Scale immediate by size
 	// 64-bit (size=11): scale by 8
 	// 32-bit (size=10): scale by 4
@@ -531,12 +530,35 @@ func (d *Decoder) decodeLoadStoreImm(word uint32, inst *Instruction) {
 	}
 	inst.Imm = uint64(imm12) * scale
 
-	// Determine LDR vs STR from opc
-	// opc[1:0]: 00=STR, 01=LDR (unsigned offset)
-	if opc&0x1 == 1 {
-		inst.Op = OpLDR
-	} else {
-		inst.Op = OpSTR
+	// Determine operation based on size and opc
+	switch size {
+	case 0b11: // 64-bit
+		inst.Is64Bit = true
+		if opc&0x1 == 1 {
+			inst.Op = OpLDR
+		} else {
+			inst.Op = OpSTR
+		}
+	case 0b10: // 32-bit
+		switch opc {
+		case 0b00:
+			inst.Op = OpSTR
+			inst.Is64Bit = false
+		case 0b01:
+			inst.Op = OpLDR
+			inst.Is64Bit = false
+		case 0b10:
+			inst.Op = OpLDRSW
+			inst.Is64Bit = true // LDRSW sign-extends to 64-bit
+		}
+	default:
+		// For size=01 and size=00, use default LDR/STR behavior
+		inst.Is64Bit = size == 0b11
+		if opc&0x1 == 1 {
+			inst.Op = OpLDR
+		} else {
+			inst.Op = OpSTR
+		}
 	}
 }
 
@@ -994,11 +1016,16 @@ func (d *Decoder) decodeLoadStoreRegOffset(word uint32, inst *Instruction) {
 			inst.Op = OpSTR
 		}
 	case 0b10: // 32-bit
-		inst.Is64Bit = false
-		if opc&0x1 == 1 {
-			inst.Op = OpLDR
-		} else {
+		switch opc {
+		case 0b00:
 			inst.Op = OpSTR
+			inst.Is64Bit = false
+		case 0b01:
+			inst.Op = OpLDR
+			inst.Is64Bit = false
+		case 0b10:
+			inst.Op = OpLDRSW
+			inst.Is64Bit = true // LDRSW sign-extends to 64-bit
 		}
 	case 0b01: // 16-bit (halfword)
 		inst.Is64Bit = false
@@ -1077,7 +1104,7 @@ func (d *Decoder) decodeLoadStoreRegIndexed(word uint32, inst *Instruction) {
 
 	// Determine operation based on size and opc
 	// size=11 (64-bit), opc=00=STR, opc=01=LDR
-	// size=10 (32-bit), opc=00=STR, opc=01=LDR
+	// size=10 (32-bit), opc=00=STR, opc=01=LDR, opc=10=LDRSW
 	// size=01 (16-bit), opc=00=STRH, opc=01=LDRH, opc=10=LDRSW(16), opc=11=LDRSH
 	// size=00 (8-bit), opc=00=STRB, opc=01=LDRB, opc=10=LDRSB(64), opc=11=LDRSB(32)
 
@@ -1090,11 +1117,16 @@ func (d *Decoder) decodeLoadStoreRegIndexed(word uint32, inst *Instruction) {
 			inst.Op = OpSTR
 		}
 	case 0b10: // 32-bit
-		inst.Is64Bit = false
-		if opc&0x1 == 1 {
-			inst.Op = OpLDR
-		} else {
+		switch opc {
+		case 0b00:
 			inst.Op = OpSTR
+			inst.Is64Bit = false
+		case 0b01:
+			inst.Op = OpLDR
+			inst.Is64Bit = false
+		case 0b10:
+			inst.Op = OpLDRSW
+			inst.Is64Bit = true // LDRSW sign-extends to 64-bit
 		}
 	case 0b01: // 16-bit (halfword)
 		inst.Is64Bit = false
