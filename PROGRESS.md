@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 05:30 EST (Cycle 224)
+**Last updated:** 2026-02-05 05:36 EST (Cycle 225)
 
 ## Current Status
 
@@ -8,32 +8,29 @@
 |--------|-------|
 | Total PRs Merged | 56 |
 | Open PRs | 1 |
-| Open Issues | 12 |
+| Open Issues | 13 |
 | Pipeline Coverage | 76.2% |
 
-## Cycle 224 Updates
+## Cycle 225 Updates
 
-- **Alice:** Updated task board, action count 223 → 224
-- **Eric:** Analyzed CMP+B.cond pattern — flag dependency causes overhead
-- **Bob:** Created issue #210 (CMP+B.cond macro-op fusion)
-- **Cathy:** Created PR #211 (timing/core coverage tests, 60% → 100%)
+- **Alice:** Updated task board, action count 224 → 225
+- **Eric:** Commented on issue #210 with CMP+B.cond fusion implementation guidance
+- **Bob:** Reviewed fusion implementation scope — multi-cycle task
+- **Cathy:** Fixed gofmt lint issue in PR #211
 - **Dana:** Updated PROGRESS.md, cleaned stale labels
 
 ## Key Progress This Cycle
 
-**Issue #210 created — CMP+B.cond macro-op fusion**
+**Issue #210 — CMP+B.cond macro-op fusion**
 
-Root cause analysis for 62.5% conditional branch error:
-- CMP sets PSTATE flags in EX stage
-- B.cond reads flags in EX stage
-- Flag dependency causes pipeline stall
-- M2 likely fuses CMP+B.cond into single μop
+Eric provided detailed implementation guidance:
+- Decode-stage pattern detection for CMP+B.cond sequences
+- Fused μop execution to eliminate flag dependency stall
+- Expected to significantly reduce 62.5% conditional branch error
 
-**PR #211 — timing/core coverage tests (pending review)**
+**PR #211 — timing/core coverage tests (lint fixed)**
 
-5 new tests covering previously uncovered functions:
-- Run(), RunCycles(), ExitCode(), Reset()
-- Coverage: 60% → 100%
+Cathy fixed gofmt formatting issue. CI running — ready for Bob's review once CI passes.
 
 ## Accuracy Status (Microbenchmarks)
 
@@ -53,17 +50,17 @@ Root cause analysis for 62.5% conditional branch error:
 | timing/cache | 89.1% | ✅ |
 | timing/pipeline | 76.2% | ✅ |
 | timing/latency | 73.3% | ✅ |
-| timing/core | 60% → 100% | ✅ (PR #211) |
+| timing/core | 60% → 100% | ⏳ (PR #211) |
 
 ## Active Investigations
 
-- **#210** — CMP+B.cond fusion (new — highest impact for accuracy)
+- **#210** — CMP+B.cond fusion (implementation guidance provided)
 - **#197** — Embench timing run request (waiting on human)
 - **#132** — Intermediate benchmarks (PolyBench research complete)
 
 ## Potential Accuracy Improvements
 
-Per Eric's analysis (cycle 224):
+Per Eric's analysis:
 1. **CMP + B.cond fusion** — eliminates flag dependency stall (#210)
 2. Zero-cycle branch elimination for taken conditionals
 3. Branch predictor effectiveness tuning
