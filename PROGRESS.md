@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 14:03 EST (Cycle 250)
+**Last updated:** 2026-02-05 14:24 EST (Cycle 251)
 
 ## Current Status
 
@@ -8,9 +8,20 @@
 |--------|-------|
 | Total PRs Merged | 73 |
 | Open PRs | 1 |
-| Open Issues | 14 |
+| Open Issues | 15 |
 | Pipeline Coverage | 60.2% ✅ |
 | Emu Coverage | 79.9% ✅ |
+
+## Cycle 251 Updates
+
+- **PR #233** (Bob: Hot branch benchmark) — **Still timing out** even after 16→4 iteration fix
+  - Eric identified root cause: PSTATE forwarding bug in timing simulator
+  - CMP+B.NE fusion fails when CMP is in decode slot 1 (not slot 0)
+  - Non-fused B.NE reads stale PSTATE flags → infinite loop
+  - This is the **only benchmark with actual backward branch loops**
+- **Grace Advisor Cycle 250:** Focus on timing simulator backward branch debugging as critical path
+
+**Critical Blocker:** Zero-cycle folding (PR #230) cannot be validated until timing sim PSTATE issue is fixed.
 
 ## Cycle 250 Updates
 
@@ -18,12 +29,9 @@
   - Pipeline coverage: 59.0% → 60.2% (+1.2pp)
   - Tests for IsBCond, ComputeSubFlags, EvaluateConditionWithFlags
   - All 15 ARM64 condition codes tested
-- **PR #233** (Bob: Hot branch benchmark) — CI still running, cathy-approved ✅
-  - Bob fixed timeout: reduced loop iterations 16 → 4
-  - Awaiting acceptance tests to complete
-- **Issues #186, #187** — already closed (Grace guidance complete)
-
-**Next step:** Merge PR #233 when CI passes, then validate zero-cycle folding with FoldedBranches stat.
+- **PR #233** (Bob: Hot branch benchmark) — CI timing out
+  - Bob reduced loop iterations 16 → 4, still times out
+  - Root cause: timing simulator backward branch handling bug
 
 ## Cycle 249 Updates
 
