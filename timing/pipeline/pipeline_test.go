@@ -742,3 +742,102 @@ var _ = Describe("Pipeline Stats Methods", func() {
 		})
 	})
 })
+
+// Tests for RunCycles and Reset - added by Cathy for coverage
+var _ = Describe("Pipeline RunCycles and Reset", func() {
+	var (
+		regFile *emu.RegFile
+		memory  *emu.Memory
+		pipe    *pipeline.Pipeline
+	)
+
+	BeforeEach(func() {
+		regFile = &emu.RegFile{}
+		memory = emu.NewMemory()
+		pipe = pipeline.NewPipeline(regFile, memory)
+	})
+
+	Describe("RunCycles", func() {
+		It("should run specified number of cycles", func() {
+			// ADD X0, XZR, #42
+			memory.Write32(0x1000, 0x9100ABE0)
+			// SVC #0 (exit)
+			memory.Write32(0x1004, 0xD4000001)
+			regFile.WriteReg(8, 93)
+
+			pipe.SetPC(0x1000)
+			running := pipe.RunCycles(3)
+			Expect(running).To(BeTrue())
+
+			// Continue running until halted
+			running = pipe.RunCycles(10)
+			Expect(running).To(BeFalse())
+		})
+
+		It("should stop when halted", func() {
+			// SVC #0 (exit immediately)
+			memory.Write32(0x1000, 0xD4000001)
+			regFile.WriteReg(8, 93)
+
+			pipe.SetPC(0x1000)
+			running := pipe.RunCycles(100)
+			Expect(running).To(BeFalse())
+		})
+	})
+
+	Describe("Reset", func() {
+		It("should reset pipeline state", func() {
+			// Run some instructions first
+			memory.Write32(0x1000, 0x9100ABE0) // ADD X0, XZR, #42
+			memory.Write32(0x1004, 0xD4000001) // SVC #0
+			regFile.WriteReg(8, 93)
+
+			pipe.SetPC(0x1000)
+			pipe.Run()
+
+			// Verify some instructions ran
+			stats := pipe.Stats()
+			Expect(stats.Instructions).To(BeNumerically(">", 0))
+
+			// Reset the pipeline
+			pipe.Reset()
+
+			// Stats should be cleared
+			newStats := pipe.Stats()
+			Expect(newStats.Instructions).To(Equal(uint64(0)))
+			Expect(newStats.Cycles).To(Equal(uint64(0)))
+		})
+	})
+})
+
+// Tests for ICacheStats and DCacheStats edge cases
+var _ = Describe("Pipeline Cache Stats Edge Cases", func() {
+	var (
+		regFile *emu.RegFile
+		memory  *emu.Memory
+		pipe    *pipeline.Pipeline
+	)
+
+	BeforeEach(func() {
+		regFile = &emu.RegFile{}
+		memory = emu.NewMemory()
+	})
+
+	Describe("ICacheStats without cache", func() {
+		It("should return zero stats when no I-cache configured", func() {
+			pipe = pipeline.NewPipeline(regFile, memory)
+			stats := pipe.ICacheStats()
+			Expect(stats.Reads).To(Equal(uint64(0)))
+			Expect(stats.Misses).To(Equal(uint64(0)))
+		})
+	})
+
+	Describe("DCacheStats without cache", func() {
+		It("should return zero stats when no D-cache configured", func() {
+			pipe = pipeline.NewPipeline(regFile, memory)
+			stats := pipe.DCacheStats()
+			Expect(stats.Reads).To(Equal(uint64(0)))
+			Expect(stats.Misses).To(Equal(uint64(0)))
+		})
+	})
+})
