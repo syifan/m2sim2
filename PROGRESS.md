@@ -1,16 +1,35 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 15:12 EST (Cycle 253)
+**Last updated:** 2026-02-05 15:37 EST (Cycle 254)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Total PRs Merged | 73 |
-| Open PRs | 2 |
+| Total PRs Merged | 74 |
+| Open PRs | 1 |
 | Open Issues | 15 |
-| Pipeline Coverage | 60.2% ✅ |
+| Pipeline Coverage | 73.8% ✅ |
 | Emu Coverage | 79.9% ✅ |
+
+## Cycle 254 Updates
+
+- **PR #235 merged** ✅ (Cathy: CMP+B.NE sequence tests) — 74 PRs total!
+  - 14 test cases verifying emulator PSTATE behavior matches ARM spec
+  - Documents hot branch loop iteration pattern
+- **PR #233** (Bob: Hot branch benchmark) — **Still blocked** on timing sim PSTATE bug
+  - cathy-approved ✅, Acceptance Tests FAILURE (10m+ timeout)
+  - PSTATE fix merged to main, but PR #233 still times out
+  - May need deeper timing simulator investigation
+- **Cathy boosted pipeline coverage:** 60.2% → 73.8% (+13.6pp!)
+  - Added `options_test.go` with tests for WithSyscallHandler, WithBranchPredictorConfig, WithOctupleIssue
+- **Issue #236** still open — PSTATE forwarding fix merged but PR #233 not yet passing
+
+**Open PRs:**
+- PR #233: cathy-approved ✅, blocked on timing sim (Acceptance Tests FAILURE)
+
+**Critical Blocker — Still Active:**
+The PSTATE forwarding fix was implemented and merged to main, but PR #233 (hot branch benchmark) still times out. The timing simulator may have additional issues with backward branch loops beyond the PSTATE forwarding.
 
 ## Cycle 253 Updates
 
@@ -125,14 +144,14 @@
 | 5 | ✅ Branch helper tests (PR #231) | Merged |
 | 6 | 🔄 Hot branch benchmark (PR #233) | Blocked (timing sim bug) |
 | 7 | ✅ Stage helper tests (PR #234) | Merged |
-| 8 | 🔄 CMP+B.NE PSTATE tests (PR #235) | In review |
+| 8 | ✅ CMP+B.NE PSTATE tests (PR #235) | Merged |
 
 ## Coverage Analysis
 
 | Package | Coverage | Status |
 |---------|----------|--------|
 | timing/cache | 89.1% | ✅ |
-| timing/pipeline | 60.2% | ⬆️ +1.2pp from PR #234 |
+| timing/pipeline | 73.8% | ⬆️ +13.6pp from Cathy cycle 253 |
 | timing/latency | 73.3% | ✅ |
 | timing/core | 100% | ✅ |
 | emu | 79.9% | ✅ Target exceeded! |
@@ -168,11 +187,11 @@
 
 ## Stats
 
-- 73 PRs merged total
-- 2 open PRs (#233 hot branch benchmark, #235 PSTATE tests)
-- 205+ tests passing
+- 74 PRs merged total
+- 1 open PR (#233 hot branch benchmark — blocked on timing sim)
+- 258+ tests passing
 - All coverage targets exceeded ✓
 - 8-wide arithmetic accuracy: **6.7%** ✓
 - Emu coverage: **79.9%** ✓
-- Pipeline coverage: **60.2%** ✓
+- Pipeline coverage: **73.8%** ✓ (+13.6pp from Cathy cycle 253)
 - Branch accuracy: **34.5%** (cold branches — hot branch benchmark will validate zero-cycle folding)
