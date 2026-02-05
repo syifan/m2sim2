@@ -13,6 +13,7 @@ func GetMicrobenchmarks() []Benchmark {
 	return []Benchmark{
 		arithmeticSequential(),
 		arithmetic6Wide(),
+		arithmetic8Wide(),
 		dependencyChain(),
 		memorySequential(),
 		functionCalls(),
@@ -110,6 +111,61 @@ func arithmetic6Wide() Benchmark {
 			EncodeADDImm(3, 3, 1, false),
 			EncodeADDImm(4, 4, 1, false),
 			EncodeADDImm(5, 5, 1, false),
+			EncodeSVC(0),
+		),
+		ExpectedExit: 4, // X0 = 0 + 4*1 = 4
+	}
+}
+
+// 1c. Arithmetic 8-Wide - Tests full 8-wide superscalar throughput (M2 P-core)
+// Uses 8 different registers (X0-X7) to maximize parallelism without WAW hazards.
+// This benchmark is designed to measure the true benefit of 8-wide decode (PR #215).
+func arithmetic8Wide() Benchmark {
+	return Benchmark{
+		Name:        "arithmetic_8wide",
+		Description: "32 independent ADDs using 8 registers - tests full 8-wide issue",
+		Setup: func(regFile *emu.RegFile, memory *emu.Memory) {
+			// Note: X8 is used as syscall number in ARM64 Linux convention
+			regFile.WriteReg(8, 93) // X8 = 93 (exit syscall)
+		},
+		Program: BuildProgram(
+			// 32 ADDs using 8 registers (X0-X7) - allows full 8-wide issue
+			// Group 1: instructions 0-7 (all independent, can issue together)
+			EncodeADDImm(0, 0, 1, false),
+			EncodeADDImm(1, 1, 1, false),
+			EncodeADDImm(2, 2, 1, false),
+			EncodeADDImm(3, 3, 1, false),
+			EncodeADDImm(4, 4, 1, false),
+			EncodeADDImm(5, 5, 1, false),
+			EncodeADDImm(6, 6, 1, false),
+			EncodeADDImm(7, 7, 1, false),
+			// Group 2: instructions 8-15 (RAW hazards with group 1, but forwarding allows issue)
+			EncodeADDImm(0, 0, 1, false),
+			EncodeADDImm(1, 1, 1, false),
+			EncodeADDImm(2, 2, 1, false),
+			EncodeADDImm(3, 3, 1, false),
+			EncodeADDImm(4, 4, 1, false),
+			EncodeADDImm(5, 5, 1, false),
+			EncodeADDImm(6, 6, 1, false),
+			EncodeADDImm(7, 7, 1, false),
+			// Group 3
+			EncodeADDImm(0, 0, 1, false),
+			EncodeADDImm(1, 1, 1, false),
+			EncodeADDImm(2, 2, 1, false),
+			EncodeADDImm(3, 3, 1, false),
+			EncodeADDImm(4, 4, 1, false),
+			EncodeADDImm(5, 5, 1, false),
+			EncodeADDImm(6, 6, 1, false),
+			EncodeADDImm(7, 7, 1, false),
+			// Group 4
+			EncodeADDImm(0, 0, 1, false),
+			EncodeADDImm(1, 1, 1, false),
+			EncodeADDImm(2, 2, 1, false),
+			EncodeADDImm(3, 3, 1, false),
+			EncodeADDImm(4, 4, 1, false),
+			EncodeADDImm(5, 5, 1, false),
+			EncodeADDImm(6, 6, 1, false),
+			EncodeADDImm(7, 7, 1, false),
 			EncodeSVC(0),
 		),
 		ExpectedExit: 4, // X0 = 0 + 4*1 = 4
