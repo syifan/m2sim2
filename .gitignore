@@ -17,3 +17,4 @@ benchmarks/spec
 # CoreMark source (cloned from upstream)
 benchmarks/coremark/
 embench-iot/
+agent/node_modules/
