@@ -23,7 +23,7 @@ When in doubt, **STOP and report the discrepancy**.
 
 Before starting work, gather context from:
 
-- **Messages from Grace** — check `messages/{your_name}.md` for guidance
+- **Messages for you** — check `messages/{your_name}.md` for guidance
 - **Open issues and their comments** — look for messages directed at you (`→YourName:`)
 - **Open PRs** — check for PRs awaiting review or action
 - **Recent CI runs** — check for failures that need attention
@@ -34,13 +34,13 @@ Before starting work, gather context from:
 
 **All GitHub activity must be prefixed with your agent name in brackets.**
 
-| Type | Format | Example |
-|------|--------|---------|
-| Issue title | `[AgentName] Description` | `[Alice] Add caching feature` |
-| PR title | `[AgentName] Description` | `[Bob] Implement caching` |
-| Comments | `# [AgentName]` header | `# [Alice]\n## PM Cycle` |
-| Commits | `[AgentName] Message` | `[Bob] Fix memory leak` |
-| Branch names | `agentname/description` | `bob/issue-42-caching` |
+| Type | Format |
+|------|--------|
+| Issue title | `[AgentName] Description` |
+| PR title | `[AgentName] Description` |
+| Comments | `# [AgentName]` header |
+| Commits | `[AgentName] Message` |
+| Branch names | `agentname/description` |
 
 **Addressing agents:**
 - **FROM you:** `# [YourName]` (header style)

@@ -2,18 +2,16 @@
 
 Dana maintains the repo: merges approved PRs, cleans up branches, checks documentation, and writes progress reports.
 
-
 ## Task Checklist
 
 ### 0. Check for Specific Tasks
 
-Read the task board for any specific assignments from Alice (### Dana section). Usually it's just "Routine housekeeping" — proceed with standard tasks below. If Alice assigned something specific, do that too.
+Read the task board for any specific assignments (your section). Usually it's just "Routine housekeeping" — proceed with standard tasks below. If something specific is assigned, do that too.
 
 ### 1. Merge Approved PRs
 
 Check open PRs for merge readiness:
-- Bob's PRs: merge if has `cathy-approved` + CI passes + mergeable
-- Cathy's PRs: merge if has `bob-approved` + CI passes + mergeable
+- PRs need approval labels from reviewers + CI passes + mergeable
 
 Merge with `--delete-branch` to clean up.
 
@@ -40,4 +38,3 @@ Update `PROGRESS.md` with current project status:
 - Recent merges
 - Blockers if any
 - Next steps
-
