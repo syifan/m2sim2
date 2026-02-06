@@ -8,24 +8,23 @@ helping prioritize syscall implementation order.
 | Syscall | Number | Status | Issue/PR |
 |---------|--------|--------|----------|
 | exit | 93 | ✅ Implemented | - |
-| write | 64 | ✅ Implemented (FD extension in PR #280) | - |
-| read | 63 | ✅ Implemented (FD extension in PR #280) | PR #264 merged |
+| write | 64 | ✅ Implemented | - |
+| read | 63 | ✅ Implemented | PR #264 merged |
 | close | 57 | ✅ Implemented | PR #267 merged |
 | openat | 56 | ✅ Implemented | PR #268 merged |
 | brk | 214 | ✅ Implemented | PR #275 merged |
 | mmap | 222 | ✅ Implemented | PR #276 merged |
-| fstat | 80 | 🔄 PR Ready | PR #279 (needs rebase) |
-| lseek | 62 | 🔄 PR Ready | PR #282 (needs rebase) |
+| fstat | 80 | ✅ Implemented | PR #279 merged |
+| lseek | 62 | 🔄 PR Ready | PR #282 |
 | munmap | 215 | 📋 Planned | #271 |
 | exit_group | 94 | 📋 Planned | #272 |
 | mprotect | 226 | 📋 Planned | #278 |
 
 **Dependencies:** ✅ File descriptor table (#262) → PR #266 merged.
 
-**7 syscalls implemented:** exit, write, read, close, openat, brk, mmap
+**8 syscalls implemented:** exit, write, read, close, openat, brk, mmap, fstat
 
-**PRs with merge conflicts (need rebase):**
-- PR #279 (fstat)
+**PRs pending merge (after rebase):**
 - PR #280 (read/write FD extension)
 - PR #282 (lseek)
 - PR #283 (file I/O tests)
@@ -159,9 +158,32 @@ Based on research into gem5 and other CPU simulators:
 
 Most SPEC benchmarks don't require actual protection enforcement to run correctly.
 
+## Next Benchmark Targets After 548.exchange2_r
+
+Once 548.exchange2_r is validated, the recommended progression is:
+
+### 541.leela_r (Go AI)
+- **Syscall readiness:** All required syscalls implemented (read, openat, close, brk, mmap)
+- **I/O pattern:** Reads Smart Game Format files containing incomplete Go games
+- **Memory profile:** Uses Monte Carlo tree search with Upper Confidence Bounds
+- **LLC behavior:** Larger board sizes increase LLC accesses and misses (per U Alberta research)
+- **Compiler sensitivity:** LLVM shows fewer page faults than GCC at -O1
+
+### 531.deepsjeng_r (Chess Engine)
+- **Syscall readiness:** All required syscalls implemented
+- **I/O pattern:** Reads Extended Position Description (EPD) chess positions
+- **Memory profile:** Heavy transposition table usage (~700MB for rate version)
+- **Cache behavior:** ~50% LLC miss rate, efficient L1/L2 usage
+- **Initialization:** Heavy memset usage during startup, minimal afterward
+
+### Blocking Issues for All SPEC Benchmarks
+- SPEC compilation for ARM64 not yet complete
+- Human intervention required to set up cross-compilation environment
+
 ---
 *Research compiled by Eric (Cycle 302)*
 *Updated by Eric (Cycle 304) — FD table, close, openat merged*
 *Updated by Eric (Cycle 305) — brk merged (PR #275), mmap in review (PR #276)*
 *Updated by Eric (Cycle 306) — PRs #276, #279, #280 ready to merge; mprotect research added*
 *Updated by Eric (Cycle 308) — mmap merged (PR #276); 548.exchange2_r details expanded*
+*Updated by Eric (Cycle 312) — fstat merged (PR #279); 8 syscalls total; next benchmark targets added*
