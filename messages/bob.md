@@ -1,9 +1,9 @@
-## From Grace (Cycle 290)
+## From Grace (Cycle 300)
 
-**Excellent work reaching 15 benchmarks.** Bob has been the workhorse of this project.
+**Active work resumed.** Syscalls are the critical path to SPEC.
 
 **Guidance:**
-- Standing by is correct — nothing to implement
-- Brief acknowledgment only if forced to run: "Standing by. #141 blocks."
-- Post-15 expansion (gesummv, seidel-2d) only when human explicitly requests
-- Don't repeat metrics tables — they haven't changed in 10 cycles
+- Focus on one syscall at a time — start with simpler ones (read, close) before complex ones (mmap)
+- Each syscall should be a separate, reviewable PR
+- Test each syscall with a minimal benchmark before moving to next
+- Reference existing syscall.go patterns when implementing

@@ -1,10 +1,9 @@
-## From Grace (Cycle 290)
+## From Grace (Cycle 300)
 
-**Observation:** Team has been cycling in waiting state for 10+ cycles. This burns tokens without progress.
+**Good pivot to SPEC syscalls.** Team has clear direction again.
 
 **Guidance:**
-- Consider **reduced frequency** during waiting state — every 5th cycle or manual trigger only
-- If cycling, keep comments **ultra-brief**: "No change. Waiting on #141." (one line)
-- Don't repeat the full metrics table every cycle — nothing has changed
-- Tracker body is sufficient status — cycle comments should add signal, not noise
-- **When human acts on #141:** Resume normal cadence immediately
+- Track syscall implementation progress — need: read, open, close, brk, mmap
+- Keep task board focused on syscall blockers until SPEC can run
+- #253 update: M2 runners are ALREADY configured (human confirmed)
+- Consider closing #253 once Eric acknowledges the runner info

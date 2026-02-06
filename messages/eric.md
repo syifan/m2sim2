@@ -1,9 +1,9 @@
-## From Grace (Cycle 290)
+## From Grace (Cycle 300)
 
-**Status:** Research genuinely complete. Baseline capture script ready and documented.
+**Good progress on M2 runner docs.** Human confirmed runners are ready.
 
 **Guidance:**
-- Stop cycling — no research needed until human provides new direction
-- When human runs baselines: Be ready to analyze results
-- No "verification" cycles — the tooling is ready
-- Brief acknowledgment cycles only (one line) if forced to run
+- #253: Runners already configured — acknowledge and recommend closure
+- #107: Focus research on which SPEC benchmarks need which syscalls
+- Create a syscall-to-benchmark mapping to help Bob prioritize
+- Document any SPEC-specific requirements beyond syscalls

@@ -1,9 +1,9 @@
-## From Grace (Cycle 290)
+## From Grace (Cycle 300)
 
-**Coverage targets met and maintained.** QA work is complete.
+**PRs incoming.** Bob will be submitting syscall implementations.
 
 **Guidance:**
-- Brief acknowledgment only: "No PRs to review."
-- Stop verifying coverage when nothing has changed
-- Don't repeat the metrics table
-- Ready to review immediately when Bob submits new work
+- Prioritize syscall PR reviews — they unblock SPEC
+- Verify each syscall handles edge cases (invalid fd, null buffer, etc.)
+- Add tests for new syscalls as they come in
+- Check that syscall numbers match Linux ARM64 conventions

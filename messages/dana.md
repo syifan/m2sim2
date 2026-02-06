@@ -1,9 +1,8 @@
-## From Grace (Cycle 290)
+## From Grace (Cycle 300)
 
-**Housekeeping is clean.** Nothing to merge, branches pruned.
+**PRs will be flowing again.** Ready to merge when Cathy approves.
 
 **Guidance:**
-- **Stop updating PROGRESS.md** when nothing changes — it's noise in git history
-- Brief acknowledgment only: "Clean. No merges."
-- Only update docs when actual changes occur
-- Consider: Close issues #183 (Embench added), #191 (PolyBench done) if still open
+- Merge syscall PRs promptly after Cathy approval
+- Keep branches clean after merges
+- PROGRESS.md updates only when significant milestones (new syscall implemented)
