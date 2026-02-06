@@ -1,43 +1,65 @@
-# ARM64 Decoder - Supported Instructions
+# ARM64 Instruction Support Status
 
-This document lists the ARM64 instructions currently supported by the decoder,
-along with known limitations.
+This document tracks ARM64 instructions and syscalls supported by M2Sim.
 
 ## Supported Instructions
 
 ### Data Processing (Immediate)
 
-| Instruction | Description |
-|-------------|-------------|
-| ADD/ADDS    | Add (immediate) |
-| SUB/SUBS    | Subtract (immediate) |
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| ADD (imm)   | Add with immediate | ✅ | ✅ |
+| ADDS (imm)  | Add with immediate, set flags | ✅ | ✅ |
+| SUB (imm)   | Subtract with immediate | ✅ | ✅ |
+| SUBS (imm)  | Subtract with immediate, set flags | ✅ | ✅ |
+
+### Logical (Immediate)
+
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| AND (imm)   | Bitwise AND with bitmask immediate | ✅ | ✅ |
+| ANDS (imm)  | Bitwise AND with bitmask immediate, set flags | ✅ | ✅ |
+| ORR (imm)   | Bitwise OR with bitmask immediate | ✅ | ✅ |
+| EOR (imm)   | Bitwise XOR with bitmask immediate | ✅ | ✅ |
 
 ### Data Processing (Register)
 
-| Instruction | Description |
-|-------------|-------------|
-| ADD/ADDS    | Add (shifted register) |
-| SUB/SUBS    | Subtract (shifted register) |
-| AND/ANDS    | Bitwise AND |
-| ORR         | Bitwise inclusive OR |
-| EOR         | Bitwise exclusive OR |
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| ADD (reg)   | Add registers | ✅ | ✅ |
+| ADDS (reg)  | Add registers, set flags | ✅ | ✅ |
+| SUB (reg)   | Subtract registers | ✅ | ✅ |
+| SUBS (reg)  | Subtract registers, set flags | ✅ | ✅ |
+| AND (reg)   | Bitwise AND | ✅ | ✅ |
+| ANDS (reg)  | Bitwise AND, set flags | ✅ | ✅ |
+| ORR (reg)   | Bitwise OR | ✅ | ✅ |
+| EOR (reg)   | Bitwise XOR | ✅ | ✅ |
 
-### Branches
+### Branch Instructions
 
-| Instruction | Description |
-|-------------|-------------|
-| B           | Branch (unconditional) |
-| BL          | Branch with link |
-| B.cond      | Branch (conditional) |
-| BR          | Branch to register |
-| BLR         | Branch with link to register |
-| RET         | Return from subroutine |
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| B           | Unconditional branch | ✅ | ✅ |
+| BL          | Branch with link | ✅ | ✅ |
+| B.cond      | Conditional branch | ✅ | ✅ |
+| BR          | Branch to register | ✅ | ✅ |
+| BLR         | Branch with link to register | ✅ | ✅ |
+| RET         | Return from subroutine | ✅ | ✅ |
 
 ### Exception Generation
 
-| Instruction | Description |
-|-------------|-------------|
-| SVC         | Supervisor call (syscall trigger) |
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| SVC         | Supervisor call (syscall trigger) | ✅ | ✅ |
+
+### Load/Store Instructions
+
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| LDR (imm, 64-bit) | Load 64-bit register | ✅ | ✅ |
+| LDR (imm, 32-bit) | Load 32-bit register (zero-extend) | ✅ | ✅ |
+| STR (imm, 64-bit) | Store 64-bit register | ✅ | ✅ |
+| STR (imm, 32-bit) | Store 32-bit register | ✅ | ✅ |
 
 ## Supported Syscalls
 
@@ -52,6 +74,35 @@ The driver package emulates ARM64 Linux syscalls:
 - Syscall number in X8
 - Arguments in X0-X5
 - Return value in X0
+
+## Condition Codes Supported
+
+| Code | Meaning | Condition |
+|------|---------|-----------|
+| EQ | Equal | Z == 1 |
+| NE | Not equal | Z == 0 |
+| CS/HS | Carry set / Unsigned higher or same | C == 1 |
+| CC/LO | Carry clear / Unsigned lower | C == 0 |
+| MI | Minus / Negative | N == 1 |
+| PL | Plus / Positive or zero | N == 0 |
+| VS | Overflow | V == 1 |
+| VC | No overflow | V == 0 |
+| HI | Unsigned higher | C == 1 && Z == 0 |
+| LS | Unsigned lower or same | C == 0 || Z == 1 |
+| GE | Signed greater than or equal | N == V |
+| LT | Signed less than | N != V |
+| GT | Signed greater than | Z == 0 && N == V |
+| LE | Signed less than or equal | Z == 1 || N != V |
+| AL | Always | (unconditional) |
+
+## Instruction Formats Supported
+
+- **FormatDPImm**: Data Processing with Immediate
+- **FormatDPReg**: Data Processing with Register
+- **FormatBranch**: Unconditional Branch (Immediate)
+- **FormatBranchCond**: Conditional Branch
+- **FormatBranchReg**: Branch to Register
+- **FormatLoadStore**: Load/Store with Immediate Offset
 
 ## Known Limitations
 
@@ -86,7 +137,7 @@ The following areas lack test coverage:
    type (LSL, LSR, ASR, ROR) and shift amount for register operands in
    ADD/SUB/logical instructions.
 
-## Version History
+---
 
-- **PR #10** - Basic syscall emulation (exit, write) and SVC instruction
-- **PR #7** - Initial ARM64 decoder implementation
+*Last updated: 2026-02-06*
+*Consolidated from root SUPPORTED.md and insts/SUPPORTED.md*
