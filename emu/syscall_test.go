@@ -1100,5 +1100,43 @@ var _ = Describe("Syscall Handler", func() {
 			expectedError := uint64(-ebadf)
 			Expect(x0).To(Equal(expectedError))
 		})
+
+		It("should return EINVAL for invalid whence", func() {
+			// Create a test file
+			testFile := filepath.Join(tempDir, "test.txt")
+			err := os.WriteFile(testFile, []byte("hello world"), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Open the file
+			writePathToMemory(testFile, 0x1000)
+			regFile.WriteReg(8, 56)               // SyscallOpenat
+			regFile.WriteReg(0, emu.AT_FDCWD_U64) // AT_FDCWD
+			regFile.WriteReg(1, 0x1000)           // pathname pointer
+			regFile.WriteReg(2, 0)                // O_RDONLY
+			regFile.WriteReg(3, 0)                // mode
+			handler.Handle()
+			fd := regFile.ReadReg(0)
+			Expect(fd).To(BeNumerically(">=", 3))
+
+			// Try to seek with invalid whence (5 is invalid)
+			regFile.WriteReg(8, 62) // SyscallLseek
+			regFile.WriteReg(0, fd) // fd
+			regFile.WriteReg(1, 0)  // offset
+			regFile.WriteReg(2, 5)  // invalid whence
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -EINVAL (22) per lseek(2) manual
+			x0 := regFile.ReadReg(0)
+			var einval int64 = 22
+			expectedError := uint64(-einval)
+			Expect(x0).To(Equal(expectedError))
+
+			// Clean up
+			regFile.WriteReg(8, 57) // SyscallClose
+			regFile.WriteReg(0, fd)
+			handler.Handle()
+		})
 	})
 })

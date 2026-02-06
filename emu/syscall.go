@@ -491,7 +491,7 @@ func (h *DefaultSyscallHandler) handleLseek() SyscallResult {
 
 	// Validate whence
 	if whence < SEEK_SET || whence > SEEK_END {
-		h.setError(EBADF)
+		h.setError(EINVAL)
 		return SyscallResult{}
 	}
 
