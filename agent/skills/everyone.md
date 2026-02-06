@@ -49,12 +49,6 @@ Check for:
 - Questions relevant to your role
 - Context that affects your work
 
-### Recent Activity
-```bash
-git log --oneline -20
-gh pr list --state open --json number,title,author
-```
-
 ---
 
 ## 3. GitHub Conventions
