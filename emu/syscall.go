@@ -5,6 +5,7 @@ import "io"
 
 // ARM64 Linux syscall numbers.
 const (
+	SyscallClose uint64 = 57 // close(fd)
 	SyscallRead  uint64 = 63 // read(fd, buf, count)
 	SyscallWrite uint64 = 64 // write(fd, buf, count)
 	SyscallExit  uint64 = 93 // exit(status)
@@ -40,6 +41,7 @@ type SyscallHandler interface {
 type DefaultSyscallHandler struct {
 	regFile *RegFile
 	memory  *Memory
+	fdTable *FDTable
 	stdin   io.Reader
 	stdout  io.Writer
 	stderr  io.Writer
@@ -50,10 +52,21 @@ func NewDefaultSyscallHandler(regFile *RegFile, memory *Memory, stdout, stderr i
 	return &DefaultSyscallHandler{
 		regFile: regFile,
 		memory:  memory,
+		fdTable: NewFDTable(),
 		stdin:   nil,
 		stdout:  stdout,
 		stderr:  stderr,
 	}
+}
+
+// SetFDTable sets a custom file descriptor table for the syscall handler.
+func (h *DefaultSyscallHandler) SetFDTable(fdTable *FDTable) {
+	h.fdTable = fdTable
+}
+
+// GetFDTable returns the file descriptor table used by the syscall handler.
+func (h *DefaultSyscallHandler) GetFDTable() *FDTable {
+	return h.fdTable
 }
 
 // SetStdin sets the stdin reader for the syscall handler.
@@ -66,6 +79,8 @@ func (h *DefaultSyscallHandler) Handle() SyscallResult {
 	syscallNum := h.regFile.ReadReg(8)
 
 	switch syscallNum {
+	case SyscallClose:
+		return h.handleClose()
 	case SyscallRead:
 		return h.handleRead()
 	case SyscallWrite:
@@ -168,4 +183,19 @@ func (h *DefaultSyscallHandler) handleUnknown() SyscallResult {
 // setError sets X0 to -errno (as two's complement).
 func (h *DefaultSyscallHandler) setError(errno int) {
 	h.regFile.WriteReg(0, uint64(-int64(errno)))
+}
+
+// handleClose handles the close syscall (57).
+func (h *DefaultSyscallHandler) handleClose() SyscallResult {
+	fd := h.regFile.ReadReg(0)
+
+	err := h.fdTable.Close(fd)
+	if err != nil {
+		h.setError(EBADF)
+		return SyscallResult{}
+	}
+
+	// Return 0 on success
+	h.regFile.WriteReg(0, 0)
+	return SyscallResult{}
 }
