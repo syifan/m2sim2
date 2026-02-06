@@ -27,9 +27,9 @@ Think strategically:
 
 If changes are needed, update `SPEC.md`.
 
-### 4. Create Issues
+### 4. Create Issues (if not exist)
 
-Before updating the task board, create issues that are **baby steps** towards:
+Before updating the task board, create issues (if they don't already exist) that are **baby steps** towards:
 - The next milestone
 - The milestone after that
 
