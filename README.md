@@ -108,8 +108,7 @@ m2sim/
 ## Documentation
 
 **Root files:**
-- [SPEC.md](SPEC.md) - Project specification and milestones
-- [DESIGN.md](DESIGN.md) - Design philosophy
+- [SPEC.md](SPEC.md) - Project specification, milestones, and design philosophy
 - [CLAUDE.md](CLAUDE.md) - Development guidelines
 - [SUPPORTED.md](SUPPORTED.md) - Supported ARM64 instructions
 - [PROGRESS.md](PROGRESS.md) - Current development status

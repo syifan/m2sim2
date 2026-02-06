@@ -14,4 +14,4 @@ golangci-lint run ./...   # Lint
 - **Separate functional and timing logic** — `emu/` is for emulation, `timing/` is for cycle-accurate simulation.
 - **Track instruction support** — Update `insts/SUPPORTED.md` when adding instructions.
 - **Follow Go best practices** — Use Akita component/port patterns for timing model.
-- **See DESIGN.md** — For architecture decisions and naming conventions.
+- **See SPEC.md** — For architecture decisions, milestones, and design philosophy.
