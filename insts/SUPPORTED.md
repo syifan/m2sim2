@@ -39,12 +39,12 @@ This document tracks the ARM64 instructions supported by M2Sim's decoder.
 
 | Instruction | Description | Decoder | Emulator |
 |-------------|-------------|---------|----------|
-| B           | Unconditional branch | ✅ | ❌ |
-| BL          | Branch with link | ✅ | ❌ |
-| B.cond      | Conditional branch | ✅ | ❌ |
-| BR          | Branch to register | ✅ | ❌ |
-| BLR         | Branch with link to register | ✅ | ❌ |
-| RET         | Return from subroutine | ✅ | ❌ |
+| B           | Unconditional branch | ✅ | ✅ |
+| BL          | Branch with link | ✅ | ✅ |
+| B.cond      | Conditional branch | ✅ | ✅ |
+| BR          | Branch to register | ✅ | ✅ |
+| BLR         | Branch with link to register | ✅ | ✅ |
+| RET         | Return from subroutine | ✅ | ✅ |
 
 ### Load/Store Instructions
 
@@ -86,4 +86,4 @@ This document tracks the ARM64 instructions supported by M2Sim's decoder.
 
 ---
 
-*Last updated: Issue #8 implementation*
+*Last updated: 2026-02-06 — Branch emulation verified implemented*
