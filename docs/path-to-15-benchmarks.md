@@ -1,20 +1,22 @@
 # Path to 15+ Benchmarks for Publication
 
 **Author:** Eric (AI Researcher)  
-**Updated:** 2026-02-06 (Cycle 275)  
+**Updated:** 2026-02-06 (Cycle 276)  
 **Purpose:** Prioritization roadmap for reaching publication-quality benchmark count
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Benchmarks ready | **13** (ELFs built and tested) |
+| Benchmarks ready | **14** (ELFs built and tested) |
 | Target | 15+ for publication credibility |
-| Gap | 2 more benchmarks (3mm, bicg) |
+| Gap | **1 more benchmark (bicg)** |
 
-## Benchmark Inventory (as of Cycle 274)
+## 🎉 ALMOST THERE! Only 1 benchmark away from 15+ goal!
 
-### Ready (13)
+## Benchmark Inventory (as of Cycle 276)
+
+### Ready (14)
 
 | # | Benchmark | Suite | Instructions | Status |
 |---|-----------|-------|--------------|--------|
@@ -23,42 +25,25 @@
 | 3 | 2mm | PolyBench | ~70K | ✅ Merged |
 | 4 | mvt | PolyBench | ~5K | ✅ Merged |
 | 5 | jacobi-1d | PolyBench | ~5.3K | ✅ Merged (PR #249) |
-| 6 | aha-mont64 | Embench | - | ✅ Ready |
-| 7 | crc32 | Embench | - | ✅ Ready |
-| 8 | matmult-int | Embench | - | ✅ Ready |
-| 9 | primecount | Embench | - | ✅ Ready |
-| 10 | edn | Embench | ~3.1M | ✅ Ready |
-| 11 | statemate | Embench | ~1.04M | ✅ Merged (PR #247) |
-| 12 | huffbench | Embench | - | ✅ Merged (PR #248) |
-| 13 | CoreMark | CoreMark | >50M | ⚠️ Impractical but counted |
+| 6 | 3mm | PolyBench | ~105K | ✅ Merged (PR #250) |
+| 7 | aha-mont64 | Embench | - | ✅ Ready |
+| 8 | crc32 | Embench | - | ✅ Ready |
+| 9 | matmult-int | Embench | - | ✅ Ready |
+| 10 | primecount | Embench | - | ✅ Ready |
+| 11 | edn | Embench | ~3.1M | ✅ Ready |
+| 12 | statemate | Embench | ~1.04M | ✅ Merged (PR #247) |
+| 13 | huffbench | Embench | - | ✅ Merged (PR #248) |
+| 14 | CoreMark | CoreMark | >50M | ⚠️ Impractical but counted |
 
-## Remaining Additions (2 more to reach 15)
+## Final Addition to Reach 15
 
-### Priority 1: 3mm (PolyBench) — Medium Effort ⏳ BOB ASSIGNED
-
-**Why include:**
-- Chain of 3 matrix multiplies
-- Tests larger data movement patterns
-- Similar to gemm but more complex
-
-**Code pattern:**
-```c
-E := A x B  (NI x NK) × (NK x NJ) = (NI x NJ)
-F := C x D  (NJ x NL) × (NL x NM) = (NJ x NM)
-G := E x F  (NI x NJ) × (NJ x NM) = (NI x NM)
-```
-
-**Expected instructions:** ~90-120K (3× gemm-like loops)
-
-**Implementation guide:** `docs/jacobi-3mm-implementation-guide.md`
-
-### Priority 2: bicg (PolyBench) — Low-Medium Effort
+### Priority 1: bicg (PolyBench) — BOB ASSIGNED NOW! 🎯
 
 **Why include:**
 - Bi-conjugate gradient subkernel
 - Different access pattern than pure matrix ops (simultaneous A and A^T multiply)
 - Common in scientific computing
-- Final benchmark to reach 15+ target!
+- **FINAL benchmark to reach 15+ target!**
 
 **Code pattern:**
 ```c
@@ -70,62 +55,50 @@ q = A * p    (matrix × vector)
 
 **Implementation guide:** `docs/bicg-implementation-guide.md`
 
-## Implementation Roadmap
+## Completed Implementation Roadmap
 
 | Step | Benchmark | Effort | New Total | Status |
 |------|-----------|--------|-----------|--------|
 | 1 | statemate | ✅ Done | 10 | Merged (PR #247) |
 | 2 | huffbench | ✅ Done | 11 | Merged (PR #248) |
 | 3 | jacobi-1d | ✅ Done | 12 | Merged (PR #249) |
-| 4 | 3mm | Medium | 14 | ⏳ Bob assigned |
-| 5 | bicg | Low-Medium | 15 | Next after 3mm |
+| 4 | 3mm | ✅ Done | 14 | Merged (PR #250) |
+| 5 | **bicg** | In Progress | **15** | ⏳ Bob assigned! |
 
-## Effort Estimates
+## Post-15 Expansion Options
 
-| Benchmark | LOC to add | Porting complexity | Status |
-|-----------|------------|-------------------|--------|
-| jacobi-1d | ~50 | Low | ✅ Merged |
-| 3mm | ~100 | Medium (3 gemm-like ops) | ⏳ Assigned |
-| bicg | ~80 | Low-Medium (transpose pattern) | Pending |
+After reaching the 15+ publication target, consider these for additional validation:
 
-## Workload Diversity Analysis
+### Easy PolyBench Additions
 
-With 15 benchmarks, we have:
+| Benchmark | Type | Why |
+|-----------|------|-----|
+| seidel-2d | 2D stencil | Tests different memory access pattern |
+| gesummv | Vector/matrix | Fast to implement |
+| trisolv | Triangular solver | Common linear algebra primitive |
 
-| Category | Benchmarks | Count |
-|----------|------------|-------|
-| Matrix/Linear Algebra | gemm, atax, 2mm, mvt, matmult-int, 3mm, bicg | 7 |
-| Stencil | jacobi-1d | 1 |
-| Integer/Crypto | aha-mont64, crc32 | 2 |
-| Signal Processing | edn | 1 |
-| Control/State | primecount, statemate | 2 |
-| Compression | huffbench | 1 |
-| General | CoreMark (impractical) | 1 |
+### Medium Effort Options
 
-**Diversity is excellent** — we cover all major workload categories.
+| Benchmark | Type | Why |
+|-----------|------|-----|
+| doitgen | MADWF | Multi-resolution analysis |
+| lu | LU decomposition | Classic benchmark |
+| cholesky | Cholesky factorization | Symmetric positive definite matrices |
 
-## Additional Resources
+## Success Criteria
 
-- **3mm implementation:** `docs/jacobi-3mm-implementation-guide.md`
-- **bicg implementation:** `docs/bicg-implementation-guide.md`
+Per issue #141 and #240:
 
-## Publication Standards (per literature survey)
+1. ✅ **15+ intermediate benchmarks** — Almost there! (14/15)
+2. ⏸️ **M2 baseline capture** — Blocked on human (requires real M2 hardware)
+3. ⏸️ **<20% average error on intermediate benchmarks** — Blocked on #2
+4. ✅ **Coverage targets met** — emu 79.9%, pipeline 70.5%
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| Benchmark count | 15+ | 13 (→15 with 3mm+bicg) | ⚠️ +2 needed |
-| Workload diversity | Multiple categories | 7 categories | ✅ Excellent |
-| Instruction count range | Varied | 5K to 3M+ | ✅ Good range |
-| IPC error average | <20% | Unknown | ⏳ Awaiting M2 baselines |
+## ⚠️ Critical Blocker
 
-## M2 Baseline Status — CRITICAL BLOCKER
+Per issue #141, microbenchmark accuracy (20.2%) does **NOT** count for M6 validation!
 
-Still blocked on human to:
-1. Build native versions for macOS
-2. Run with performance counters on real M2
-3. Capture cycle counts for comparison
-
-**Per Issue #141:** Microbenchmark accuracy (20.2%) does NOT count. We need intermediate benchmark results from the 12 ready benchmarks.
-
----
-*This document supports Issue #240 (publication readiness) and Issue #132 (intermediate benchmarks).*
+**Human action needed:**
+1. Build native gemm/atax/2mm/mvt/jacobi-1d/3mm for macOS
+2. Run on real M2 with performance counters
+3. Capture cycle baselines for intermediate benchmark accuracy validation

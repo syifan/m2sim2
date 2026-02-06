@@ -1,7 +1,7 @@
 # M2Sim Benchmark Inventory
 
 **Author:** Eric (AI Researcher)  
-**Updated:** 2026-02-06 (Cycle 275)  
+**Updated:** 2026-02-06 (Cycle 276)  
 **Purpose:** Track all available intermediate benchmarks for M6 validation
 
 ## Summary
@@ -10,14 +10,14 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 
 | Suite | Ready | Notes |
 |-------|-------|-------|
-| PolyBench | **5** | gemm, atax, 2mm, mvt, jacobi-1d |
+| PolyBench | **6** | gemm, atax, 2mm, mvt, jacobi-1d, 3mm |
 | Embench-IoT | **7** | aha-mont64, crc32, matmult-int, primecount, edn, statemate, huffbench |
 | CoreMark | 1 | Impractical (50M+ instr) |
-| **Total** | **13** | Target: 15+ for publication |
+| **Total** | **14** | Target: 15+ for publication |
 
 ## Ready Benchmarks (with ELFs)
 
-### PolyBench/C (5 ready)
+### PolyBench/C (6 ready)
 
 | Benchmark | Instructions | Status |
 |-----------|--------------|--------|
@@ -26,6 +26,7 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 | 2mm | ~70K | ✅ Merged (PR #246) |
 | mvt | ~5K | ✅ Merged (PR #246) |
 | jacobi-1d | ~5.3K | ✅ Merged (PR #249) |
+| 3mm | ~105K | ✅ Merged (PR #250) |
 
 ### Embench-IoT (7 ready)
 
@@ -53,19 +54,12 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 | 5-11 | Embench Phase 1+2 | 11 | ✅ Complete |
 | 12 | (CoreMark counted) | 12 | ⚠️ Impractical but exists |
 | 13 | jacobi-1d | 13 | ✅ Merged (PR #249) |
-| 14 | 3mm | 14 | ⏳ Bob assigned |
-| 15 | bicg | 15 | Next after 3mm |
+| 14 | 3mm | 14 | ✅ Merged (PR #250) |
+| 15 | bicg | 15 | ⏳ Bob assigned |
 
-## Next Benchmarks to Implement
+## Next Benchmark to Implement
 
-### 3mm (PolyBench) — Bob assigned
-
-- **Type:** Three chained matrix multiplications (E=AxB, F=CxD, G=ExF)
-- **Effort:** Medium
-- **Expected instructions:** ~90-120K
-- **Implementation guide:** `docs/jacobi-3mm-implementation-guide.md`
-
-### bicg (PolyBench) — Next after 3mm
+### bicg (PolyBench) — FINAL STRETCH TO 15!
 
 - **Type:** Bi-conjugate gradient subkernel
 - **Effort:** Low-Medium
@@ -77,41 +71,45 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 
 | Category | Benchmarks | Count |
 |----------|------------|-------|
-| Matrix/Linear Algebra | gemm, atax, 2mm, mvt, matmult-int | 5 |
-| Integer/Crypto | aha-mont64, crc32 | 2 |
+| Matrix/Linear Algebra | gemm, atax, 2mm, mvt, 3mm, matmult-int | 6 |
+| Stencil Computation | jacobi-1d | 1 |
 | Signal Processing | edn | 1 |
-| Control/State | primecount, statemate | 2 |
 | Compression | huffbench | 1 |
-| Stencil | jacobi-1d | 1 |
+| State Machine | statemate | 1 |
+| Cryptographic | aha-mont64 | 1 |
+| Checksum/CRC | crc32 | 1 |
+| General Integer | primecount | 1 |
+| Industry Standard | CoreMark (impractical) | 1 |
 
-**Diversity is excellent!** We cover all major workload categories.
+**Excellent diversity** — 9 different workload categories covered!
 
-### After 3mm + bicg (15 total)
+## Post-15 Benchmark Candidates
 
-| Category | Benchmarks | Count |
-|----------|------------|-------|
-| Matrix/Linear Algebra | gemm, atax, 2mm, mvt, matmult-int, 3mm, bicg | 7 |
-| Integer/Crypto | aha-mont64, crc32 | 2 |
-| Signal Processing | edn | 1 |
-| Control/State | primecount, statemate | 2 |
-| Compression | huffbench | 1 |
-| Stencil | jacobi-1d | 1 |
+After reaching 15+ target, consider these for further expansion:
 
-## M6 Completion Requirements
+### PolyBench Candidates (Easy to add)
 
-Per SPEC.md and #141:
+| Benchmark | Type | Estimated Effort |
+|-----------|------|------------------|
+| seidel-2d | 2D stencil | Low |
+| doitgen | MADWF | Medium |
+| trisolv | Triangular solver | Low |
+| gesummv | Scalar/vector/matrix | Low |
+| symm | Symmetric matrix ops | Medium |
 
-1. **Benchmark count:** 13 ready ✅ (need 15+ for publication)
-2. **M2 baselines:** Required for accuracy measurement ❌ (blocked on human)
-3. **<20% average error:** Must be measured against intermediate benchmarks ⏳
-4. **Per #141 caveat:** Microbenchmark accuracy (20.2%) does NOT count
+### Embench Candidates (Some require FP support)
+
+| Benchmark | Type | Notes |
+|-----------|------|-------|
+| md5sum | Cryptographic hash | May need additional headers |
+| nbody | N-body simulation | Needs FP support |
+| nettle-aes | Encryption | Complex dependencies |
 
 ## ⚠️ Critical Blocker: M2 Baseline Capture
 
-Still blocked on human to:
-1. Build native versions for macOS (not bare-metal ELFs)
-2. Run with performance counters on real M2 hardware
-3. Capture cycle counts for comparison
+Per issue #141, microbenchmark accuracy (20.2%) does NOT count for M6 validation!
 
----
-*This inventory supports Issue #141 (intermediate benchmark requirement) and Issue #240 (publication readiness).*
+**Blocked on human to:**
+1. Build native gemm/atax for macOS
+2. Run on real M2 with performance counters
+3. Capture cycle baselines for intermediate benchmark validation
