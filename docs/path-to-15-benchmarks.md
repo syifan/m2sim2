@@ -1,20 +1,20 @@
 # Path to 15+ Benchmarks for Publication
 
 **Author:** Eric (AI Researcher)  
-**Updated:** 2026-02-06 (Cycle 274)  
+**Updated:** 2026-02-06 (Cycle 275)  
 **Purpose:** Prioritization roadmap for reaching publication-quality benchmark count
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Benchmarks ready | **12** (ELFs built and tested) |
+| Benchmarks ready | **13** (ELFs built and tested) |
 | Target | 15+ for publication credibility |
-| Gap | 3 more benchmarks |
+| Gap | 2 more benchmarks (3mm, bicg) |
 
 ## Benchmark Inventory (as of Cycle 274)
 
-### Ready (12)
+### Ready (13)
 
 | # | Benchmark | Suite | Instructions | Status |
 |---|-----------|-------|--------------|--------|
@@ -22,37 +22,19 @@
 | 2 | atax | PolyBench | ~5K | ✅ Merged |
 | 3 | 2mm | PolyBench | ~70K | ✅ Merged |
 | 4 | mvt | PolyBench | ~5K | ✅ Merged |
-| 5 | aha-mont64 | Embench | - | ✅ Ready |
-| 6 | crc32 | Embench | - | ✅ Ready |
-| 7 | matmult-int | Embench | - | ✅ Ready |
-| 8 | primecount | Embench | - | ✅ Ready |
-| 9 | edn | Embench | ~3.1M | ✅ Ready |
-| 10 | statemate | Embench | ~1.04M | ✅ Merged (PR #247) |
-| 11 | huffbench | Embench | - | ✅ Merged (PR #248) |
-| 12 | CoreMark | CoreMark | >50M | ⚠️ Impractical but counted |
+| 5 | jacobi-1d | PolyBench | ~5.3K | ✅ Merged (PR #249) |
+| 6 | aha-mont64 | Embench | - | ✅ Ready |
+| 7 | crc32 | Embench | - | ✅ Ready |
+| 8 | matmult-int | Embench | - | ✅ Ready |
+| 9 | primecount | Embench | - | ✅ Ready |
+| 10 | edn | Embench | ~3.1M | ✅ Ready |
+| 11 | statemate | Embench | ~1.04M | ✅ Merged (PR #247) |
+| 12 | huffbench | Embench | - | ✅ Merged (PR #248) |
+| 13 | CoreMark | CoreMark | >50M | ⚠️ Impractical but counted |
 
-## Remaining Additions (3 more to reach 15)
+## Remaining Additions (2 more to reach 15)
 
-### Priority 1: jacobi-1d (PolyBench) — Low Effort ⏳ BOB IMPLEMENTING
-
-**Why easy:**
-- Simple 1D stencil computation
-- No complex dependencies
-- Similar pattern to existing kernels
-
-**Code pattern:**
-```c
-for (t = 0; t < TSTEPS; t++) {
-    for (i = 1; i < N - 1; i++)
-        B[i] = (A[i-1] + A[i] + A[i+1]) / 3;  // Integer div
-    for (i = 1; i < N - 1; i++)
-        A[i] = B[i];
-}
-```
-
-**Implementation guide:** `docs/jacobi-3mm-implementation-guide.md`
-
-### Priority 2: 3mm (PolyBench) — Medium Effort
+### Priority 1: 3mm (PolyBench) — Medium Effort ⏳ BOB ASSIGNED
 
 **Why include:**
 - Chain of 3 matrix multiplies
@@ -70,12 +52,13 @@ G := E x F  (NI x NJ) × (NJ x NM) = (NI x NM)
 
 **Implementation guide:** `docs/jacobi-3mm-implementation-guide.md`
 
-### Priority 3: bicg (PolyBench) — Medium Effort
+### Priority 2: bicg (PolyBench) — Low-Medium Effort
 
 **Why include:**
 - Bi-conjugate gradient subkernel
-- Different access pattern than pure matrix ops
+- Different access pattern than pure matrix ops (simultaneous A and A^T multiply)
 - Common in scientific computing
+- Final benchmark to reach 15+ target!
 
 **Code pattern:**
 ```c
@@ -85,27 +68,29 @@ q = A * p    (matrix × vector)
 
 **Expected instructions:** ~10-15K
 
+**Implementation guide:** `docs/bicg-implementation-guide.md`
+
 ## Implementation Roadmap
 
 | Step | Benchmark | Effort | New Total | Status |
 |------|-----------|--------|-----------|--------|
 | 1 | statemate | ✅ Done | 10 | Merged (PR #247) |
 | 2 | huffbench | ✅ Done | 11 | Merged (PR #248) |
-| 3 | jacobi-1d | Low | 12→13 | ⏳ Bob implementing |
-| 4 | 3mm | Medium | 14 | Next |
-| 5 | bicg | Medium | 15 | Final |
+| 3 | jacobi-1d | ✅ Done | 12 | Merged (PR #249) |
+| 4 | 3mm | Medium | 14 | ⏳ Bob assigned |
+| 5 | bicg | Low-Medium | 15 | Next after 3mm |
 
 ## Effort Estimates
 
-| Benchmark | LOC to add | Porting complexity |
-|-----------|------------|-------------------|
-| jacobi-1d | ~50 | Low (simple loop nest) |
-| 3mm | ~100 | Medium (3 gemm-like ops) |
-| bicg | ~80 | Medium (transpose pattern) |
+| Benchmark | LOC to add | Porting complexity | Status |
+|-----------|------------|-------------------|--------|
+| jacobi-1d | ~50 | Low | ✅ Merged |
+| 3mm | ~100 | Medium (3 gemm-like ops) | ⏳ Assigned |
+| bicg | ~80 | Low-Medium (transpose pattern) | Pending |
 
 ## Workload Diversity Analysis
 
-With 15 benchmarks, we'd have:
+With 15 benchmarks, we have:
 
 | Category | Benchmarks | Count |
 |----------|------------|-------|
@@ -119,12 +104,17 @@ With 15 benchmarks, we'd have:
 
 **Diversity is excellent** — we cover all major workload categories.
 
+## Additional Resources
+
+- **3mm implementation:** `docs/jacobi-3mm-implementation-guide.md`
+- **bicg implementation:** `docs/bicg-implementation-guide.md`
+
 ## Publication Standards (per literature survey)
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| Benchmark count | 15+ | 12 | ⚠️ +3 needed |
-| Workload diversity | Multiple categories | 6+ categories | ✅ Excellent |
+| Benchmark count | 15+ | 13 (→15 with 3mm+bicg) | ⚠️ +2 needed |
+| Workload diversity | Multiple categories | 7 categories | ✅ Excellent |
 | Instruction count range | Varied | 5K to 3M+ | ✅ Good range |
 | IPC error average | <20% | Unknown | ⏳ Awaiting M2 baselines |
 

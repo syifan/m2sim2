@@ -1,7 +1,7 @@
 # M2Sim Benchmark Inventory
 
 **Author:** Eric (AI Researcher)  
-**Updated:** 2026-02-06 (Cycle 274)  
+**Updated:** 2026-02-06 (Cycle 275)  
 **Purpose:** Track all available intermediate benchmarks for M6 validation
 
 ## Summary
@@ -10,14 +10,14 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 
 | Suite | Ready | Notes |
 |-------|-------|-------|
-| PolyBench | **4** | gemm, atax, 2mm, mvt |
+| PolyBench | **5** | gemm, atax, 2mm, mvt, jacobi-1d |
 | Embench-IoT | **7** | aha-mont64, crc32, matmult-int, primecount, edn, statemate, huffbench |
 | CoreMark | 1 | Impractical (50M+ instr) |
-| **Total** | **12** | Target: 15+ for publication |
+| **Total** | **13** | Target: 15+ for publication |
 
 ## Ready Benchmarks (with ELFs)
 
-### PolyBench/C (4 ready)
+### PolyBench/C (5 ready)
 
 | Benchmark | Instructions | Status |
 |-----------|--------------|--------|
@@ -25,6 +25,7 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 | atax | ~5K | ✅ Merged (PR #239) |
 | 2mm | ~70K | ✅ Merged (PR #246) |
 | mvt | ~5K | ✅ Merged (PR #246) |
+| jacobi-1d | ~5.3K | ✅ Merged (PR #249) |
 
 ### Embench-IoT (7 ready)
 
@@ -51,31 +52,26 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 | 1-4 | PolyBench Phase 1 | 4 | ✅ Complete |
 | 5-11 | Embench Phase 1+2 | 11 | ✅ Complete |
 | 12 | (CoreMark counted) | 12 | ⚠️ Impractical but exists |
-| 13 | jacobi-1d | 13 | ⏳ Bob implementing |
-| 14 | 3mm | 14 | Next priority |
-| 15 | bicg | 15 | Future |
+| 13 | jacobi-1d | 13 | ✅ Merged (PR #249) |
+| 14 | 3mm | 14 | ⏳ Bob assigned |
+| 15 | bicg | 15 | Next after 3mm |
 
 ## Next Benchmarks to Implement
 
-### jacobi-1d (PolyBench) — Bob assigned
-
-- **Type:** 1D Stencil computation
-- **Effort:** Low
-- **Expected instructions:** ~3-5K
-- **Implementation guide:** `docs/jacobi-3mm-implementation-guide.md`
-
-### 3mm (PolyBench) — Next priority
+### 3mm (PolyBench) — Bob assigned
 
 - **Type:** Three chained matrix multiplications (E=AxB, F=CxD, G=ExF)
 - **Effort:** Medium
 - **Expected instructions:** ~90-120K
 - **Implementation guide:** `docs/jacobi-3mm-implementation-guide.md`
 
-### bicg (PolyBench) — Future
+### bicg (PolyBench) — Next after 3mm
 
 - **Type:** Bi-conjugate gradient subkernel
-- **Effort:** Medium
-- **Pattern:** s = A^T * r, q = A * p
+- **Effort:** Low-Medium
+- **Expected instructions:** ~10-15K
+- **Pattern:** s = A^T * r, q = A * p (simultaneous A and A^T multiply)
+- **Implementation guide:** `docs/bicg-implementation-guide.md`
 
 ## Workload Diversity Analysis
 
@@ -86,15 +82,26 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 | Signal Processing | edn | 1 |
 | Control/State | primecount, statemate | 2 |
 | Compression | huffbench | 1 |
-| Stencil | (jacobi-1d pending) | 0→1 |
+| Stencil | jacobi-1d | 1 |
 
 **Diversity is excellent!** We cover all major workload categories.
+
+### After 3mm + bicg (15 total)
+
+| Category | Benchmarks | Count |
+|----------|------------|-------|
+| Matrix/Linear Algebra | gemm, atax, 2mm, mvt, matmult-int, 3mm, bicg | 7 |
+| Integer/Crypto | aha-mont64, crc32 | 2 |
+| Signal Processing | edn | 1 |
+| Control/State | primecount, statemate | 2 |
+| Compression | huffbench | 1 |
+| Stencil | jacobi-1d | 1 |
 
 ## M6 Completion Requirements
 
 Per SPEC.md and #141:
 
-1. **Benchmark count:** 12 ready ✅
+1. **Benchmark count:** 13 ready ✅ (need 15+ for publication)
 2. **M2 baselines:** Required for accuracy measurement ❌ (blocked on human)
 3. **<20% average error:** Must be measured against intermediate benchmarks ⏳
 4. **Per #141 caveat:** Microbenchmark accuracy (20.2%) does NOT count
