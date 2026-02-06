@@ -99,9 +99,7 @@ ${everyoneSkill}
 ${agentSkill}
 
 **Instructions:**
-Execute your full cycle as described above. All GitHub activity (commits, PRs, comments) must start with [${agent}].
-
-Work autonomously. Complete your tasks, then exit.`;
+Execute your full cycle as described above. Work autonomously. Complete your tasks, then exit.`;
 
   return new Promise((resolve) => {
     const proc = spawn('claude', [
