@@ -5,6 +5,7 @@ import "io"
 
 // ARM64 Linux syscall numbers.
 const (
+	SyscallRead  uint64 = 63 // read(fd, buf, count)
 	SyscallWrite uint64 = 64 // write(fd, buf, count)
 	SyscallExit  uint64 = 93 // exit(status)
 )
@@ -39,6 +40,7 @@ type SyscallHandler interface {
 type DefaultSyscallHandler struct {
 	regFile *RegFile
 	memory  *Memory
+	stdin   io.Reader
 	stdout  io.Writer
 	stderr  io.Writer
 }
@@ -48,9 +50,15 @@ func NewDefaultSyscallHandler(regFile *RegFile, memory *Memory, stdout, stderr i
 	return &DefaultSyscallHandler{
 		regFile: regFile,
 		memory:  memory,
+		stdin:   nil,
 		stdout:  stdout,
 		stderr:  stderr,
 	}
+}
+
+// SetStdin sets the stdin reader for the syscall handler.
+func (h *DefaultSyscallHandler) SetStdin(stdin io.Reader) {
+	h.stdin = stdin
 }
 
 // Handle executes the syscall indicated by the register file state.
@@ -58,10 +66,12 @@ func (h *DefaultSyscallHandler) Handle() SyscallResult {
 	syscallNum := h.regFile.ReadReg(8)
 
 	switch syscallNum {
-	case SyscallExit:
-		return h.handleExit()
+	case SyscallRead:
+		return h.handleRead()
 	case SyscallWrite:
 		return h.handleWrite()
+	case SyscallExit:
+		return h.handleExit()
 	default:
 		return h.handleUnknown()
 	}
@@ -74,6 +84,43 @@ func (h *DefaultSyscallHandler) handleExit() SyscallResult {
 		Exited:   true,
 		ExitCode: exitCode,
 	}
+}
+
+// handleRead handles the read syscall (63).
+func (h *DefaultSyscallHandler) handleRead() SyscallResult {
+	fd := h.regFile.ReadReg(0)
+	bufPtr := h.regFile.ReadReg(1)
+	count := h.regFile.ReadReg(2)
+
+	// Only stdin (fd=0) is supported for now
+	if fd != 0 {
+		h.setError(EBADF)
+		return SyscallResult{}
+	}
+
+	// If no stdin is configured, return EOF
+	if h.stdin == nil {
+		h.regFile.WriteReg(0, 0)
+		return SyscallResult{}
+	}
+
+	// Read from stdin
+	buf := make([]byte, count)
+	n, err := h.stdin.Read(buf)
+	if err != nil && n == 0 {
+		// EOF or error with no bytes read
+		h.regFile.WriteReg(0, 0)
+		return SyscallResult{}
+	}
+
+	// Write to memory
+	for i := 0; i < n; i++ {
+		h.memory.Write8(bufPtr+uint64(i), buf[i])
+	}
+
+	// Return bytes read
+	h.regFile.WriteReg(0, uint64(n))
+	return SyscallResult{}
 }
 
 // handleWrite handles the write syscall (64).
