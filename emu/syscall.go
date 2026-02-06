@@ -1,22 +1,45 @@
 // Package emu provides functional ARM64 emulation.
 package emu
 
-import "io"
+import (
+	"io"
+	"os"
+)
 
 // ARM64 Linux syscall numbers.
 const (
-	SyscallClose uint64 = 57 // close(fd)
-	SyscallRead  uint64 = 63 // read(fd, buf, count)
-	SyscallWrite uint64 = 64 // write(fd, buf, count)
-	SyscallExit  uint64 = 93 // exit(status)
+	SyscallOpenat uint64 = 56 // openat(dirfd, pathname, flags, mode)
+	SyscallClose  uint64 = 57 // close(fd)
+	SyscallRead   uint64 = 63 // read(fd, buf, count)
+	SyscallWrite  uint64 = 64 // write(fd, buf, count)
+	SyscallExit   uint64 = 93 // exit(status)
 )
 
 // Linux error codes.
 const (
-	EBADF  = 9  // Bad file descriptor
-	ENOSYS = 38 // Function not implemented
+	ENOENT = 2  // No such file or directory
 	EIO    = 5  // I/O error
+	EBADF  = 9  // Bad file descriptor
+	EACCES = 13 // Permission denied
+	ENOSYS = 38 // Function not implemented
 )
+
+// Linux open flags.
+const (
+	O_RDONLY = 0
+	O_WRONLY = 1
+	O_RDWR   = 2
+	O_CREAT  = 0x40
+	O_TRUNC  = 0x200
+	O_APPEND = 0x400
+)
+
+// AT_FDCWD indicates relative to current working directory.
+const AT_FDCWD int64 = -100
+
+// AT_FDCWD_U64 is AT_FDCWD as unsigned 64-bit (for register comparison).
+// This is the two's complement representation of -100 in uint64.
+const AT_FDCWD_U64 uint64 = 0xFFFFFFFFFFFFFF9C
 
 // SyscallResult represents the result of a syscall execution.
 type SyscallResult struct {
@@ -79,6 +102,8 @@ func (h *DefaultSyscallHandler) Handle() SyscallResult {
 	syscallNum := h.regFile.ReadReg(8)
 
 	switch syscallNum {
+	case SyscallOpenat:
+		return h.handleOpenat()
 	case SyscallClose:
 		return h.handleClose()
 	case SyscallRead:
@@ -198,4 +223,83 @@ func (h *DefaultSyscallHandler) handleClose() SyscallResult {
 	// Return 0 on success
 	h.regFile.WriteReg(0, 0)
 	return SyscallResult{}
+}
+
+// handleOpenat handles the openat syscall (56).
+func (h *DefaultSyscallHandler) handleOpenat() SyscallResult {
+	dirfd := int64(h.regFile.ReadReg(0))
+	pathnamePtr := h.regFile.ReadReg(1)
+	flags := int(h.regFile.ReadReg(2))
+	mode := os.FileMode(h.regFile.ReadReg(3))
+
+	// Read pathname from memory (null-terminated)
+	pathname := h.readString(pathnamePtr)
+
+	// Only support AT_FDCWD for now (relative to current directory)
+	if dirfd != AT_FDCWD {
+		h.setError(EBADF)
+		return SyscallResult{}
+	}
+
+	// Convert Linux flags to Go flags
+	goFlags := h.linuxToGoFlags(flags)
+
+	// Open the file
+	fd, err := h.fdTable.Open(pathname, goFlags, mode)
+	if err != nil {
+		if os.IsNotExist(err) {
+			h.setError(ENOENT)
+		} else if os.IsPermission(err) {
+			h.setError(EACCES)
+		} else {
+			h.setError(EIO)
+		}
+		return SyscallResult{}
+	}
+
+	// Return the new file descriptor
+	h.regFile.WriteReg(0, fd)
+	return SyscallResult{}
+}
+
+// readString reads a null-terminated string from memory.
+func (h *DefaultSyscallHandler) readString(addr uint64) string {
+	var buf []byte
+	for {
+		b := h.memory.Read8(addr)
+		if b == 0 {
+			break
+		}
+		buf = append(buf, b)
+		addr++
+	}
+	return string(buf)
+}
+
+// linuxToGoFlags converts Linux open flags to Go os.OpenFile flags.
+func (h *DefaultSyscallHandler) linuxToGoFlags(linuxFlags int) int {
+	var goFlags int
+
+	// Access mode (lower 2 bits)
+	switch linuxFlags & 3 {
+	case O_RDONLY:
+		goFlags = os.O_RDONLY
+	case O_WRONLY:
+		goFlags = os.O_WRONLY
+	case O_RDWR:
+		goFlags = os.O_RDWR
+	}
+
+	// Additional flags
+	if linuxFlags&O_CREAT != 0 {
+		goFlags |= os.O_CREATE
+	}
+	if linuxFlags&O_TRUNC != 0 {
+		goFlags |= os.O_TRUNC
+	}
+	if linuxFlags&O_APPEND != 0 {
+		goFlags |= os.O_APPEND
+	}
+
+	return goFlags
 }

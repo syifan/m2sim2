@@ -3,6 +3,8 @@ package emu_test
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -210,6 +212,168 @@ var _ = Describe("Syscall Handler", func() {
 			var ebadf int64 = 9
 			expectedError := uint64(-ebadf)
 			Expect(x0).To(Equal(expectedError))
+		})
+	})
+
+	Describe("Openat syscall", func() {
+		var tempDir string
+
+		BeforeEach(func() {
+			var err error
+			tempDir, err = os.MkdirTemp("", "openat_test")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			_ = os.RemoveAll(tempDir)
+		})
+
+		writePathToMemory := func(path string, addr uint64) {
+			for i, c := range []byte(path) {
+				memory.Write8(addr+uint64(i), c)
+			}
+			memory.Write8(addr+uint64(len(path)), 0) // null terminator
+		}
+
+		It("should open existing file for reading", func() {
+			// Create a test file
+			testFile := filepath.Join(tempDir, "test.txt")
+			err := os.WriteFile(testFile, []byte("hello"), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Write path to memory
+			writePathToMemory(testFile, 0x1000)
+
+			// Set up openat syscall
+			regFile.WriteReg(8, 56)               // SyscallOpenat
+			regFile.WriteReg(0, emu.AT_FDCWD_U64) // AT_FDCWD
+			regFile.WriteReg(1, 0x1000)           // pathname pointer
+			regFile.WriteReg(2, 0)                // O_RDONLY
+			regFile.WriteReg(3, 0)                // mode (ignored for O_RDONLY)
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should be a valid fd >= 3
+			fd := regFile.ReadReg(0)
+			Expect(fd).To(BeNumerically(">=", 3))
+
+			// Clean up: close the fd
+			regFile.WriteReg(8, 57) // SyscallClose
+			regFile.WriteReg(0, fd)
+			handler.Handle()
+		})
+
+		It("should return ENOENT for non-existent file", func() {
+			// Write non-existent path to memory
+			writePathToMemory("/nonexistent/file.txt", 0x1000)
+
+			// Set up openat syscall
+			regFile.WriteReg(8, 56)               // SyscallOpenat
+			regFile.WriteReg(0, emu.AT_FDCWD_U64) // AT_FDCWD
+			regFile.WriteReg(1, 0x1000)           // pathname pointer
+			regFile.WriteReg(2, 0)                // O_RDONLY
+			regFile.WriteReg(3, 0)                // mode
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -ENOENT (2)
+			x0 := regFile.ReadReg(0)
+			var enoent int64 = 2
+			expectedError := uint64(-enoent)
+			Expect(x0).To(Equal(expectedError))
+		})
+
+		It("should create new file with O_CREAT", func() {
+			newFile := filepath.Join(tempDir, "newfile.txt")
+			writePathToMemory(newFile, 0x1000)
+
+			// Set up openat syscall with O_WRONLY | O_CREAT
+			regFile.WriteReg(8, 56)               // SyscallOpenat
+			regFile.WriteReg(0, emu.AT_FDCWD_U64) // AT_FDCWD
+			regFile.WriteReg(1, 0x1000)           // pathname pointer
+			regFile.WriteReg(2, 1|0x40)           // O_WRONLY | O_CREAT
+			regFile.WriteReg(3, 0644)             // mode
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should be a valid fd >= 3
+			fd := regFile.ReadReg(0)
+			Expect(fd).To(BeNumerically(">=", 3))
+
+			// Verify file was created
+			_, err := os.Stat(newFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Clean up: close the fd
+			regFile.WriteReg(8, 57) // SyscallClose
+			regFile.WriteReg(0, fd)
+			handler.Handle()
+		})
+
+		It("should return EBADF for invalid dirfd", func() {
+			testFile := filepath.Join(tempDir, "test.txt")
+			err := os.WriteFile(testFile, []byte("hello"), 0644)
+			Expect(err).ToNot(HaveOccurred())
+			writePathToMemory(testFile, 0x1000)
+
+			// Set up openat syscall with invalid dirfd (not AT_FDCWD)
+			regFile.WriteReg(8, 56)     // SyscallOpenat
+			regFile.WriteReg(0, 42)     // Invalid dirfd (not AT_FDCWD)
+			regFile.WriteReg(1, 0x1000) // pathname pointer
+			regFile.WriteReg(2, 0)      // O_RDONLY
+			regFile.WriteReg(3, 0)      // mode
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -EBADF (9)
+			x0 := regFile.ReadReg(0)
+			var ebadf int64 = 9
+			expectedError := uint64(-ebadf)
+			Expect(x0).To(Equal(expectedError))
+		})
+
+		It("should allocate sequential file descriptors", func() {
+			// Create test files
+			testFile1 := filepath.Join(tempDir, "test1.txt")
+			testFile2 := filepath.Join(tempDir, "test2.txt")
+			err := os.WriteFile(testFile1, []byte("1"), 0644)
+			Expect(err).ToNot(HaveOccurred())
+			err = os.WriteFile(testFile2, []byte("2"), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Open first file
+			writePathToMemory(testFile1, 0x1000)
+			regFile.WriteReg(8, 56)
+			regFile.WriteReg(0, emu.AT_FDCWD_U64)
+			regFile.WriteReg(1, 0x1000)
+			regFile.WriteReg(2, 0)
+			regFile.WriteReg(3, 0)
+			handler.Handle()
+			fd1 := regFile.ReadReg(0)
+
+			// Open second file
+			writePathToMemory(testFile2, 0x2000)
+			regFile.WriteReg(8, 56)
+			regFile.WriteReg(0, emu.AT_FDCWD_U64)
+			regFile.WriteReg(1, 0x2000)
+			regFile.WriteReg(2, 0)
+			regFile.WriteReg(3, 0)
+			handler.Handle()
+			fd2 := regFile.ReadReg(0)
+
+			Expect(fd2).To(Equal(fd1 + 1))
+
+			// Clean up
+			regFile.WriteReg(8, 57)
+			regFile.WriteReg(0, fd1)
+			handler.Handle()
+			regFile.WriteReg(8, 57)
+			regFile.WriteReg(0, fd2)
+			handler.Handle()
 		})
 	})
 })
