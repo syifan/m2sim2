@@ -10,6 +10,7 @@ import (
 const (
 	SyscallOpenat uint64 = 56  // openat(dirfd, pathname, flags, mode)
 	SyscallClose  uint64 = 57  // close(fd)
+	SyscallLseek  uint64 = 62  // lseek(fd, offset, whence)
 	SyscallRead   uint64 = 63  // read(fd, buf, count)
 	SyscallWrite  uint64 = 64  // write(fd, buf, count)
 	SyscallFstat  uint64 = 80  // fstat(fd, statbuf)
@@ -26,6 +27,7 @@ const (
 	ENOMEM = 12 // Out of memory
 	EACCES = 13 // Permission denied
 	EINVAL = 22 // Invalid argument
+	ESPIPE = 29 // Illegal seek (on pipes/sockets)
 	ENOSYS = 38 // Function not implemented
 )
 
@@ -61,6 +63,13 @@ const AT_FDCWD int64 = -100
 // AT_FDCWD_U64 is AT_FDCWD as unsigned 64-bit (for register comparison).
 // This is the two's complement representation of -100 in uint64.
 const AT_FDCWD_U64 uint64 = 0xFFFFFFFFFFFFFF9C
+
+// Lseek whence constants.
+const (
+	SEEK_SET = 0 // Seek from beginning of file
+	SEEK_CUR = 1 // Seek from current position
+	SEEK_END = 2 // Seek from end of file
+)
 
 // SyscallResult represents the result of a syscall execution.
 type SyscallResult struct {
@@ -159,6 +168,8 @@ func (h *DefaultSyscallHandler) Handle() SyscallResult {
 		return h.handleOpenat()
 	case SyscallClose:
 		return h.handleClose()
+	case SyscallLseek:
+		return h.handleLseek()
 	case SyscallRead:
 		return h.handleRead()
 	case SyscallWrite:
@@ -463,6 +474,37 @@ func (h *DefaultSyscallHandler) handleMmap() SyscallResult {
 // GetMmapRegions returns the list of mmap'd regions.
 func (h *DefaultSyscallHandler) GetMmapRegions() []MmapRegion {
 	return h.mmapRegions
+}
+
+// handleLseek handles the lseek syscall (62).
+// lseek repositions the file offset of an open file descriptor.
+func (h *DefaultSyscallHandler) handleLseek() SyscallResult {
+	fd := h.regFile.ReadReg(0)
+	offset := int64(h.regFile.ReadReg(1))
+	whence := int(h.regFile.ReadReg(2))
+
+	// Check for standard streams (stdin/stdout/stderr) - they can't be seeked
+	if fd <= 2 {
+		h.setError(ESPIPE)
+		return SyscallResult{}
+	}
+
+	// Validate whence
+	if whence < SEEK_SET || whence > SEEK_END {
+		h.setError(EBADF)
+		return SyscallResult{}
+	}
+
+	// Perform the seek
+	newPos, err := h.fdTable.Seek(fd, offset, whence)
+	if err != nil {
+		h.setError(EBADF)
+		return SyscallResult{}
+	}
+
+	// Return the new file position
+	h.regFile.WriteReg(0, uint64(newPos))
+	return SyscallResult{}
 }
 
 // ARM64 Linux stat structure offsets (128 bytes total).

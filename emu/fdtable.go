@@ -188,6 +188,30 @@ func (t *FDTable) Stat(fd uint64) (os.FileInfo, error) {
 	return hostFile.Stat()
 }
 
+// Seek sets the file position for the given file descriptor.
+func (t *FDTable) Seek(fd uint64, offset int64, whence int) (int64, error) {
+	t.mu.Lock()
+	entry, exists := t.fds[fd]
+	if !exists || !entry.IsOpen {
+		t.mu.Unlock()
+		return 0, os.ErrInvalid
+	}
+
+	hostFile := entry.HostFile
+	t.mu.Unlock()
+
+	// stdin/stdout/stderr can't be seeked
+	if fd <= 2 {
+		return 0, os.ErrInvalid
+	}
+
+	if hostFile == nil {
+		return 0, os.ErrInvalid
+	}
+
+	return hostFile.Seek(offset, whence)
+}
+
 // stdioFileInfo is a stub FileInfo for stdin/stdout/stderr.
 type stdioFileInfo struct {
 	name         string

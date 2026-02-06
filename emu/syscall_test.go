@@ -907,4 +907,198 @@ var _ = Describe("Syscall Handler", func() {
 			Expect(regFile.ReadReg(0)).To(Equal(uint64(2)))
 		})
 	})
+
+	Describe("Lseek syscall", func() {
+		var tempDir string
+
+		BeforeEach(func() {
+			var err error
+			tempDir, err = os.MkdirTemp("", "lseek_test")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			_ = os.RemoveAll(tempDir)
+		})
+
+		writePathToMemory := func(path string, addr uint64) {
+			for i, c := range []byte(path) {
+				memory.Write8(addr+uint64(i), c)
+			}
+			memory.Write8(addr+uint64(len(path)), 0) // null terminator
+		}
+
+		It("should seek to beginning of file with SEEK_SET", func() {
+			// Create a test file
+			testFile := filepath.Join(tempDir, "test.txt")
+			err := os.WriteFile(testFile, []byte("hello world"), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Open the file
+			writePathToMemory(testFile, 0x1000)
+			regFile.WriteReg(8, 56)               // SyscallOpenat
+			regFile.WriteReg(0, emu.AT_FDCWD_U64) // AT_FDCWD
+			regFile.WriteReg(1, 0x1000)           // pathname pointer
+			regFile.WriteReg(2, 0)                // O_RDONLY
+			regFile.WriteReg(3, 0)                // mode
+			handler.Handle()
+			fd := regFile.ReadReg(0)
+			Expect(fd).To(BeNumerically(">=", 3))
+
+			// Seek to position 6 with SEEK_SET
+			regFile.WriteReg(8, 62) // SyscallLseek
+			regFile.WriteReg(0, fd) // fd
+			regFile.WriteReg(1, 6)  // offset
+			regFile.WriteReg(2, 0)  // SEEK_SET
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(6)))
+
+			// Clean up: close the fd
+			regFile.WriteReg(8, 57) // SyscallClose
+			regFile.WriteReg(0, fd)
+			handler.Handle()
+		})
+
+		It("should seek from current position with SEEK_CUR", func() {
+			// Create a test file
+			testFile := filepath.Join(tempDir, "test.txt")
+			err := os.WriteFile(testFile, []byte("hello world"), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Open the file
+			writePathToMemory(testFile, 0x1000)
+			regFile.WriteReg(8, 56)               // SyscallOpenat
+			regFile.WriteReg(0, emu.AT_FDCWD_U64) // AT_FDCWD
+			regFile.WriteReg(1, 0x1000)           // pathname pointer
+			regFile.WriteReg(2, 0)                // O_RDONLY
+			regFile.WriteReg(3, 0)                // mode
+			handler.Handle()
+			fd := regFile.ReadReg(0)
+
+			// First seek to position 3
+			regFile.WriteReg(8, 62)
+			regFile.WriteReg(0, fd)
+			regFile.WriteReg(1, 3)
+			regFile.WriteReg(2, 0) // SEEK_SET
+			handler.Handle()
+
+			// Now seek +4 from current position
+			regFile.WriteReg(8, 62)
+			regFile.WriteReg(0, fd)
+			regFile.WriteReg(1, 4)
+			regFile.WriteReg(2, 1) // SEEK_CUR
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(7)))
+
+			// Clean up
+			regFile.WriteReg(8, 57)
+			regFile.WriteReg(0, fd)
+			handler.Handle()
+		})
+
+		It("should seek from end of file with SEEK_END", func() {
+			// Create a test file
+			testFile := filepath.Join(tempDir, "test.txt")
+			err := os.WriteFile(testFile, []byte("hello world"), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Open the file
+			writePathToMemory(testFile, 0x1000)
+			regFile.WriteReg(8, 56)
+			regFile.WriteReg(0, emu.AT_FDCWD_U64)
+			regFile.WriteReg(1, 0x1000)
+			regFile.WriteReg(2, 0)
+			regFile.WriteReg(3, 0)
+			handler.Handle()
+			fd := regFile.ReadReg(0)
+
+			// Seek to -5 from end (should be at position 6 in "hello world")
+			regFile.WriteReg(8, 62)
+			regFile.WriteReg(0, fd)
+			var negOffset int64 = -5
+			regFile.WriteReg(1, uint64(negOffset)) // -5 as two's complement
+			regFile.WriteReg(2, 2)                 // SEEK_END
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// "hello world" is 11 bytes, 11 - 5 = 6
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(6)))
+
+			// Clean up
+			regFile.WriteReg(8, 57)
+			regFile.WriteReg(0, fd)
+			handler.Handle()
+		})
+
+		It("should return ESPIPE for stdin", func() {
+			regFile.WriteReg(8, 62) // SyscallLseek
+			regFile.WriteReg(0, 0)  // stdin
+			regFile.WriteReg(1, 0)  // offset
+			regFile.WriteReg(2, 0)  // SEEK_SET
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -ESPIPE (29)
+			x0 := regFile.ReadReg(0)
+			var espipe int64 = 29
+			expectedError := uint64(-espipe)
+			Expect(x0).To(Equal(expectedError))
+		})
+
+		It("should return ESPIPE for stdout", func() {
+			regFile.WriteReg(8, 62) // SyscallLseek
+			regFile.WriteReg(0, 1)  // stdout
+			regFile.WriteReg(1, 0)  // offset
+			regFile.WriteReg(2, 0)  // SEEK_SET
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -ESPIPE (29)
+			x0 := regFile.ReadReg(0)
+			var espipe int64 = 29
+			expectedError := uint64(-espipe)
+			Expect(x0).To(Equal(expectedError))
+		})
+
+		It("should return ESPIPE for stderr", func() {
+			regFile.WriteReg(8, 62) // SyscallLseek
+			regFile.WriteReg(0, 2)  // stderr
+			regFile.WriteReg(1, 0)  // offset
+			regFile.WriteReg(2, 0)  // SEEK_SET
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -ESPIPE (29)
+			x0 := regFile.ReadReg(0)
+			var espipe int64 = 29
+			expectedError := uint64(-espipe)
+			Expect(x0).To(Equal(expectedError))
+		})
+
+		It("should return EBADF for invalid fd", func() {
+			regFile.WriteReg(8, 62) // SyscallLseek
+			regFile.WriteReg(0, 99) // invalid fd
+			regFile.WriteReg(1, 0)  // offset
+			regFile.WriteReg(2, 0)  // SEEK_SET
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -EBADF (9)
+			x0 := regFile.ReadReg(0)
+			var ebadf int64 = 9
+			expectedError := uint64(-ebadf)
+			Expect(x0).To(Equal(expectedError))
+		})
+	})
 })
