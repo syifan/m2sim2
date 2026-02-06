@@ -1,36 +1,35 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-06 10:05 EST (Cycle 301)
+**Last updated:** 2026-02-06 15:30 EST (Cycle 302)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Total PRs Merged | **84** 🎉 |
-| Open PRs | 1 |
-| Open Issues | 10 (excl. tracker) |
+| Total PRs Merged | **122** 🎉 |
+| Open PRs | 3 |
+| Open Issues | 9 (excl. tracker) |
 | Pipeline Coverage | **70.5%** ✅ |
 | Emu Coverage | 79.9% ✅ |
 
 ## 🎉🎉🎉 15 BENCHMARKS READY — PUBLICATION TARGET MET! 🎉🎉🎉
 
-### Cycle 301 Status
+### Cycle 302 Status
 
 All milestones achieved — syscall work in progress for SPEC support:
 - **15 benchmarks ready** — target met! 🎯
 - **Coverage targets met** — emu 79.9%, pipeline 70.5% ✅
 - **Syscall: read (63) implemented!** — First file I/O syscall ✅
-- **84 PRs merged total** 🎉
-- **1 open PR** — #265 (read syscall tests)
-- **10 open issues** (excl. tracker)
+- **122 PRs merged total** 🎉
+- **3 open PRs** — #266, #267, #268 (syscall work, awaiting lint fix)
+- **9 open issues** (excl. tracker)
 
-**Recent Updates (Cycles 300-301):**
-- ✅ PR #264 merged — read syscall (63) implemented 🆕
-- ✅ PR #265 submitted — 8 new read syscall tests (pending bob-approved)
+**Recent Updates (Cycles 301-302):**
+- ✅ PR #264 merged — read syscall (63) implemented
 - ✅ Issues #257-#263 created — syscall implementation roadmap
-- ✅ #256 fixed — accuracy-report workflow git checkout bug
-- ✅ #253 closed — M2 runners already configured
-- ✅ #224, #255 closed — completed work
+- ✅ Bob submitted PRs #266, #267, #268 — FD table, close, openat syscalls
+- ✅ Cathy approved PRs #266, #267, #268 ✅
+- ⚠️ PRs blocked on lint failures — Bob needs to fix lint errors
 
 **Infrastructure Ready:**
 - Self-hosted runner guide: `docs/m2-runner-setup.md`
@@ -109,7 +108,11 @@ Initial native timing on marin-2 (M2 Mac Mini):
 
 ## Open PRs
 
-None — PR queue is clean! 🎉
+| PR | Title | Status |
+|----|-------|--------|
+| #266 | [Bob] FD table implementation | ⚠️ Lint failing, Cathy approved |
+| #267 | [Bob] close syscall (57) | ⚠️ Lint failing, Cathy approved |
+| #268 | [Bob] openat syscall (56) | ⚠️ Lint failing, Cathy approved |
 
 ## Syscall Implementation Status
 
@@ -120,36 +123,38 @@ Critical path for SPEC benchmark support:
 | exit | 93 | ✅ Implemented | — |
 | write | 64 | ✅ Implemented | — |
 | read | 63 | ✅ Implemented | #264 |
-| close | 57 | 📋 Planned | #258 |
-| openat | 56 | 📋 Planned | #259 |
+| close | 57 | 🔄 In Review | #267 |
+| openat | 56 | 🔄 In Review | #268 |
 | brk | 214 | 📋 Planned | #260 |
 | mmap | 222 | 📋 Planned | #261 |
 | fstat | 80 | 📋 Planned | #263 |
 
-**Dependencies:** File descriptor table (#262) needed for file I/O syscalls.
+**Dependencies:** File descriptor table (#262) → PR #266 (in review, cathy-approved, lint failing)
 
 ---
 
-## Open Issues (10 excl. tracker)
+## Open Issues (9 excl. tracker)
 
 | # | Title | Priority |
 |---|-------|----------|
-| 262 | File descriptor table | high |
-| 258 | close syscall (57) | high |
-| 259 | openat syscall (56) | high |
-| 260 | brk syscall (214) | medium |
-| 261 | mmap syscall (222) | medium |
+| 260 | brk syscall (214) | high |
+| 261 | mmap syscall (222) | high |
 | 263 | fstat syscall (80) | medium |
-| 257 | read syscall (63) | ✅ done |
 | 139 | Multi-core execution | low |
 | 138 | SPEC benchmark execution | medium |
 | 107 | SPEC benchmark suite | low |
+
+**Closed this cycle:**
+- #257 — read syscall (63) ✅
+- #258 — close syscall (57) → PR #267
+- #259 — openat syscall (56) → PR #268
+- #262 — FD table → PR #266
 
 ---
 
 ## Key Achievements
 
-**83 PRs Merged!** 🎉🎉🎉
+**122 PRs Merged!** 🎉🎉🎉
 
 **Both Coverage Targets MET!**
 - emu: 79.9% ✅ (exceeded)
