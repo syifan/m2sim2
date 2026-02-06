@@ -22,7 +22,7 @@ CFLAGS+=" -DPOLYBENCH_USE_RESTRICT"
 CFLAGS+=" -DMINI_DATASET"
 
 # Available benchmarks
-BENCHMARKS="gemm atax 2mm mvt"
+BENCHMARKS="gemm atax 2mm mvt jacobi-1d"
 
 # Build function
 build_benchmark() {
