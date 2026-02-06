@@ -17,7 +17,7 @@ func TestFileIOAcceptance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	t.Run("open_close_workflow", func(t *testing.T) {
 		// Test opening and closing a file
@@ -40,24 +40,24 @@ func TestFileIOAcceptance(t *testing.T) {
 		// Program: open file, save fd, close file, exit with 0 if success
 		program := buildProgram(
 			// openat(AT_FDCWD, path, O_RDONLY, 0)
-			encodeADDImm(8, 31, 56, false),   // X8 = 56 (openat)
-			encodeMOVN(0, 99, 0),             // X0 = AT_FDCWD (-100)
-			encodeMOVZ(1, 0x3000, 0),         // X1 = 0x3000 (path pointer)
-			encodeMOVZ(2, 0, 0),              // X2 = 0 (O_RDONLY)
-			encodeMOVZ(3, 0, 0),              // X3 = 0 (mode)
-			encodeSVC(0),                     // syscall
-			encodeADDReg(19, 0, 31, false),   // X19 = fd (save for later)
+			encodeADDImm(8, 31, 56, false), // X8 = 56 (openat)
+			encodeMOVN(0, 99, 0),           // X0 = AT_FDCWD (-100)
+			encodeMOVZ(1, 0x3000, 0),       // X1 = 0x3000 (path pointer)
+			encodeMOVZ(2, 0, 0),            // X2 = 0 (O_RDONLY)
+			encodeMOVZ(3, 0, 0),            // X3 = 0 (mode)
+			encodeSVC(0),                   // syscall
+			encodeADDReg(19, 0, 31, false), // X19 = fd (save for later)
 
 			// close(fd)
-			encodeADDImm(8, 31, 57, false),   // X8 = 57 (close)
-			encodeADDReg(0, 19, 31, false),   // X0 = fd
-			encodeSVC(0),                     // syscall
-			encodeADDReg(20, 0, 31, false),   // X20 = close result
+			encodeADDImm(8, 31, 57, false), // X8 = 57 (close)
+			encodeADDReg(0, 19, 31, false), // X0 = fd
+			encodeSVC(0),                   // syscall
+			encodeADDReg(20, 0, 31, false), // X20 = close result
 
 			// exit(close_result) - should be 0 on success
-			encodeADDImm(8, 31, 93, false),   // X8 = 93 (exit)
-			encodeADDReg(0, 20, 31, false),   // X0 = close result
-			encodeSVC(0),                     // syscall
+			encodeADDImm(8, 31, 93, false), // X8 = 93 (exit)
+			encodeADDReg(0, 20, 31, false), // X0 = close result
+			encodeSVC(0),                   // syscall
 		)
 
 		e.LoadProgram(0x1000, program)
