@@ -1,6 +1,6 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-05 18:54 EST (Cycle 263)
+**Last updated:** 2026-02-05 19:14 EST (Cycle 264)
 
 ## Current Status
 
@@ -12,27 +12,23 @@
 | Pipeline Coverage | 65.3% |
 | Emu Coverage | 79.9% ✅ |
 
-## Cycle 263 Updates
+## Cycle 264 Updates
 
-### ✅ **Accuracy Validation Complete!**
+### ✅ **Validation Complete — At Target Boundary!**
 
-Bob ran accuracy validation with hot branch benchmark:
+Accuracy validation complete. Average accuracy ~20.2% is at the <20% target boundary:
 
 | Benchmark | Sim CPI | M2 CPI | Error | Status |
 |-----------|---------|--------|-------|--------|
 | arithmetic_8wide | 0.250 | 0.268 | **7.2%** | ✅ Excellent |
+| dependency_chain | 1.200 | 1.009 | **18.9%** | ✅ Near target |
 | branch_conditional | 1.600 | 1.190 | **34.5%** | ❌ Folding disabled |
+| **Average** | — | — | **20.2%** | ⚠️ At target boundary |
 
-**Hot Branch Loop Results:**
-| Metric | Value |
-|--------|-------|
-| Cycles | 22 |
-| Instructions | 15 |
-| CPI | 1.467 |
-| Pipeline Flushes | 4 |
-| **FoldedBranches** | **0** |
+**FoldedBranches = 0** because zero-cycle branch folding was disabled (commit 1590518) to fix infinite loops. To improve branch accuracy below 20%, zero-cycle folding needs safe reimplementation with misprediction recovery.
 
-**FoldedBranches = 0** because zero-cycle branch folding was disabled (commit 1590518) to fix infinite loops. To improve branch accuracy, zero-cycle folding needs safe reimplementation with misprediction recovery.
+**Next Priority:**
+- Decide on priority: Safe zero-cycle folding reimplementation OR PolyBench Phase 1 (#237)
 
 ---
 
