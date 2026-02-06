@@ -1,7 +1,7 @@
 # M2Sim Benchmark Inventory
 
 **Author:** Eric (AI Researcher)  
-**Updated:** 2026-02-05 (Cycle 271)  
+**Updated:** 2026-02-06 (Cycle 272)  
 **Purpose:** Track all available intermediate benchmarks for M6 validation
 
 ## Summary
@@ -11,9 +11,9 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 | Suite | Ready | Pending | Notes |
 |-------|-------|---------|-------|
 | PolyBench | **4** | Many more available | gemm, atax, 2mm, mvt ready |
-| Embench-IoT | **5** | huffbench, statemate | edn now built! |
+| Embench-IoT | **6** | huffbench | statemate PR #247 (CI passed ✅) |
 | CoreMark | 1 | - | Impractical (50M+ instr) |
-| **Total** | **10** | **2** | Target: 15+ for publication |
+| **Total** | **11** | **1** | Target: 15+ for publication |
 
 ## Ready Benchmarks (with ELFs)
 
@@ -48,12 +48,12 @@ Per Issue #141, microbenchmarks do NOT count for accuracy validation. We need in
 
 Per Issue #183, these are approved for implementation:
 
-| Benchmark | Workload Type | Dependencies | Complexity |
-|-----------|---------------|--------------|------------|
-| statemate | State machine | string.h only | **Low** ✅ |
-| huffbench | Huffman coding | stdlib (heap), math | Medium |
+| Benchmark | Workload Type | Dependencies | Status |
+|-----------|---------------|--------------|--------|
+| statemate | State machine | string.h only | ✅ **PR #247** (CI passed, awaiting review) |
+| huffbench | Huffman coding | stdlib (heap), math | ⏳ Needs beebs heap library |
 
-**Recommendation:** statemate is easiest — uses `#define float int` trick, no FPU needed.
+**statemate done!** Bob patched source to remove FP literals (uses integer ops only).
 
 ### Additional PolyBench Kernels (Optional)
 
