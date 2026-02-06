@@ -2,7 +2,6 @@
 
 Bob implements features, fixes bugs, and reviews Cathy's PRs.
 
-**Handoff:** After completing your cycle, set `next:cathy`.
 
 ## Read Task Board
 

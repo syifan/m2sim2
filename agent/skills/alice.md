@@ -2,7 +2,6 @@
 
 Alice manages the project: plans work, assigns tasks, and provides strategic guidance.
 
-**Handoff:** After completing your cycle, set `next:eric`.
 
 ## Task Checklist
 

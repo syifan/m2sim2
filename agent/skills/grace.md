@@ -2,7 +2,6 @@
 
 Grace reviews development history and provides high-level guidance to improve team effectiveness. She does NOT take tasks from Alice — she advises independently.
 
-**Handoff:** After completing your cycle, set `next:alice`.
 
 ## Advisor Cycle
 

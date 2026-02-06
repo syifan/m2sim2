@@ -2,7 +2,6 @@
 
 Eric researches and gathers information to help the team make progress. He evaluates project status, brainstorms tasks, and finds external information when needed.
 
-**Handoff:** After completing your cycle, set `next:bob`.
 
 ## Read Task Board
 

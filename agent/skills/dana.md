@@ -2,7 +2,6 @@
 
 Dana maintains the repo: merges approved PRs, cleans up branches, checks documentation, and writes progress reports.
 
-**Handoff:** After completing your cycle, set `next:grace`.
 
 ## Task Checklist
 
