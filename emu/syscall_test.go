@@ -144,4 +144,72 @@ var _ = Describe("Syscall Handler", func() {
 			Expect(regFile.ReadReg(0)).To(Equal(uint64(3)))
 		})
 	})
+
+	Describe("Close syscall", func() {
+		It("should close stdin successfully", func() {
+			regFile.WriteReg(8, 57) // SyscallClose
+			regFile.WriteReg(0, 0)  // stdin
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should be 0 (success)
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(0)))
+		})
+
+		It("should close stdout successfully", func() {
+			regFile.WriteReg(8, 57) // SyscallClose
+			regFile.WriteReg(0, 1)  // stdout
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(0)))
+		})
+
+		It("should close stderr successfully", func() {
+			regFile.WriteReg(8, 57) // SyscallClose
+			regFile.WriteReg(0, 2)  // stderr
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(0)))
+		})
+
+		It("should return EBADF for invalid fd", func() {
+			regFile.WriteReg(8, 57)  // SyscallClose
+			regFile.WriteReg(0, 999) // Invalid fd
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -EBADF (9)
+			x0 := regFile.ReadReg(0)
+			var ebadf int64 = 9
+			expectedError := uint64(-ebadf)
+			Expect(x0).To(Equal(expectedError))
+		})
+
+		It("should return EBADF when closing already closed fd", func() {
+			// First close stdin
+			regFile.WriteReg(8, 57) // SyscallClose
+			regFile.WriteReg(0, 0)  // stdin
+
+			handler.Handle()
+
+			// Try to close again
+			regFile.WriteReg(8, 57)
+			regFile.WriteReg(0, 0)
+
+			result := handler.Handle()
+
+			Expect(result.Exited).To(BeFalse())
+			// X0 should contain -EBADF
+			x0 := regFile.ReadReg(0)
+			var ebadf int64 = 9
+			expectedError := uint64(-ebadf)
+			Expect(x0).To(Equal(expectedError))
+		})
+	})
 })
