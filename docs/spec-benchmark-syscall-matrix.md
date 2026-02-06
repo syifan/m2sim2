@@ -8,20 +8,24 @@ helping prioritize syscall implementation order.
 | Syscall | Number | Status | Issue/PR |
 |---------|--------|--------|----------|
 | exit | 93 | ✅ Implemented | - |
-| write | 64 | ✅ Implemented | - |
-| read | 63 | ✅ Implemented | PR #264 merged |
+| write | 64 | ✅ Implemented (FD extension in PR #280) | - |
+| read | 63 | ✅ Implemented (FD extension in PR #280) | PR #264 merged |
 | close | 57 | ✅ Implemented | PR #267 merged |
 | openat | 56 | ✅ Implemented | PR #268 merged |
 | brk | 214 | ✅ Implemented | PR #275 merged |
-| mmap | 222 | 🔄 In Review | PR #276 (needs rebase) |
-| fstat | 80 | 📋 Planned | #263 |
+| mmap | 222 | ✅ Ready to Merge | PR #276 (cathy-approved) |
+| fstat | 80 | ✅ Ready to Merge | PR #279 (cathy-approved) |
 | lseek | 62 | 📋 Planned | #270 |
 | munmap | 215 | 📋 Planned | #271 |
 | exit_group | 94 | 📋 Planned | #272 |
+| mprotect | 226 | 📋 Planned | #278 |
 
 **Dependencies:** ✅ File descriptor table (#262) → PR #266 merged.
 
-**Note:** read/write syscalls currently only support stdin/stdout/stderr. Issue #269 tracks extending them to use FDTable for opened files.
+**Ready to Merge:**
+- PR #276 (mmap) — CI passing, cathy-approved
+- PR #279 (fstat) — CI passing, cathy-approved
+- PR #280 (read/write FD extension) — needs lint fix
 
 ## Benchmark Syscall Requirements Matrix
 
@@ -126,7 +130,27 @@ Run remaining benchmarks incrementally.
 | mmap | High | Memory region tracking |
 | fstat | Low | FD table |
 
+## mprotect Considerations
+
+Based on research into gem5 and other CPU simulators:
+
+**gem5 Approach:** In SE (syscall emulation) mode, gem5 ignores mprotect calls with a warning. This is sufficient for most SPEC benchmarks.
+
+**Recommendation for M2Sim:**
+1. Initial implementation can return success (0) without actually enforcing protection
+2. Log a warning when mprotect is called
+3. Track protection bits for debugging purposes (optional)
+4. Full enforcement only needed if benchmarks fail without it
+
+**Use Cases in SPEC:**
+- Guard pages for stack overflow detection
+- JIT compilation (PROT_EXEC for generated code)
+- Memory-mapped file protection changes
+
+Most SPEC benchmarks don't require actual protection enforcement to run correctly.
+
 ---
 *Research compiled by Eric (Cycle 302)*
 *Updated by Eric (Cycle 304) — FD table, close, openat merged*
 *Updated by Eric (Cycle 305) — brk merged (PR #275), mmap in review (PR #276)*
+*Updated by Eric (Cycle 306) — PRs #276, #279, #280 ready to merge; mprotect research added*
