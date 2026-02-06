@@ -1,37 +1,36 @@
 # M2Sim Progress Report
 
-**Last updated:** 2026-02-06 07:48 EST (Cycle 299)
+**Last updated:** 2026-02-06 10:05 EST (Cycle 301)
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Total PRs Merged | **83** 🎉 |
-| Open PRs | 0 |
-| Open Issues | 6 (excl. tracker) |
+| Total PRs Merged | **84** 🎉 |
+| Open PRs | 1 |
+| Open Issues | 10 (excl. tracker) |
 | Pipeline Coverage | **70.5%** ✅ |
 | Emu Coverage | 79.9% ✅ |
 
 ## 🎉🎉🎉 15 BENCHMARKS READY — PUBLICATION TARGET MET! 🎉🎉🎉
 
-### Cycle 299 Status
+### Cycle 301 Status
 
-All milestones achieved — ongoing improvements continue:
+All milestones achieved — syscall work in progress for SPEC support:
 - **15 benchmarks ready** — target met! 🎯
 - **Coverage targets met** — emu 79.9%, pipeline 70.5% ✅
-- **8-wide arithmetic: 7.2%** — excellent accuracy ✅
-- **83 PRs merged total** 🎉
-- **0 open PRs** — clean slate
-- **6 open issues** (excl. tracker)
+- **Syscall: read (63) implemented!** — First file I/O syscall ✅
+- **84 PRs merged total** 🎉
+- **1 open PR** — #265 (read syscall tests)
+- **10 open issues** (excl. tracker)
 
-**Recent Updates (Cycles 297-299):**
-- ✅ #145 closed — CLAUDE.md reduced (2500→670 bytes)
-- ✅ #254 closed — GitHub Actions benchmark workflow created
-- ✅ #255 complete — PolyBench defaults to MEDIUM dataset
-- ✅ #138 partial — SPEC native timing collected
-- ✅ SUPPORTED.md consolidated (insts/ merged into root)
-- ✅ M2 runner docs created (`docs/m2-runner-setup.md`)
-- ✅ 4 issues closed (#252, #240, #242, #141)
+**Recent Updates (Cycles 300-301):**
+- ✅ PR #264 merged — read syscall (63) implemented 🆕
+- ✅ PR #265 submitted — 8 new read syscall tests (pending bob-approved)
+- ✅ Issues #257-#263 created — syscall implementation roadmap
+- ✅ #256 fixed — accuracy-report workflow git checkout bug
+- ✅ #253 closed — M2 runners already configured
+- ✅ #224, #255 closed — completed work
 
 **Infrastructure Ready:**
 - Self-hosted runner guide: `docs/m2-runner-setup.md`
@@ -104,7 +103,7 @@ Initial native timing on marin-2 (M2 Mac Mini):
 | 505.mcf_r | 4.99s | 4.78s | 0.04s |
 | 531.deepsjeng_r | 3.45s | 3.23s | 0.05s |
 
-**Note:** Simulator execution requires additional syscall support (open, read, close, mmap).
+**Note:** Simulator execution requires additional syscall support (openat, close, mmap, brk). Read syscall now implemented!
 
 ---
 
@@ -112,13 +111,36 @@ Initial native timing on marin-2 (M2 Mac Mini):
 
 None — PR queue is clean! 🎉
 
-## Open Issues (6 excl. tracker)
+## Syscall Implementation Status
+
+Critical path for SPEC benchmark support:
+
+| Syscall | Number | Status | PR |
+|---------|--------|--------|-----|
+| exit | 93 | ✅ Implemented | — |
+| write | 64 | ✅ Implemented | — |
+| read | 63 | ✅ Implemented | #264 |
+| close | 57 | 📋 Planned | #258 |
+| openat | 56 | 📋 Planned | #259 |
+| brk | 214 | 📋 Planned | #260 |
+| mmap | 222 | 📋 Planned | #261 |
+| fstat | 80 | 📋 Planned | #263 |
+
+**Dependencies:** File descriptor table (#262) needed for file I/O syscalls.
+
+---
+
+## Open Issues (10 excl. tracker)
 
 | # | Title | Priority |
 |---|-------|----------|
-| 255 | Configure MEDIUM dataset size | high |
-| 253 | M2 runners (marin-6, marin-10) | medium |
-| 224 | Long-running jobs research | medium |
+| 262 | File descriptor table | high |
+| 258 | close syscall (57) | high |
+| 259 | openat syscall (56) | high |
+| 260 | brk syscall (214) | medium |
+| 261 | mmap syscall (222) | medium |
+| 263 | fstat syscall (80) | medium |
+| 257 | read syscall (63) | ✅ done |
 | 139 | Multi-core execution | low |
 | 138 | SPEC benchmark execution | medium |
 | 107 | SPEC benchmark suite | low |
