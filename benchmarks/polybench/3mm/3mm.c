@@ -10,21 +10,13 @@
  * using integer arithmetic and static arrays for M2Sim validation.
  *
  * Original: PolyBench/C 4.2.1 (linear-algebra/kernels/3mm)
- * Modified: Bare-metal, integer-only, MINI dataset
+ * Modified: Bare-metal, integer-only
+ * Dataset: Configured via polybench.h (default: MEDIUM)
  */
 
 #include "../common/polybench.h"
 
-/* Matrix dimensions for 3MM - all 16 for MINI dataset */
-/* Use NI, NJ, NK from polybench.h, define NL and NM locally */
-#ifndef NL
-#define NL 16
-#endif
-#ifndef NM
-#define NM 16
-#endif
-
-/* Static arrays for MINI dataset (16x16) */
+/* Static arrays - dimensions from polybench.h (NI, NJ, NK, NL, NM) */
 static DATA_TYPE A[NI][NK];
 static DATA_TYPE B[NK][NJ];
 static DATA_TYPE C[NJ][NL];

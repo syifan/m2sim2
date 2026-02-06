@@ -9,15 +9,16 @@
  * using integer arithmetic and static arrays for M2Sim validation.
  *
  * Original: PolyBench/C 4.2.1 (linear-algebra/kernels/mvt)
- * Modified: Bare-metal, integer-only, MINI dataset
+ * Modified: Bare-metal, integer-only
+ * Dataset: Configured via polybench.h (default: MEDIUM)
  */
 
 #include "../common/polybench.h"
 
-/* MVT uses N dimension - use NX for consistency */
+/* MVT uses N dimension - alias to NX */
 #define N NX
 
-/* Static arrays for MINI dataset (16x16 matrix, 16-element vectors) */
+/* Static arrays - dimensions from polybench.h (N=NX) */
 static DATA_TYPE A[N][N];
 static DATA_TYPE x1[N];
 static DATA_TYPE x2[N];

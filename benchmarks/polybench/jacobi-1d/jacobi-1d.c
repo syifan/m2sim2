@@ -8,19 +8,12 @@
  * using integer arithmetic for M2Sim validation.
  *
  * Original: PolyBench/C 4.2.1 (stencils/jacobi-1d)
+ * Dataset: Configured via polybench.h (default: MEDIUM)
  */
 
 #include "../common/polybench.h"
 
-/* Array dimensions - MINI dataset */
-#ifndef TSTEPS
-#define TSTEPS 8
-#endif
-#ifndef N_SIZE
-#define N_SIZE 32
-#endif
-
-/* Static arrays */
+/* Static arrays - dimensions from polybench.h (N_SIZE, TSTEPS) */
 static DATA_TYPE A[N_SIZE];
 static DATA_TYPE B[N_SIZE];
 

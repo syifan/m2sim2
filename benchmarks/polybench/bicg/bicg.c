@@ -9,19 +9,12 @@
  * using integer arithmetic for M2Sim validation.
  *
  * Original: PolyBench/C 4.2.1 (linear-algebra/kernels/bicg)
+ * Dataset: Configured via polybench.h (default: MEDIUM)
  */
 
 #include "../common/polybench.h"
 
-/* Matrix dimensions - MINI dataset */
-#ifndef NX_BICG
-#define NX_BICG 16
-#endif
-#ifndef NY_BICG
-#define NY_BICG 16
-#endif
-
-/* Static arrays */
+/* Static arrays - dimensions from polybench.h (NX_BICG, NY_BICG) */
 static DATA_TYPE A[NY_BICG][NX_BICG];  /* Matrix A */
 static DATA_TYPE s[NX_BICG];            /* Output: s = A^T × r */
 static DATA_TYPE q[NY_BICG];            /* Output: q = A × p */
