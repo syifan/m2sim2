@@ -18,3 +18,4 @@ benchmarks/spec
 benchmarks/coremark/
 embench-iot/
 agent/node_modules/
+agent/state.json

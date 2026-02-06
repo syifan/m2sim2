@@ -6,7 +6,7 @@
  */
 
 import { spawn, execSync } from 'child_process';
-import { existsSync, mkdirSync, appendFileSync, readFileSync, watch } from 'fs';
+import { existsSync, mkdirSync, appendFileSync, readFileSync, writeFileSync, watch } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import YAML from 'yaml';
@@ -17,12 +17,32 @@ const SKILL_PATH = join(__dirname, 'skills');
 const LOGS_DIR = join(__dirname, 'logs');
 const CONFIG_PATH = join(__dirname, 'config.yaml');
 const ORCHESTRATOR_PATH = join(__dirname, 'orchestrator.js');
+const STATE_PATH = join(__dirname, 'state.json');
 
 // Track currently running agent
 let currentAgentProcess = null;
 let currentAgentName = null;
 let cycleCount = 0;
+let currentAgentIndex = 0;
 let pendingReload = false;
+
+function loadState() {
+  try {
+    const raw = readFileSync(STATE_PATH, 'utf-8');
+    const state = JSON.parse(raw);
+    cycleCount = state.cycleCount || 0;
+    currentAgentIndex = state.currentAgentIndex || 0;
+    log(`State loaded: cycle=${cycleCount}, agentIndex=${currentAgentIndex}`);
+    return state;
+  } catch (e) {
+    log('No saved state, starting fresh');
+    return { cycleCount: 0, currentAgentIndex: 0 };
+  }
+}
+
+function saveState() {
+  writeFileSync(STATE_PATH, JSON.stringify({ cycleCount, currentAgentIndex }, null, 2));
+}
 
 function log(message) {
   const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -153,23 +173,39 @@ Execute your full cycle as described above. Work autonomously. Complete your tas
 }
 
 async function runCycle() {
-  cycleCount++;
-  
   // Reload config at start of each cycle
   const config = loadConfig();
   
-  log(`========== CYCLE ${cycleCount} START ==========`);
-  
-  // Run Grace at cycle 1, 11, 21, etc.
-  if (cycleCount % config.graceCycleInterval === 1) {
-    log('Running Grace (advisor)');
-    await runAgent('grace', config);
+  // If starting fresh (agentIndex=0), increment cycle
+  if (currentAgentIndex === 0) {
+    cycleCount++;
+    log(`========== CYCLE ${cycleCount} START ==========`);
+    
+    // Run Grace at cycle 1, 11, 21, etc.
+    if (cycleCount % config.graceCycleInterval === 1) {
+      log('Running Grace (advisor)');
+      await runAgent('grace', config);
+      saveState();
+      if (pendingReload) return config;
+    }
+  } else {
+    log(`========== CYCLE ${cycleCount} RESUMING (agent ${currentAgentIndex}/${config.agents.length}) ==========`);
   }
   
-  // Run all agents sequentially
-  for (const agent of config.agents) {
+  // Run agents sequentially, starting from saved index
+  while (currentAgentIndex < config.agents.length) {
+    const agent = config.agents[currentAgentIndex];
     await runAgent(agent, config);
+    currentAgentIndex++;
+    saveState();
+    
+    // Check for reload between agents
+    if (pendingReload) return config;
   }
+  
+  // Cycle complete, reset for next
+  currentAgentIndex = 0;
+  saveState();
   
   log(`========== CYCLE ${cycleCount} END ==========`);
   
@@ -185,6 +221,9 @@ async function main() {
   if (!existsSync(LOGS_DIR)) {
     mkdirSync(LOGS_DIR, { recursive: true });
   }
+  
+  // Load saved state (cycle count, agent index)
+  loadState();
   
   // Watch orchestrator.js for changes (hot reload)
   let debounce = null;
