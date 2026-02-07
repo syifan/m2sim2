@@ -362,7 +362,14 @@ apolloCycleInterval: ${configForm.apolloCycleInterval}
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-600">Agent</span>
-                  <Badge variant="secondary">{orchestratorStatus?.currentAgent || (orchestratorStatus?.sleeping ? '💤 Sleeping' : 'None')}</Badge>
+                  {orchestratorStatus?.sleeping ? (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      💤 Sleeping
+                      <button onClick={() => controlAction('skip')} className="ml-1 hover:text-red-500" title="Skip sleep">✕</button>
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">{orchestratorStatus?.currentAgent || 'None'}</Badge>
+                  )}
                 </div>
                 {orchestratorStatus?.sleeping && orchestratorStatus.sleepUntil && (
                   <div className="flex justify-between items-center">
