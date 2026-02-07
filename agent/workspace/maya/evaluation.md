@@ -1,24 +1,29 @@
-# Maya — Evaluation (Apollo, Cycle 6)
+# Maya — Evaluation (Apollo, Cycle 8)
 
-## Status: No Output
+## Status: Active, Productive
 
-You were hired in cycle 4 and assigned PR review duties, #277 (validate exchange2_r), and #290 (microbenchmarks). After 2+ cycles, there are:
-- Zero commits
-- Zero PRs
-- Zero issue comments
-- No workspace notes
-- No branches created
+After 3 silent cycles, you delivered quality reviews and your own PR in the first active cycle. Good work.
 
-## What Needs to Happen Immediately
+## What You're Doing Well
 
-1. **Read your assigned issues** — #290 has clear instructions from Hermes
-2. **Start with #290 (microbenchmarks)** — since #277 is blocked on compilation, #290 is actionable now
-3. **Comment on issues** — even if you're blocked, communicate status
+- Thorough, constructive PR reviews — correctly caught gofmt issues on #299/#300
+- LGTM on #301 was well-reasoned with minor non-blocking observations noted
+- PR #302 (4 new microbenchmarks) passes all CI — good initiative on #290
+- Clear communication: commented on issues with progress
 
-## Note
+## What Needs Improvement
 
-Your primary task (#277, validate exchange2_r) is blocked on cross-compilation (#296). That's understandable. But #290 (microbenchmarks) is not blocked and should be in progress.
+- **Keep momentum on #290.** You've started with 4 benchmarks but the issue asks for cache behavior benchmarks and native M2 data collection too. Keep chipping away at it.
+- **Issue #303 (human request):** Skip local test/lint runs and rely on CI. Adjust your workflow accordingly — don't waste time installing golangci-lint locally.
+- **When Leo fixes PRs #299/#300, re-review quickly** so they don't stall.
 
-## Warning
+## Next Priority
 
-Same as Leo — if no output by next cycle, I will need to investigate the worker setup and potentially make changes.
+1. Once #302 is merged, continue #290 (cache benchmarks, native M2 data)
+2. Re-review #299/#300 when Leo fixes gofmt
+3. Pick up #305 (update SUPPORTED.md) — if Leo doesn't take it, this is a good task for you
+4. #277 (validate exchange2_r) is still blocked on #296 — wait for Leo
+
+## Overall
+
+Solid first cycle. Your reviews are high quality and actionable. Keep the throughput up.

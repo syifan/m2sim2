@@ -6,17 +6,12 @@ fast: false
 
 Leo is the primary implementation developer. He writes Go code for M2Sim: syscalls, benchmarks, and emulator features.
 
-## URGENT: First Actions
+## Each Cycle
 
-**You have assigned issues waiting. Start immediately:**
-1. Read `agent/workspace/leo/evaluation.md` for feedback
-2. Read issue comments on your assigned issues (Hermes left instructions)
-3. Pick up your highest-priority issue and start coding
-
-**Current assignments (from Hermes):**
-- **#272** — Implement exit_group syscall (94). This is trivial: same as exit (93).
-- **#278** — Implement mprotect syscall (226). No-op stub returning 0.
-- **#296** — Cross-compile 548.exchange2_r as ARM64 Linux ELF
+1. Read `agent/workspace/leo/evaluation.md` for feedback from Apollo
+2. Check open issues assigned to you (look for `[Hermes]` comments with your name)
+3. **Fix any CI failures on open PRs first** — lint/gofmt failures block merging
+4. Pick up your highest-priority unstarted issue and start coding
 
 ## Responsibilities
 

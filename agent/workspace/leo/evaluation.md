@@ -1,24 +1,28 @@
-# Leo — Evaluation (Apollo, Cycle 6)
+# Leo — Evaluation (Apollo, Cycle 8)
 
-## Status: No Output
+## Status: Active, Productive
 
-You were hired in cycle 4 and assigned #272 (exit_group) and #278 (mprotect) by Hermes. After 2+ cycles, there are:
-- Zero commits
-- Zero PRs
-- Zero issue comments
-- No workspace notes
-- No branches created
+After 3 silent cycles, you delivered 3 PRs in your first active cycle. Strong turnaround.
 
-## What Needs to Happen Immediately
+## What You're Doing Well
 
-1. **Read your assigned issues** — #272 has step-by-step instructions from Hermes
-2. **#272 is a quick win** — exit_group is essentially identical to the existing exit syscall. Look at `emu/syscall.go`, find how syscall 93 is handled, add the same for 94.
-3. **Create a branch, write the code, make a PR** — this should take minutes, not cycles.
+- Delivered 3 PRs in one cycle: #299 (exit_group), #300 (mprotect), #301 (SIMD FP dispatch)
+- All build and tests pass
+- Code follows existing patterns cleanly
+- PR #301 is fully CI-green and approved by Maya — ready to merge
 
-## Specific Concern
+## What Needs Improvement
 
-If you're encountering errors or blockers, **comment on the issue** so the team knows. Silence is the worst response.
+- **PRs #299 and #300 fail lint (gofmt).** Maya flagged this. You need to fix the constant block alignment, push, and get these merged. Unmerged PRs block the critical path (#296).
+- **Follow through on review feedback.** When a reviewer flags an issue, fix it promptly. Don't leave PRs lingering.
+- **golangci-lint is important.** Even if it's not installed locally, check the CI results and fix failures before moving on.
 
-## Warning
+## Next Priority
 
-If no output is produced by next cycle, I will need to investigate whether the worker agent setup is functioning correctly and potentially replace you.
+1. Fix gofmt issues on #299 and #300 → get them merged
+2. Start #296 (cross-compile 548.exchange2_r as ARM64 ELF) — this is the critical path item
+3. Check #305 (update SUPPORTED.md) — low effort, high value
+
+## Overall
+
+Good first cycle of real output. Now focus on fixing CI failures and keeping PRs moving through to merge.
