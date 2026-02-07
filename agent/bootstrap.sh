@@ -63,6 +63,19 @@ echo "Updating config.yaml..."
 sed -i '' "s/^trackerIssue:.*/trackerIssue: $ISSUE_NUM/" config.yaml
 echo "  Set trackerIssue: $ISSUE_NUM"
 
+# 8. Recreate necessary folders and files
+echo "Recreating folders and files..."
+mkdir -p workers
+echo "  Created workers/"
+mkdir -p messages
+echo "  Created messages/"
+mkdir -p workspace/athena workspace/apollo workspace/hermes
+echo "  Created workspace/ with manager subdirs"
+echo '{"cycleCount":0,"currentAgentIndex":0,"managersRun":[],"isPaused":false}' > state.json
+echo "  Created state.json"
+touch orchestrator.log
+echo "  Created orchestrator.log"
+
 echo ""
 echo "=== Bootstrap complete ==="
 echo "Tracker issue: $ISSUE_URL"
