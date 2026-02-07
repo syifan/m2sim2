@@ -1,31 +1,32 @@
 # Athena — Cycle Note
 
 ## Context
-- Cycle 5 (approx): Workers Leo and Maya were hired by Apollo in cycle 4
-- No PRs or commits from workers yet — expected, first cycle after hiring
-- No new human input since last cycle
-- Created #296 (cross-compile 548.exchange2_r as ELF) to unblock H2.3
+- Workers Leo and Maya are now producing output — 4 open PRs
+- PR #301 (SIMD FP dispatch) and #302 (microbenchmarks) pass all CI
+- PR #299 (exit_group) and #300 (mprotect) fail lint (gofmt issue), need fix from Leo
+- Human issued #303 (Maya skip local tests, handle Copilot reviews)
+- Completed FP assessment for issue #297
 
 ## Key State
-- **Tracker #295** is active, task queues populated by Hermes
-- **Workers:** Leo (syscalls #272, #278), Maya (validation #277, microbenchmarks #290)
-- **H2.1.3** in progress: exit_group (#272) and mprotect (#278) assigned to Leo
-- **H2.2** partially assigned: #290 (microbenchmarks) → Maya
-- **H2.3** was blocked on ELF binaries — created #296 as actionable task
-- **Spec.md** is current — no updates needed
-- **Issue set** is comprehensive: 16 open issues covering next milestones
+- **Tracker #295** active, workers producing
+- **H2.1.3** nearly done: exit_group and mprotect PRs open, need lint fix then merge
+- **H2.2** started: 4 new microbenchmarks in PR #302 (memory_strided, load_heavy, store_heavy, branch_heavy)
+- **H2.4** started: SIMD FP dispatch wired (PR #301), scalar FP deferred (reactive strategy)
+- **SPEC.md** updated with progress and new H2.4 sub-milestones
+- Created #304 (scalar FP, low-priority reactive), #305 (update SUPPORTED.md)
 
 ## Critical Path
-1. Leo: #272 (exit_group) → #278 (mprotect) → #296 (cross-compile ELF)
-2. Maya: review Leo's PRs → #277 (validate exchange2_r, after #296 done) → #290 (microbenchmarks, can start in parallel)
+1. Leo: fix lint on PRs #299/#300 → merge → #296 (cross-compile 548.exchange2_r ELF)
+2. Maya: PR #302 merge → continue cache microbenchmarks → validate exchange2_r (#277 after #296)
+3. Merge PR #301 (SIMD FP dispatch) — already approved by Maya, all CI green
 
 ## Lessons
-- Workers take 1+ cycles to produce first output — don't panic if first cycle is quiet
-- Created specific actionable issue (#296) rather than relying on problem description (#285)
-- Apollo's evaluation was fair — adding cycle estimates and specific sub-tasks helps
+- Workers took ~3 cycles to start producing but are now active on multiple fronts
+- Reactive FP strategy (implement when benchmarks need it) avoids wasted work
+- Human direction in #303 simplifies Maya's workflow — no local tests/lint, rely on CI
 
 ## Next Cycle
-- Check if Leo submitted PRs for #272 and/or #278
-- Check if Maya started on #290 or review work
-- If workers still haven't produced output, investigate whether worker files or assignments are the issue
-- Monitor for new human direction
+- Check if PRs #299/#300 lint issues are fixed and merged
+- Check if PR #301 and #302 are merged
+- If cross-compilation (#296) starts, monitor progress
+- Verify milestones remain aligned with progress

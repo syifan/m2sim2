@@ -80,10 +80,10 @@ Complete the set of Linux syscalls needed by SPEC benchmarks.
 - [x] brk (214) — merged
 - [x] mmap (222) — merged
 
-##### H2.1.3: Remaining file syscalls 🚧 IN PROGRESS (~5-10 cycles)
+##### H2.1.3: Remaining syscalls 🚧 IN PROGRESS (~5-10 cycles)
 - [x] lseek (62) — merged (PR #282)
-- [ ] exit_group (94) — issue #272 open
-- [ ] mprotect (226) — issue #278 open, research done
+- [ ] exit_group (94) — PR #299 open, reviewed, needs lint fix
+- [ ] mprotect (226) — PR #300 open, reviewed, needs lint fix
 
 ##### H2.1.4: Lower-priority syscalls ⬜ NOT STARTED (~10-20 cycles)
 - [ ] munmap (215) — issue #271
@@ -91,13 +91,13 @@ Complete the set of Linux syscalls needed by SPEC benchmarks.
 - [ ] getpid/getuid/gettid — issue #273
 - [ ] newfstatat (79) — may be needed by some benchmarks
 
-#### H2.2: Micro & Medium Benchmarks (medium-level) ⬜ NOT STARTED
+#### H2.2: Micro & Medium Benchmarks (medium-level) 🚧 IN PROGRESS
 
 **Human guidance (issue #107):** Going directly to SPEC is too large a leap. We need more microbenchmarks and medium-sized benchmarks first. SPEC simulations are long-running and must not be run by agents directly — they should run in CI (GitHub Actions) with sufficient time limits, triggered periodically (e.g., every 24 hours).
 
 ##### H2.2.1: Expand microbenchmark suite (~10-20 cycles)
-- [ ] Add microbenchmarks for memory access patterns (sequential, strided, random)
-- [ ] Add microbenchmarks for instruction mix (load-heavy, store-heavy, branch-heavy)
+- [x] Add microbenchmarks for memory access patterns (strided) — PR #302
+- [x] Add microbenchmarks for instruction mix (load-heavy, store-heavy, branch-heavy) — PR #302
 - [ ] Add microbenchmarks for cache behavior (L1 hit, L2 hit, cache miss)
 - [ ] Collect M2 hardware CPI data for new microbenchmarks
 
@@ -123,9 +123,22 @@ Complete the set of Linux syscalls needed by SPEC benchmarks.
 
 **Important:** SPEC simulation runs must go through CI/GitHub Actions, not be run by agents directly.
 
-#### H2.4: Instruction Coverage Gaps ⬜ NOT STARTED
+#### H2.4: Instruction Coverage Gaps 🚧 IN PROGRESS
 
 SPEC benchmarks will likely exercise ARM64 instructions not yet implemented. Expect to discover and fix gaps during validation (H2.3.2).
+
+##### H2.4.1: SIMD/FP dispatch wiring ✅ COMPLETE
+- [x] Wire FormatSIMDReg and FormatSIMDLoadStore in emulator — PR #301 (reviewed, CI passes)
+- [x] VFADD, VFSUB, VFMUL now reachable through emulator dispatch
+
+##### H2.4.2: Scalar floating-point instructions ⬜ NOT STARTED (~20-40 cycles)
+- [ ] Basic scalar FP arithmetic: FADD, FSUB, FMUL, FDIV
+- [ ] FP load/store: LDR/STR for S and D registers
+- [ ] FP moves and comparisons: FMOV, FCMP
+- [ ] Int↔FP conversions: SCVTF, FCVTZS
+- [ ] Update SUPPORTED.md with all FP instructions
+
+**Strategy:** Don't implement proactively. Attempt benchmark execution first; add scalar FP support reactively when benchmarks fail on unimplemented opcodes. SPEC integer benchmarks may not need much FP.
 
 ---
 
