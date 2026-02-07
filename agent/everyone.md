@@ -57,6 +57,8 @@ Before starting work, gather context from:
 
 Each agent has a personal workspace at `agent/workspace/{your_name}/`.
 
+**First, create your workspace folder if it doesn't exist:** `mkdir -p agent/workspace/{your_name}`
+
 **At the end of each cycle**, write a brief `note.md` with:
 - Context for your future self
 - Lessons learned
