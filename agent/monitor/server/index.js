@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +23,6 @@ const ORCHESTRATOR_URL = 'http://localhost:3002';
 // Get repo from git remote
 function getRepoFromGit() {
   try {
-    const { execSync } = require('child_process');
     const remoteUrl = execSync('git remote get-url origin', {
       cwd: path.resolve(AGENT_DIR, '..'),
       encoding: 'utf-8'
