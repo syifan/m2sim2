@@ -22,6 +22,21 @@ const ORCHESTRATOR_PATH = join(__dirname, 'orchestrator.js');
 const STATE_PATH = join(__dirname, 'state.json');
 const CONTROL_PORT = 3002;
 
+// Get repo name from git remote
+function getRepoFromGit() {
+  try {
+    const remoteUrl = execSync('git remote get-url origin', {
+      cwd: REPO_DIR,
+      encoding: 'utf-8'
+    }).trim();
+    const match = remoteUrl.match(/github\.com[:/]([^/]+\/[^/.]+)/);
+    return match ? match[1] : 'unknown/repo';
+  } catch (e) {
+    return 'unknown/repo';
+  }
+}
+const GITHUB_REPO = getRepoFromGit();
+
 let currentAgentProcess = null;
 let currentAgentName = null;
 let currentAgentStartTime = null;
@@ -163,10 +178,10 @@ async function runAgent(agent, config, isManager = false) {
   const agentModel = extractModel(agentSkill) || config.model;
   const useFastMode = extractFastMode(agentSkill);
   
-  const prompt = `You are ${agent} working on the ML Performance Survey project.
+  const prompt = `You are ${agent} working on this project.
 
 **Config:**
-- GitHub Repo: syifan/ml-perf-survey
+- GitHub Repo: ${GITHUB_REPO}
 - Local Path: ${REPO_DIR}
 - Tracker Issue: #${config.trackerIssue}
 
