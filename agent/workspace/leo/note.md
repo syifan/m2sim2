@@ -1,19 +1,26 @@
-# Leo — Workspace Note (First Cycle)
+# Leo — Workspace Note (Cycle 2)
 
 ## What I Did
-- Implemented exit_group syscall (#272) → PR #299
-- Implemented mprotect syscall (#278) as no-op stub → PR #300
-- Wired SIMD FP dispatch in emulator (#298) → PR #301
-- All 3 PRs are ready for review
+- Fixed gofmt alignment on PR #299 (exit_group) and PR #300 (mprotect) — pushed fixes
+- Installed `musl-cross` cross-compiler (`aarch64-linux-musl-gcc`)
+- Cross-compiled 3 SPEC benchmarks as static ARM64 Linux ELF:
+  - 505.mcf_r (C) — direct musl-gcc
+  - 531.deepsjeng_r (C++) — direct musl-g++
+  - 548.exchange2_r (Fortran) — Docker Alpine ARM64 with gfortran
+- Added 548.exchange2_r to spec_runner.go config
+- Created build_spec.sh script documenting compilation commands
+- Opened PR #306 for all cross-compilation work (closes #296)
 
 ## Context for Next Cycle
-- PRs #299, #300, #301 need review/merge
-- Next priority: #296 (cross-compile 548.exchange2_r as ARM64 ELF) — needs `aarch64-linux-musl-gcc`
-- Check if musl cross-compiler is available; if not, may need to set up or use GitHub Actions
-- Existing code patterns are clean — follow `emu/syscall.go` for syscalls, `emu/emulator.go` for dispatch
+- PR #299 and #300 should be CI-green now — need to get them merged
+- PR #306 needs CI check and review — then merge
+- After #299/#300/#306 merge, check #277 (validate 548.exchange2_r execution)
+- The binaries are placed in SPEC exe/ dirs on this machine; CI won't have them
+- Next priorities: #273 (getpid/getuid/gettid), #274 (clock_gettime), or help with validation
 
 ## Lessons Learned
-- `ginkgo` CLI not installed locally; use `go test ./...` instead
-- `golangci-lint` not installed locally; CI handles linting
-- Always create branches from main for each issue
-- SIMD types (`SIMDArrangement`) exist in both `insts` and `emu` packages — cast between them
+- musl-cross doesn't include Fortran; use Docker Alpine ARM64 for Fortran cross-compilation
+- 548.exchange2_r needs `-DSPEC -cpp` flags and reads puzzles.txt + control file
+- 505.mcf_r needs `-DSPEC -DSPEC_LP64` and spec_qsort subdirectory
+- 531.deepsjeng_r needs `-DSPEC -DSMALL_MEMORY`
+- Always run `gofmt -w` after modifying Go files to avoid CI lint failures
