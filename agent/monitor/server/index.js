@@ -215,7 +215,7 @@ app.get('/api/comments', async (req, res) => {
     // Use gh CLI to fetch comments
     const { execSync } = await import('child_process');
     
-    let cmd = `gh api repos/syifan/ml-perf-survey/issues/${issueNumber}/comments --paginate -q '.[] | {id, author: .user.login, body, created_at, updated_at}'`;
+    let cmd = `gh api repos/sarchlab/m2sim/issues/${issueNumber}/comments --paginate -q '.[] | {id, author: .user.login, body, created_at, updated_at}'`;
     
     const output = execSync(cmd, { 
       cwd: path.resolve(AGENT_DIR, '..'),
@@ -334,7 +334,7 @@ app.post('/api/issues/create', async (req, res) => {
 
 "${text}"
 
-SAFETY: First verify you are in the ml-perf-survey repo by checking the remote URL or repo name. If not, abort.
+SAFETY: First verify you are in the m2sim repo by checking the remote URL or repo name. If not, abort.
 
 Create a well-formatted GitHub issue with:
 1. Title format: [Human] -> [Assignee] Description
