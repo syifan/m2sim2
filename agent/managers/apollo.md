@@ -71,10 +71,25 @@ Available models:
 - **claude-sonnet-4** — Only if task is clearly simple and repetitive
 - **claude-haiku-3-5** — Only for trivial, high-volume tasks
 
-Add model in YAML frontmatter at the top of skill files:
+### Fast Mode
+
+For **claude-opus-4-6**, fast mode is available. It provides faster responses at higher cost (same quality).
+
+**Consider fast mode for agents that:**
+- Do simple, routine tasks
+- Don't need long thinking/reasoning
+- Benefit from quick turnaround
+
+**Don't use fast mode for agents that:**
+- Do complex analysis or planning
+- Need deep reasoning
+- Work on nuanced problems
+
+Add options in YAML frontmatter at the top of skill files:
 ```yaml
 ---
 model: claude-opus-4-6
+fast: true
 ---
 ```
 

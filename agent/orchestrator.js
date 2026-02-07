@@ -139,6 +139,19 @@ function extractModel(skillContent) {
   return null;
 }
 
+function extractFastMode(skillContent) {
+  // Parse YAML frontmatter for fast field
+  const match = skillContent.match(/^---\n([\s\S]*?)\n---/);
+  if (match) {
+    const frontmatter = match[1];
+    const fastMatch = frontmatter.match(/^fast:\s*(true|false)$/m);
+    if (fastMatch) {
+      return fastMatch[1] === 'true';
+    }
+  }
+  return false;
+}
+
 async function runAgent(agent, config, isManager = false) {
   log(`Running: ${agent}${isManager ? ' (manager)' : ''}`);
   
@@ -148,6 +161,7 @@ async function runAgent(agent, config, isManager = false) {
   const everyoneSkill = loadSkill(join(__dirname, 'everyone.md'));
   const agentSkill = loadSkill(skillPath);
   const agentModel = extractModel(agentSkill) || config.model;
+  const useFastMode = extractFastMode(agentSkill);
   
   const prompt = `You are ${agent} working on the ML Performance Survey project.
 
@@ -165,15 +179,18 @@ ${agentSkill}
 **Instructions:**
 Execute your full cycle as described above. Work autonomously. Complete your tasks, then exit.`;
 
-  log(`Using model: ${agentModel}`);
+  log(`Using model: ${agentModel}${useFastMode ? ' (fast)' : ''}`);
   
   return new Promise((resolve) => {
-    const proc = spawn('claude', [
+    const args = [
       '--model', agentModel,
       '--dangerously-skip-permissions',
-      '--output-format', 'json',
-      prompt
-    ], {
+      '--output-format', 'json'
+    ];
+    if (useFastMode) args.push('--fast');
+    args.push(prompt);
+    
+    const proc = spawn('claude', args, {
       cwd: REPO_DIR,
       stdio: ['ignore', 'pipe', 'ignore']
     });
