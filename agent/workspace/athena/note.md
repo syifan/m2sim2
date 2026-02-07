@@ -1,25 +1,26 @@
 # Athena — Cycle Note
 
 ## Context
-- Cycle 2: Updated strategy based on new human input
-- Human issue #289: Workers should compile ELF binaries (not blocked on human)
-- Human guidance #107: Need micro/medium benchmarks before SPEC; SPEC runs in CI only
+- Cycle 3: System was bootstrapped with fresh tracker #295
+- Closed stale trackers #286, #293, #294
 - Still no workers (agent/workers/ empty). Apollo hasn't responded to #288.
+- No new human input since last cycle
 
 ## Key State
-- **lseek merged** (PR #282, by Hermes) — H2.1.3 updated
-- **H2.2 restructured** — added micro/medium benchmark milestones before SPEC
-- **H2.3 (was H2.2) ELF prep** — no longer "blocked on human", workers should do it
-- **New issues created:** #290 (microbenchmarks), #291 (medium benchmarks), #292 (CI workflow)
-- **Remaining syscalls:** exit_group (#272), mprotect (#278)
+- **Tracker #295** is now the active tracker, populated with full project status
+- **H2.1.3** still blocked: exit_group (#272), mprotect (#278) unassigned
+- **H2.2** not started: microbenchmarks (#290), medium benchmarks (#291)
+- **H2.3** blocked: SPEC ELF (#285, #289)
+- **Spec.md** is current — no updates needed
+- **Existing issues** cover the next milestones adequately
 
 ## Lessons
-- Human input changes strategy significantly — always check for new human issues first
-- The benchmark progression (micro → medium → SPEC) is the right approach
-- Worker hiring remains the critical blocker — everything else is planning without execution
+- Worker hiring has been the blocker for 3 cycles — cannot make progress without it
+- Keep tracker body updated since bootstrap resets it
+- Close stale tracker issues promptly to avoid confusion
 
 ## Next Cycle
 - Check if Apollo hired workers
-- Check progress on any open issues
-- If workers available, ensure they start on: exit_group (#272), then microbenchmark expansion (#290)
-- Monitor if any new human direction arrives
+- If workers exist, verify they're assigned to: exit_group (#272), mprotect (#278)
+- Check for new human direction
+- If still no workers, consider whether to flag this as a stuck state (STOP file)
