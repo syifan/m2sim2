@@ -3,6 +3,7 @@ package emu_test
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -463,6 +464,83 @@ func encodeRET() uint32 {
 	inst |= 0b00000
 	return inst
 }
+
+var _ = Describe("Emulator SIMD Dispatch", func() {
+	var (
+		e         *emu.Emulator
+		stdoutBuf *bytes.Buffer
+	)
+
+	BeforeEach(func() {
+		stdoutBuf = &bytes.Buffer{}
+		e = emu.NewEmulator(
+			emu.WithStdout(stdoutBuf),
+		)
+	})
+
+	It("should dispatch SIMD VADD through the emulator", func() {
+		// Set up SIMD registers with known values
+		e.SIMDRegFile().WriteLane32(1, 0, 10)
+		e.SIMDRegFile().WriteLane32(1, 1, 20)
+		e.SIMDRegFile().WriteLane32(2, 0, 3)
+		e.SIMDRegFile().WriteLane32(2, 1, 7)
+
+		// ADD V0.4S, V1.4S, V2.4S -> 0x4EA28420
+		program := make([]byte, 8)
+		binary.LittleEndian.PutUint32(program[0:4], 0x4EA28420)
+		binary.LittleEndian.PutUint32(program[4:8], encodeSVC(0))
+
+		e.RegFile().WriteReg(8, 93) // SyscallExit
+		e.RegFile().WriteReg(0, 0)
+		e.LoadProgram(0x1000, program)
+		e.Step()
+
+		Expect(e.SIMDRegFile().ReadLane32(0, 0)).To(Equal(uint32(13)))
+		Expect(e.SIMDRegFile().ReadLane32(0, 1)).To(Equal(uint32(27)))
+	})
+
+	It("should dispatch SIMD LDR Q through the emulator", func() {
+		e.Memory().Write64(0x2000, 0x0807060504030201)
+		e.Memory().Write64(0x2008, 0x100F0E0D0C0B0A09)
+		e.RegFile().WriteReg(1, 0x2000)
+
+		// LDR Q0, [X1] -> 0x3DC00020
+		program := make([]byte, 8)
+		binary.LittleEndian.PutUint32(program[0:4], 0x3DC00020)
+		binary.LittleEndian.PutUint32(program[4:8], encodeSVC(0))
+
+		e.RegFile().WriteReg(8, 93)
+		e.RegFile().WriteReg(0, 0)
+		e.LoadProgram(0x1000, program)
+		e.Step()
+
+		low, high := e.SIMDRegFile().ReadQ(0)
+		Expect(low).To(Equal(uint64(0x0807060504030201)))
+		Expect(high).To(Equal(uint64(0x100F0E0D0C0B0A09)))
+	})
+
+	It("should dispatch VFADD through the emulator", func() {
+		e.SIMDRegFile().WriteLane32(1, 0, math.Float32bits(1.5))
+		e.SIMDRegFile().WriteLane32(1, 1, math.Float32bits(2.5))
+		e.SIMDRegFile().WriteLane32(2, 0, math.Float32bits(3.0))
+		e.SIMDRegFile().WriteLane32(2, 1, math.Float32bits(4.0))
+
+		// FADD V0.4S, V1.4S, V2.4S -> 0x4EA2D420
+		program := make([]byte, 8)
+		binary.LittleEndian.PutUint32(program[0:4], 0x4EA2D420)
+		binary.LittleEndian.PutUint32(program[4:8], encodeSVC(0))
+
+		e.RegFile().WriteReg(8, 93)
+		e.RegFile().WriteReg(0, 0)
+		e.LoadProgram(0x1000, program)
+		e.Step()
+
+		result0 := math.Float32frombits(e.SIMDRegFile().ReadLane32(0, 0))
+		result1 := math.Float32frombits(e.SIMDRegFile().ReadLane32(0, 1))
+		Expect(result0).To(BeNumerically("~", 4.5, 0.001))
+		Expect(result1).To(BeNumerically("~", 6.5, 0.001))
+	})
+})
 
 func encodeSVC(imm uint16) uint32 {
 	var inst uint32 = 0

@@ -32,6 +32,10 @@ type Emulator struct {
 	alu        *ALU
 	lsu        *LoadStoreUnit
 	branchUnit *BranchUnit
+	simdUnit   *SIMD
+
+	// SIMD register file
+	simdRegFile *SIMDRegFile
 
 	// I/O
 	stdout io.Writer
@@ -105,6 +109,8 @@ func NewEmulator(opts ...EmulatorOption) *Emulator {
 	e.alu = NewALU(regFile)
 	e.lsu = NewLoadStoreUnit(regFile, memory)
 	e.branchUnit = NewBranchUnit(regFile)
+	e.simdRegFile = NewSIMDRegFile()
+	e.simdUnit = NewSIMD(e.simdRegFile, regFile, memory)
 
 	// If no syscall handler was provided, create a default one
 	if e.syscallHandler == nil {
@@ -124,6 +130,11 @@ func (e *Emulator) Memory() *Memory {
 	return e.memory
 }
 
+// SIMDRegFile returns the emulator's SIMD register file.
+func (e *Emulator) SIMDRegFile() *SIMDRegFile {
+	return e.simdRegFile
+}
+
 // InstructionCount returns the number of instructions executed.
 func (e *Emulator) InstructionCount() uint64 {
 	return e.instructionCount
@@ -140,6 +151,7 @@ func (e *Emulator) LoadProgram(entry uint64, program interface{}) {
 		e.memory = p
 		// Update execution units to use new memory
 		e.lsu = NewLoadStoreUnit(e.regFile, e.memory)
+		e.simdUnit = NewSIMD(e.simdRegFile, e.regFile, e.memory)
 		// Update syscall handler with new memory
 		e.syscallHandler = NewDefaultSyscallHandler(e.regFile, e.memory, e.stdout, e.stderr)
 	}
@@ -156,6 +168,8 @@ func (e *Emulator) Reset() {
 	e.alu = NewALU(e.regFile)
 	e.lsu = NewLoadStoreUnit(e.regFile, e.memory)
 	e.branchUnit = NewBranchUnit(e.regFile)
+	e.simdRegFile = NewSIMDRegFile()
+	e.simdUnit = NewSIMD(e.simdRegFile, e.regFile, e.memory)
 
 	// Recreate syscall handler
 	e.syscallHandler = NewDefaultSyscallHandler(e.regFile, e.memory, e.stdout, e.stderr)
@@ -276,6 +290,10 @@ func (e *Emulator) execute(inst *insts.Instruction) StepResult {
 	case insts.FormatCompareBranch:
 		e.executeCompareBranch(inst)
 		return StepResult{} // PC already updated by branch
+	case insts.FormatSIMDReg:
+		e.executeSIMDReg(inst)
+	case insts.FormatSIMDLoadStore:
+		e.executeSIMDLoadStore(inst)
 	default:
 		return StepResult{
 			Err: fmt.Errorf("unimplemented format %d at PC=0x%X", inst.Format, e.regFile.PC),
@@ -1176,5 +1194,45 @@ func (e *Emulator) executeCompareBranch(inst *insts.Instruction) {
 		e.regFile.PC = uint64(int64(e.regFile.PC) + inst.BranchOffset)
 	} else {
 		e.regFile.PC += 4
+	}
+}
+
+// executeSIMDReg executes SIMD data processing (three-same) instructions.
+func (e *Emulator) executeSIMDReg(inst *insts.Instruction) {
+	arr := SIMDArrangement(inst.Arrangement)
+
+	switch inst.Op {
+	case insts.OpVADD:
+		e.simdUnit.VADD(inst.Rd, inst.Rn, inst.Rm, arr)
+	case insts.OpVSUB:
+		e.simdUnit.VSUB(inst.Rd, inst.Rn, inst.Rm, arr)
+	case insts.OpVMUL:
+		e.simdUnit.VMUL(inst.Rd, inst.Rn, inst.Rm, arr)
+	case insts.OpVFADD:
+		e.simdUnit.VFADD(inst.Rd, inst.Rn, inst.Rm, arr)
+	case insts.OpVFSUB:
+		e.simdUnit.VFSUB(inst.Rd, inst.Rn, inst.Rm, arr)
+	case insts.OpVFMUL:
+		e.simdUnit.VFMUL(inst.Rd, inst.Rn, inst.Rm, arr)
+	}
+}
+
+// executeSIMDLoadStore executes SIMD load/store instructions.
+func (e *Emulator) executeSIMDLoadStore(inst *insts.Instruction) {
+	// Calculate address: base + unsigned offset
+	useSP := inst.Rn == 31
+	var base uint64
+	if useSP {
+		base = e.regFile.SP
+	} else {
+		base = e.regFile.ReadReg(inst.Rn)
+	}
+	addr := base + inst.Imm
+
+	switch inst.Op {
+	case insts.OpLDRQ:
+		e.simdUnit.LDR128(inst.Rd, addr)
+	case insts.OpSTRQ:
+		e.simdUnit.STR128(inst.Rd, addr)
 	}
 }
