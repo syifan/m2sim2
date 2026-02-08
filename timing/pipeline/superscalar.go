@@ -109,22 +109,34 @@ func canDualIssue(first, second *IDEXRegister) bool {
 		return false
 	}
 
-	// Check for RAW hazard: second reads register that first writes
+	// Check for RAW hazard: second reads register that first writes.
+	// Allow co-issue when the producer is a non-memory ALU op AND the
+	// dependency is on Rn/Rm (which have forwarding paths). Block if:
+	// - Producer is a load (result not available until MEM stage)
+	// - Consumer is a store whose value register depends on producer
+	//   (store value path doesn't support same-cycle forwarding)
 	if first.RegWrite && first.Rd != 31 {
-		// Second instruction uses first's destination as source
+		hasRAW := false
+		// Second instruction uses first's destination as source (Rn/Rm)
 		if second.Rn == first.Rd && first.Rd != 31 {
-			return false
+			hasRAW = true
 		}
 		// Only check Rm for register-format instructions.
 		// Immediate-format instructions (like ADD Xd, Xn, #imm) don't use Rm,
 		// but Rm defaults to 0, causing false RAW hazards when first.Rd == 0.
 		if second.Inst != nil && second.Inst.Format == insts.FormatDPReg {
 			if second.Rm == first.Rd && first.Rd != 31 {
-				return false
+				hasRAW = true
 			}
 		}
-		// For stores, the value register might also conflict
+		// For stores, the value register (Inst.Rd) is read through a
+		// separate path that does NOT support same-cycle forwarding.
+		// Always block co-issue for this dependency.
 		if second.MemWrite && second.Inst != nil && second.Inst.Rd == first.Rd {
+			return false
+		}
+
+		if hasRAW && first.MemRead {
 			return false
 		}
 	}
@@ -1080,19 +1092,31 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 			memOpCount++
 		}
 
-		// Check for RAW hazard: new reads register that prev writes
+		// Check for RAW hazard: new reads register that prev writes.
+		// Allow co-issue when the producer is a non-memory ALU op AND the
+		// dependency is on Rn/Rm (which have forwarding paths). Block if:
+		// - Producer is a load (result not available until MEM stage)
+		// - Consumer is a store whose value register depends on producer
+		//   (store value path doesn't support same-cycle forwarding)
 		if prev.RegWrite && prev.Rd != 31 {
+			hasRAW := false
 			if newInst.Rn == prev.Rd {
-				return false
+				hasRAW = true
 			}
 			// Only check Rm for register-format instructions
 			if newInst.Inst != nil && newInst.Inst.Format == insts.FormatDPReg {
 				if newInst.Rm == prev.Rd {
-					return false
+					hasRAW = true
 				}
 			}
-			// For stores, the value register might also conflict
+			// For stores, the value register (Inst.Rd) is read through a
+			// separate path that does NOT support same-cycle forwarding.
+			// Always block co-issue for this dependency.
 			if newInst.MemWrite && newInst.Inst != nil && newInst.Inst.Rd == prev.Rd {
+				return false
+			}
+
+			if hasRAW && prev.MemRead {
 				return false
 			}
 		}

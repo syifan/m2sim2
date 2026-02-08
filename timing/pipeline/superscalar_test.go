@@ -77,10 +77,26 @@ var _ = Describe("Superscalar Pipeline", func() {
 			Expect(regFile.ReadReg(3)).To(Equal(uint64(40)))
 		})
 
-		It("should handle RAW dependency by serializing", func() {
+		It("should co-issue ALU RAW dependency with forwarding", func() {
 			// ADD X0, XZR, #10  ; X0 = 10
-			// ADD X1, X0, #5    ; X1 = X0 + 5 (RAW dependency - cannot dual issue)
+			// ADD X1, X0, #5    ; X1 = X0 + 5 (RAW dependency, but ALU result forwarded same cycle)
 			memory.Write32(0x1000, 0x910029E0) // ADD X0, XZR, #10
+			memory.Write32(0x1004, 0x91001401) // ADD X1, X0, #5
+			memory.Write32(0x1008, 0xD4000001) // SVC #0
+
+			pipe.SetPC(0x1000)
+			pipe.Run()
+
+			Expect(regFile.ReadReg(0)).To(Equal(uint64(10)))
+			Expect(regFile.ReadReg(1)).To(Equal(uint64(15)))
+		})
+
+		It("should block co-issue for load-dependent RAW hazard", func() {
+			// LDR X0, [X10]     ; load X0 from memory (result not available until MEM)
+			// ADD X1, X0, #5    ; X1 = X0 + 5 (load-use hazard - cannot co-issue)
+			memory.Write64(0x2000, 10)
+			regFile.WriteReg(10, 0x2000)
+			memory.Write32(0x1000, 0xF9400140) // LDR X0, [X10]
 			memory.Write32(0x1004, 0x91001401) // ADD X1, X0, #5
 			memory.Write32(0x1008, 0xD4000001) // SVC #0
 
