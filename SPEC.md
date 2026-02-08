@@ -151,14 +151,17 @@ SPEC benchmarks will likely exercise ARM64 instructions not yet implemented. Exp
 
 **Important distinction (issue #354):** "Simulation time" = wall-clock time to run the simulator. "Virtual time" = the predicted execution time on the simulated M2 hardware. Our accuracy target is about virtual time matching real hardware.
 
-**Current microbenchmark baseline:**
+**Current microbenchmark accuracy (CI run after PR #372):**
 
-| Benchmark | Sim CPI | M2 CPI | Error |
-|-----------|---------|--------|-------|
-| arithmetic_sequential | 0.400 | 0.268 | 49.3% |
-| dependency_chain | 1.200 | 1.009 | 18.9% |
-| branch_taken_conditional | 1.600 | 1.190 | 34.5% |
-| **Average** | — | — | **34.2%** |
+| Benchmark | Sim (ns/inst) | M2 (ns/inst) | Error |
+|-----------|---------------|--------------|-------|
+| arithmetic | 0.1143 | 0.0845 | 35.2% |
+| dependency | 0.3429 | 0.3108 | 10.3% |
+| branch | 0.4571 | 0.3724 | 22.7% |
+| **Average** | — | — | **22.8%** |
+
+Error formula: `abs(t_sim - t_real) / min(t_sim, t_real)`. Target: <20% average.
+Previous baseline was 34.2% average. Branch penalty fix (14→12) dropped it to 22.8%.
 
 #### H3.1: Calibration Infrastructure ✅ COMPLETE
 - [x] H3 calibration framework deployed (PR #321 merged)
