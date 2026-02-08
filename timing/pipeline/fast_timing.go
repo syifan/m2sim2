@@ -32,16 +32,6 @@ type FastTiming struct {
 
 	// Unhandled instruction tracking
 	unhandledCount uint64
-
-	// Simple latency tracking - instructions that complete in future cycles
-	pendingOps []DelayedOp
-}
-
-// DelayedOp represents an instruction that completes after a delay.
-type DelayedOp struct {
-	completeCycle uint64
-	writeReg      uint8
-	writeValue    uint64
 }
 
 // FastTimingOption configures fast timing simulation.
@@ -63,8 +53,7 @@ func NewFastTiming(regFile *emu.RegFile, memory *emu.Memory, latencyTable *laten
 		decoder:         insts.NewDecoder(),
 		latencyTable:    latencyTable,
 		syscallHandler:  syscallHandler,
-		pendingOps:      make([]DelayedOp, 0, 8), // Pre-allocate small buffer
-		maxInstructions: 0,                       // Default: no limit
+		maxInstructions: 0, // Default: no limit
 	}
 
 	// Apply options
@@ -106,9 +95,6 @@ func (ft *FastTiming) Tick() {
 
 	ft.cycleCount++
 
-	// Complete any pending operations
-	ft.completePendingOps()
-
 	// Fetch and execute instruction
 	word := ft.memory.Read32(ft.PC)
 	inst := ft.decoder.Decode(word)
@@ -125,24 +111,6 @@ func (ft *FastTiming) Tick() {
 	ft.instrCount++
 }
 
-// completePendingOps completes operations that finish in this cycle.
-func (ft *FastTiming) completePendingOps() {
-	// Process operations in reverse order to avoid index shifting
-	for i := len(ft.pendingOps) - 1; i >= 0; i-- {
-		op := ft.pendingOps[i]
-		if op.completeCycle <= ft.cycleCount {
-			// Complete the operation
-			if op.writeReg != 31 { // Not XZR
-				ft.regFile.WriteReg(op.writeReg, op.writeValue)
-			}
-
-			// Remove completed operation
-			ft.pendingOps[i] = ft.pendingOps[len(ft.pendingOps)-1]
-			ft.pendingOps = ft.pendingOps[:len(ft.pendingOps)-1]
-		}
-	}
-}
-
 // executeInstruction executes an instruction with simplified timing.
 //
 //nolint:gocyclo // Large switch over instruction opcodes is inherent to instruction dispatch.
@@ -150,7 +118,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 	writeReg := uint8(31) // XZR (no write)
 	var writeValue uint64
 	var instLatency uint64
-	needsDelay := false
 
 	// Read operands
 	rnValue := ft.regFile.ReadReg(inst.Rn)
@@ -164,7 +131,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		if inst.SetFlags {
 			ft.updateFlagsAdd(rnValue, writeValue-rnValue, writeValue, inst.Is64Bit)
 		}
-		needsDelay = (instLatency > 1)
 
 	case insts.OpSUB:
 		instLatency = ft.latencyTable.GetLatency(inst)
@@ -180,7 +146,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		if inst.SetFlags {
 			ft.updateFlagsSub(rnValue, operand, writeValue, inst.Is64Bit)
 		}
-		needsDelay = (instLatency > 1)
 
 	case insts.OpLDR:
 		instLatency = ft.latencyTable.GetLatency(inst)
@@ -202,7 +167,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 			addr = rnValue + uint64(int64(inst.Imm))
 			writeValue = ft.memory.Read64(addr)
 		}
-		needsDelay = true
 
 	case insts.OpSTR:
 		storeValue := ft.regFile.ReadReg(inst.Rd)
@@ -279,8 +243,7 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 
 	case insts.OpBL:
 		ft.regFile.WriteReg(30, pc+4)
-		offset := int64(inst.Imm) << 2
-		ft.PC = uint64(int64(pc) + offset)
+		ft.PC = uint64(int64(pc) + inst.BranchOffset)
 		return
 
 	case insts.OpAND:
@@ -297,7 +260,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		if inst.SetFlags {
 			ft.updateFlagsLogical(writeValue, inst.Is64Bit)
 		}
-		needsDelay = (instLatency > 1)
 
 	case insts.OpORR:
 		instLatency = ft.latencyTable.GetLatency(inst)
@@ -310,7 +272,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		default:
 			writeValue = rnValue | inst.Imm
 		}
-		needsDelay = (instLatency > 1)
 
 	case insts.OpEOR:
 		instLatency = ft.latencyTable.GetLatency(inst)
@@ -323,7 +284,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		default:
 			writeValue = rnValue ^ inst.Imm
 		}
-		needsDelay = (instLatency > 1)
 
 	case insts.OpRET:
 		targetAddr := ft.regFile.ReadReg(30)
@@ -335,14 +295,12 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		raValue := ft.regFile.ReadReg(inst.Rt2) // Ra stored in Rt2
 		writeReg = inst.Rd
 		writeValue = raValue + rnValue*rmValue
-		needsDelay = (instLatency > 1)
 
 	case insts.OpMSUB:
 		instLatency = ft.latencyTable.GetLatency(inst)
 		raValue := ft.regFile.ReadReg(inst.Rt2) // Ra stored in Rt2
 		writeReg = inst.Rd
 		writeValue = raValue - rnValue*rmValue
-		needsDelay = (instLatency > 1)
 
 	case insts.OpCSEL:
 		writeReg = inst.Rd
@@ -495,7 +453,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		writeReg = inst.Rd
 		addr := rnValue + uint64(int64(inst.Imm))
 		writeValue = uint64(ft.memory.Read8(addr))
-		needsDelay = true
 
 	case insts.OpSTRB:
 		addr := rnValue + uint64(int64(inst.Imm))
@@ -507,7 +464,6 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		writeReg = inst.Rd
 		addr := rnValue + uint64(int64(inst.Imm))
 		writeValue = uint64(ft.memory.Read16(addr))
-		needsDelay = true
 
 	case insts.OpSTRH:
 		addr := rnValue + uint64(int64(inst.Imm))
@@ -519,22 +475,20 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		writeReg = inst.Rd
 		addr := rnValue + uint64(int64(inst.Imm))
 		writeValue = uint64(int64(int32(ft.memory.Read32(addr))))
-		needsDelay = true
 
 	default:
 		// Unhandled opcode — treat as 1-cycle NOP but count it
 		ft.unhandledCount++
 	}
 
-	// Handle instruction completion
-	if needsDelay && writeReg != 31 {
-		ft.pendingOps = append(ft.pendingOps, DelayedOp{
-			completeCycle: ft.cycleCount + instLatency,
-			writeReg:      writeReg,
-			writeValue:    writeValue,
-		})
-	} else if writeReg != 31 {
+	// Handle instruction completion — write results immediately for
+	// correctness (fast timing has no stall/forwarding model), but account
+	// for multi-cycle latency in the cycle count.
+	if writeReg != 31 {
 		ft.regFile.WriteReg(writeReg, writeValue)
+	}
+	if instLatency > 1 {
+		ft.cycleCount += instLatency - 1 // -1 because Tick already counted 1
 	}
 
 	// Advance PC
@@ -612,9 +566,7 @@ func (ft *FastTiming) updateFlagsLogical(result uint64, is64 bool) {
 
 // handleBranch processes unconditional branch instructions.
 func (ft *FastTiming) handleBranch(inst *insts.Instruction, pc uint64) {
-	offset := int64(inst.Imm)
-	target := uint64(int64(pc) + offset)
-	ft.PC = target
+	ft.PC = uint64(int64(pc) + inst.BranchOffset)
 }
 
 // handleConditionalBranch processes conditional branch instructions.
@@ -622,8 +574,7 @@ func (ft *FastTiming) handleConditionalBranch(inst *insts.Instruction, pc uint64
 	taken := ft.evaluateCondition(uint8(inst.Cond))
 
 	if taken {
-		offset := int64(inst.Imm) << 2
-		ft.PC = uint64(int64(pc) + offset)
+		ft.PC = uint64(int64(pc) + inst.BranchOffset)
 	} else {
 		ft.PC += 4
 	}
