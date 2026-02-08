@@ -149,14 +149,9 @@ SPEC benchmarks will likely exercise ARM64 instructions not yet implemented. Exp
 
 **Goal:** Achieve <20% average CPI error on SPEC benchmarks vs real M2 hardware.
 
-**Strategy:** Dual-track calibration approach - immediate microbenchmark measurements while enabling medium-scale calibration.
+**Important distinction (issue #354):** "Simulation time" = wall-clock time to run the simulator. "Virtual time" = the predicted execution time on the simulated M2 hardware. Our accuracy target is about virtual time matching real hardware.
 
-**Current Status (Cycle 235):**
-- ✅ **Infrastructure Complete**: H3 calibration framework approved and ready to merge (PR #321)
-- ✅ **SIMD Foundation**: DUP instruction implemented and validated by QA (issue #322 closed)
-- 🚧 **Active Execution**: MRS system instruction (issue #324) + microbenchmark ELF compilation (issue #320)
-
-**Current microbenchmark baseline (cycle 230):**
+**Current microbenchmark baseline:**
 
 | Benchmark | Sim CPI | M2 CPI | Error |
 |-----------|---------|--------|-------|
@@ -165,28 +160,32 @@ SPEC benchmarks will likely exercise ARM64 instructions not yet implemented. Exp
 | branch_taken_conditional | 1.600 | 1.190 | 34.5% |
 | **Average** | — | — | **34.2%** |
 
-#### H3.1: Immediate Calibration Launch (~10-15 cycles) 🚧 IN PROGRESS
-- [x] H3 calibration framework ready (PR #321 approved)
-- [ ] Microbenchmark ARM64 ELF recompilation (issue #320)
-- [ ] Baseline accuracy measurements collection
-- [ ] Calibration methodology verification
+#### H3.1: Calibration Infrastructure ✅ COMPLETE
+- [x] H3 calibration framework deployed (PR #321 merged)
+- [x] SIMD DUP + MRS system instructions implemented (PR #321)
+- [x] Matrix multiply benchmark created (PR #315)
+- [x] Microbenchmark ARM64 ELF compilation complete
 
-#### H3.2: Medium-Scale Calibration (~15-25 cycles) 🚧 IN PROGRESS
-- [x] SIMD DUP instruction implemented (issue #322 closed)
-- [ ] MRS system instruction implementation (issue #324)
-- [ ] Matrix multiply benchmark completion
-- [ ] Medium-scale accuracy data collection
-- [ ] Cross-scale calibration comparison
+#### H3.2: Fast Timing Mode & Calibration 🚧 IN PROGRESS
+The full pipeline timing simulation is ~30,000x slower than emulation, making iterative calibration impractical. A "fast timing" mode was developed locally (unmerged) to approximate cycle counts without full pipeline simulation.
 
-#### H3.3: Advanced Calibration Tuning (~50-100 cycles)
-- [ ] Full 8-wide execution modeling
-- [ ] Out-of-order execution refinements
-- [ ] Memory latency calibration
-- [ ] Target: <20% average error across all scales
+**Status:**
+- [x] Fast timing prototype created (`timing/pipeline/fast_timing.go` — local, not yet in a PR)
+- [x] Instruction limit support added
+- [ ] **Submit fast timing as PR and get it merged** (blocking all calibration work)
+- [ ] Run matrix multiply with fast timing, collect CPI data
+- [ ] Compare fast timing CPI vs full timing CPI vs M2 hardware CPI
+- [ ] Clearly label outputs: simulation speed vs virtual (predicted) time (issue #354)
 
-#### H3.4: SPEC-level calibration (~100+ cycles)
-- [ ] Run SPEC benchmarks in CI with timing, compare to M2 hardware
-- [ ] Tune parameters to minimize error
+#### H3.3: Parameter Tuning ⬜ BLOCKED on H3.2
+- [ ] Identify which timing parameters cause the largest CPI errors
+- [ ] Tune latency table values based on calibration data
+- [ ] Multi-scale validation (64x64 → 256x256 matrix multiply)
+- [ ] Target: <20% average error on microbenchmarks + medium benchmarks
+
+#### H3.4: SPEC-level calibration ⬜ NOT STARTED
+- [ ] Set up CI workflow for long-running SPEC benchmark timing (issue #307)
+- [ ] Run SPEC benchmarks with timing, compare to M2 hardware
 - [ ] All benchmarks <30% individual error, <20% average
 
 ---
