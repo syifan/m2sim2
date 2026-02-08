@@ -10,10 +10,8 @@ import (
 )
 
 // TestMatrixMultiplyBenchmark tests the matrix multiply benchmark execution.
-// TODO: Currently disabled due to missing SIMD instruction support (dup v0.16b)
-// Re-enable once M2Sim instruction decoder supports SIMD instructions used by libc memset.
+// Now enabled after implementing DUP SIMD instruction and MRS system instruction support.
 func TestMatrixMultiplyBenchmark(t *testing.T) {
-	t.Skip("Matrix multiply benchmark requires SIMD instruction support (dup v0.16b) not yet implemented in M2Sim")
 
 	// Load the matrix multiply benchmark
 	prog, err := loader.Load("medium/matmul")

@@ -336,3 +336,67 @@ func (s *SIMD) STR128(vd uint8, addr uint64) {
 	s.memory.Write64(addr, low)
 	s.memory.Write64(addr+8, high)
 }
+
+// DUP duplicates a scalar register value into all elements of a vector register.
+// The scalar comes from a general purpose register (accessed via regFile).
+func (s *SIMD) DUP(vd uint8, rn uint8, arrangement SIMDArrangement) {
+	// Read the scalar value from the general purpose register
+	// For byte/halfword/word operations, use the lower bits of the register
+	scalarValue := s.regFile.ReadReg(rn)
+
+	switch arrangement {
+	case Arr8B:
+		// Duplicate byte (lower 8 bits) into 8 lanes of D register
+		byteVal := uint8(scalarValue)
+		for i := 0; i < 8; i++ {
+			s.simdRegFile.WriteLane8(vd, uint8(i), byteVal)
+		}
+		// Clear upper 64 bits
+		s.simdRegFile.WriteLane64(vd, 1, 0)
+
+	case Arr16B:
+		// Duplicate byte (lower 8 bits) into 16 lanes of Q register
+		byteVal := uint8(scalarValue)
+		for i := 0; i < 16; i++ {
+			s.simdRegFile.WriteLane8(vd, uint8(i), byteVal)
+		}
+
+	case Arr4H:
+		// Duplicate halfword (lower 16 bits) into 4 lanes of D register
+		halfwordVal := uint16(scalarValue)
+		for i := 0; i < 4; i++ {
+			s.simdRegFile.WriteLane16(vd, uint8(i), halfwordVal)
+		}
+		// Clear upper 64 bits
+		s.simdRegFile.WriteLane64(vd, 1, 0)
+
+	case Arr8H:
+		// Duplicate halfword (lower 16 bits) into 8 lanes of Q register
+		halfwordVal := uint16(scalarValue)
+		for i := 0; i < 8; i++ {
+			s.simdRegFile.WriteLane16(vd, uint8(i), halfwordVal)
+		}
+
+	case Arr2S:
+		// Duplicate word (lower 32 bits) into 2 lanes of D register
+		wordVal := uint32(scalarValue)
+		for i := 0; i < 2; i++ {
+			s.simdRegFile.WriteLane32(vd, uint8(i), wordVal)
+		}
+		// Clear upper 64 bits
+		s.simdRegFile.WriteLane64(vd, 1, 0)
+
+	case Arr4S:
+		// Duplicate word (lower 32 bits) into 4 lanes of Q register
+		wordVal := uint32(scalarValue)
+		for i := 0; i < 4; i++ {
+			s.simdRegFile.WriteLane32(vd, uint8(i), wordVal)
+		}
+
+	case Arr2D:
+		// Duplicate doubleword (full 64 bits) into 2 lanes of Q register
+		for i := 0; i < 2; i++ {
+			s.simdRegFile.WriteLane64(vd, uint8(i), scalarValue)
+		}
+	}
+}

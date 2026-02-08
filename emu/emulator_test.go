@@ -542,6 +542,38 @@ var _ = Describe("Emulator SIMD Dispatch", func() {
 	})
 })
 
+var _ = Describe("MRS System Register Instructions", func() {
+	var (
+		e *emu.Emulator
+	)
+
+	BeforeEach(func() {
+		e = emu.NewEmulator()
+	})
+
+	It("should execute MRS DCZID_EL0 instruction correctly", func() {
+		// Encode: mrs x5, dczid_el0 (0xd53b00e5)
+		program := []byte{0xe5, 0x00, 0x3b, 0xd5} // Little-endian encoding
+
+		e.LoadProgram(0x1000, program)
+
+		// Execute the MRS instruction
+		result := e.Step()
+
+		// Check that execution succeeded (no error)
+		Expect(result.Err).To(BeNil())
+		Expect(result.Exited).To(BeFalse())
+
+		// Check that x5 register was set correctly
+		// DCZID_EL0 should return 0x60 (BS=6 for 64-byte cache lines, DZP=0)
+		x5Value := e.RegFile().ReadReg(5)
+		Expect(x5Value).To(Equal(uint64(0x60)))
+
+		// Check that PC was advanced correctly
+		Expect(e.RegFile().PC).To(Equal(uint64(0x1004)))
+	})
+})
+
 func encodeSVC(imm uint16) uint32 {
 	var inst uint32 = 0
 	inst |= 0b11010100 << 24

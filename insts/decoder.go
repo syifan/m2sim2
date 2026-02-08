@@ -51,6 +51,7 @@ const (
 	OpVFADD // Vector floating-point ADD
 	OpVFSUB // Vector floating-point SUB
 	OpVFMUL // Vector floating-point MUL
+	OpDUP   // Duplicate scalar to vector
 	// Conditional select opcodes
 	OpCSEL  // Conditional select
 	OpCSINC // Conditional select increment
@@ -83,6 +84,8 @@ const (
 	OpNOP  // No operation (HINT #0)
 	// Extract register opcode
 	OpEXTR // Extract register (bitfield from register pair)
+	// System register opcodes
+	OpMRS  // Move from system register
 )
 
 // Format represents an instruction encoding format.
@@ -104,6 +107,7 @@ const (
 	FormatException            // Exception Generation (SVC, HVC, SMC, BRK)
 	FormatSIMDReg              // SIMD Data Processing (Register)
 	FormatSIMDLoadStore        // SIMD Load/Store
+	FormatSIMDCopy             // SIMD Copy (DUP, MOV, etc.)
 	FormatCondSelect           // Conditional Select (CSEL, CSINC, etc.)
 	FormatDataProc2Src         // Data Processing (2 source) - UDIV, SDIV
 	FormatDataProc3Src         // Data Processing (3 source) - MADD, MSUB
@@ -113,6 +117,7 @@ const (
 	FormatBitfield             // Bitfield (SBFM, BFM, UBFM / ASR, LSL, LSR imm)
 	FormatCondCmp              // Conditional compare (CCMP, CCMN)
 	FormatExtract              // Extract register (EXTR)
+	FormatSystemReg            // System register operations (MRS, MSR)
 )
 
 // Cond represents an ARM64 condition code.
@@ -208,6 +213,9 @@ type Instruction struct {
 	IsSIMD      bool            // true if this is a SIMD instruction
 	Arrangement SIMDArrangement // Vector arrangement (8B, 16B, 4H, etc.)
 	IsFloat     bool            // true for floating-point SIMD ops
+
+	// System register fields
+	SysReg uint16 // System register encoding for MRS/MSR
 }
 
 // Decoder decodes ARM64 machine code into instructions.
@@ -232,6 +240,8 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		d.decodeSIMDLoadStore(word, inst)
 	case d.isSIMDThreeSame(word):
 		d.decodeSIMDThreeSame(word, inst)
+	case d.isSIMDCopy(word):
+		d.decodeSIMDCopy(word, inst)
 	case d.isLoadStorePair(word):
 		d.decodeLoadStorePair(word, inst)
 	case d.isLoadStoreLiteral(word):
@@ -278,6 +288,8 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		d.decodeNOP(word, inst)
 	case d.isException(word):
 		d.decodeException(word, inst)
+	case d.isSystemReg(word):
+		d.decodeSystemReg(word, inst)
 	default:
 		// Unknown instruction
 		_ = op0 // unused, but extracted for future expansion
@@ -673,11 +685,12 @@ func (d *Decoder) decodeSIMDLoadStore(word uint32, inst *Instruction) {
 
 // isSIMDThreeSame checks for SIMD Three Same instructions (ADD, SUB, MUL, etc.).
 // Format: 0 | Q | U | 01110 | size | 1 | Rm | opcode | 1 | Rn | Rd
-// bits [31] = 0, bits [28:24] = 0b01110
+// bits [31] = 0, bits [28:24] = 0b01110, bit [21] = 1
 func (d *Decoder) isSIMDThreeSame(word uint32) bool {
 	bit31 := (word >> 31) & 0x1
 	op := (word >> 24) & 0x1F // bits [28:24]
-	return bit31 == 0 && op == 0b01110
+	bit21 := (word >> 21) & 0x1 // bit 21 must be 1 for three-same
+	return bit31 == 0 && op == 0b01110 && bit21 == 1
 }
 
 // decodeSIMDThreeSame decodes SIMD Three Same instructions.
@@ -1600,4 +1613,101 @@ func (d *Decoder) decodeCompareBranch(word uint32, inst *Instruction) {
 	} else {
 		inst.Op = OpCBNZ
 	}
+}
+
+// isSIMDCopy checks for SIMD copy instructions (DUP).
+// DUP (general register): 0 | Q | 001110 | 0 | 0 | 0 | imm5 | 000011 | Rn | Rd
+// bits [31:24] == 0b01001110, bit 21 == 0, bits [15:10] == 0b000011
+func (d *Decoder) isSIMDCopy(word uint32) bool {
+	op := (word >> 24) & 0xFF    // bits [31:24]
+	bit21 := (word >> 21) & 0x1  // bit 21
+	op2 := (word >> 10) & 0x3F   // bits [15:10]
+	return op == 0b01001110 && bit21 == 0 && op2 == 0b000011
+}
+
+// decodeSIMDCopy decodes SIMD copy instructions like DUP.
+// Format: 0 | Q | 001110000 | imm5 | 000011 | Rn | Rd
+// Q[30]: 0=64-bit (D), 1=128-bit (Q)
+// imm5[20:16]: encodes element size and target arrangement
+// Rn[9:5]: source general register
+// Rd[4:0]: destination SIMD register
+func (d *Decoder) decodeSIMDCopy(word uint32, inst *Instruction) {
+	inst.Format = FormatSIMDCopy
+	inst.IsSIMD = true
+	inst.Op = OpDUP
+
+	q := (word >> 30) & 0x1       // bit 30: 0=64-bit, 1=128-bit
+	imm5 := (word >> 16) & 0x1F   // bits [20:16]
+	rn := (word >> 5) & 0x1F      // bits [9:5]
+	rd := word & 0x1F             // bits [4:0]
+
+	inst.Rd = uint8(rd)    // SIMD destination register
+	inst.Rn = uint8(rn)    // General purpose source register
+	inst.Is64Bit = q == 1  // 128-bit (Q) vs 64-bit (D)
+
+	// Decode element size from imm5
+	// imm5[0]: if 1, then 8-bit elements (byte)
+	// imm5[1]: if 1 and imm5[0]==0, then 16-bit elements (halfword)
+	// imm5[2]: if 1 and imm5[1:0]==00, then 32-bit elements (word)
+	// imm5[3]: if 1 and imm5[2:0]==000, then 64-bit elements (doubleword)
+
+	if imm5&0x1 != 0 {
+		// 8-bit elements (byte)
+		if q == 1 {
+			inst.Arrangement = Arr16B // 16 bytes for Q register
+		} else {
+			inst.Arrangement = Arr8B  // 8 bytes for D register
+		}
+	} else if imm5&0x2 != 0 {
+		// 16-bit elements (halfword)
+		if q == 1 {
+			inst.Arrangement = Arr8H // 8 halfwords for Q register
+		} else {
+			inst.Arrangement = Arr4H // 4 halfwords for D register
+		}
+	} else if imm5&0x4 != 0 {
+		// 32-bit elements (word)
+		if q == 1 {
+			inst.Arrangement = Arr4S // 4 singles for Q register
+		} else {
+			inst.Arrangement = Arr2S // 2 singles for D register
+		}
+	} else if imm5&0x8 != 0 {
+		// 64-bit elements (doubleword) - only valid for Q register
+		if q == 1 {
+			inst.Arrangement = Arr2D // 2 doubles for Q register
+		} else {
+			// Invalid: 64-bit elements in D register
+			inst.Op = OpUnknown
+		}
+	} else {
+		// Invalid imm5 encoding
+		inst.Op = OpUnknown
+	}
+
+	// Store element size info in Imm for execution
+	inst.Imm = uint64(imm5)
+}
+
+// isSystemReg checks for system register instructions (MRS).
+// MRS pattern: 1101010100 | L | 1 | o0:o1:o2:op1:CRn:CRm:op2 | Rt
+// bits [31:21] == 0b11010101001 and L=1 for MRS (0xD53)
+func (d *Decoder) isSystemReg(word uint32) bool {
+	op := (word >> 20) & 0xFFF // bits [31:20]
+	return op == 0xD53 // MRS has L=1, so 0xD53 instead of 0xD51
+}
+
+// decodeSystemReg decodes system register instructions (MRS).
+// MRS format: 1101010100 | 1 | S:S:imm4:CRn:CRm:imm3 | Rt
+func (d *Decoder) decodeSystemReg(word uint32, inst *Instruction) {
+	inst.Format = FormatSystemReg
+	inst.Op = OpMRS
+	inst.Is64Bit = true // MRS always operates on 64-bit X registers
+
+	// Extract fields
+	rt := word & 0x1F                // bits [4:0] - destination register
+	sysreg := (word >> 5) & 0x7FFF   // bits [19:5] - system register encoding
+
+	inst.Rd = uint8(rt)
+	inst.SysReg = uint16(sysreg)
 }

@@ -294,6 +294,10 @@ func (e *Emulator) execute(inst *insts.Instruction) StepResult {
 		e.executeSIMDReg(inst)
 	case insts.FormatSIMDLoadStore:
 		e.executeSIMDLoadStore(inst)
+	case insts.FormatSIMDCopy:
+		e.executeSIMDCopy(inst)
+	case insts.FormatSystemReg:
+		e.executeSystemReg(inst)
 	default:
 		return StepResult{
 			Err: fmt.Errorf("unimplemented format %d at PC=0x%X", inst.Format, e.regFile.PC),
@@ -1234,5 +1238,40 @@ func (e *Emulator) executeSIMDLoadStore(inst *insts.Instruction) {
 		e.simdUnit.LDR128(inst.Rd, addr)
 	case insts.OpSTRQ:
 		e.simdUnit.STR128(inst.Rd, addr)
+	}
+}
+
+// executeSIMDCopy executes SIMD copy instructions like DUP.
+func (e *Emulator) executeSIMDCopy(inst *insts.Instruction) {
+	arr := SIMDArrangement(inst.Arrangement)
+
+	switch inst.Op {
+	case insts.OpDUP:
+		e.simdUnit.DUP(inst.Rd, inst.Rn, arr)
+	}
+}
+
+// executeSystemReg executes system register instructions like MRS.
+func (e *Emulator) executeSystemReg(inst *insts.Instruction) {
+	switch inst.Op {
+	case insts.OpMRS:
+		e.executeMRS(inst)
+	}
+}
+
+// executeMRS executes MRS (Move from System Register) instructions.
+func (e *Emulator) executeMRS(inst *insts.Instruction) {
+	// Handle specific system registers
+	switch inst.SysReg {
+	case 0x5807: // DCZID_EL0 - Data Cache Zero ID register (actual encoding from instruction)
+		// DCZID_EL0[3:0] = DZP (Data Zero Prohibited)
+		// DCZID_EL0[7:4] = BS (Block Size) - log2 of cache line size
+		// Set BS=6 for 64-byte cache lines (2^6 = 64), DZP=0
+		value := uint64(0x60) // BS=6 (64-byte lines), DZP=0
+		e.regFile.WriteReg(inst.Rd, value)
+	default:
+		// For unknown system registers, return 0
+		// This is a common approach in simulators
+		e.regFile.WriteReg(inst.Rd, 0)
 	}
 }

@@ -84,6 +84,21 @@ This document tracks ARM64 instructions and syscalls supported by M2Sim.
 | LDR Q       | Load 128-bit vector register | ✅ | ✅ |
 | STR Q       | Store 128-bit vector register | ✅ | ✅ |
 
+### SIMD Copy Instructions
+
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| DUP         | Duplicate scalar to vector | ✅ | ✅ |
+
+### System Instructions
+
+| Instruction | Description | Decoder | Emulator |
+|-------------|-------------|---------|----------|
+| MRS         | Move from system register | ✅ | ✅ |
+
+**Supported System Registers:**
+- **DCZID_EL0**: Data Cache Zero ID register - Returns cache line size information (64-byte cache lines)
+
 ## Supported Syscalls
 
 The driver package emulates ARM64 Linux syscalls:
@@ -129,6 +144,8 @@ The driver package emulates ARM64 Linux syscalls:
 - **FormatLoadStore**: Load/Store with Immediate Offset
 - **FormatSIMDReg**: SIMD Data Processing (Register)
 - **FormatSIMDLoadStore**: SIMD Load/Store
+- **FormatSIMDCopy**: SIMD Copy (DUP, MOV, etc.)
+- **FormatSystemReg**: System Register Operations (MRS, MSR)
 
 ## Known Limitations
 

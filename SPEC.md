@@ -149,9 +149,12 @@ SPEC benchmarks will likely exercise ARM64 instructions not yet implemented. Exp
 
 **Goal:** Achieve <20% average CPI error on SPEC benchmarks vs real M2 hardware.
 
-**Strategy:** Start calibration on microbenchmarks first, then expand to medium benchmarks (matrix multiply), then SPEC. Per human guidance, going directly to SPEC calibration is too large a step.
+**Strategy:** Dual-track calibration approach - immediate microbenchmark measurements while enabling medium-scale calibration.
 
-**Current Priority:** Begin calibration work on matrix multiply benchmark (issue #316) - first medium-scale calibration target.
+**Current Status (Cycle 235):**
+- ✅ **Infrastructure Complete**: H3 calibration framework approved and ready to merge (PR #321)
+- ✅ **SIMD Foundation**: DUP instruction implemented and validated by QA (issue #322 closed)
+- 🚧 **Active Execution**: MRS system instruction (issue #324) + microbenchmark ELF compilation (issue #320)
 
 **Current microbenchmark baseline (cycle 230):**
 
@@ -162,18 +165,26 @@ SPEC benchmarks will likely exercise ARM64 instructions not yet implemented. Exp
 | branch_taken_conditional | 1.600 | 1.190 | 34.5% |
 | **Average** | — | — | **34.2%** |
 
-#### H3.1: Microbenchmark calibration (~50-100 cycles)
-- [ ] Full 8-wide execution (expected: 49.3% → ~28% arithmetic error)
-- [ ] Out-of-order execution modeling
+#### H3.1: Immediate Calibration Launch (~10-15 cycles) 🚧 IN PROGRESS
+- [x] H3 calibration framework ready (PR #321 approved)
+- [ ] Microbenchmark ARM64 ELF recompilation (issue #320)
+- [ ] Baseline accuracy measurements collection
+- [ ] Calibration methodology verification
+
+#### H3.2: Medium-Scale Calibration (~15-25 cycles) 🚧 IN PROGRESS
+- [x] SIMD DUP instruction implemented (issue #322 closed)
+- [ ] MRS system instruction implementation (issue #324)
+- [ ] Matrix multiply benchmark completion
+- [ ] Medium-scale accuracy data collection
+- [ ] Cross-scale calibration comparison
+
+#### H3.3: Advanced Calibration Tuning (~50-100 cycles)
+- [ ] Full 8-wide execution modeling
+- [ ] Out-of-order execution refinements
 - [ ] Memory latency calibration
-- [ ] Target: <20% average error on microbenchmark suite
+- [ ] Target: <20% average error across all scales
 
-#### H3.2: Medium benchmark calibration (~50-100 cycles)
-- [ ] Run medium benchmarks with timing, compare to M2 hardware
-- [ ] Tune parameters across diverse workloads
-- [ ] Identify systematic error patterns
-
-#### H3.3: SPEC-level calibration (~100+ cycles)
+#### H3.4: SPEC-level calibration (~100+ cycles)
 - [ ] Run SPEC benchmarks in CI with timing, compare to M2 hardware
 - [ ] Tune parameters to minimize error
 - [ ] All benchmarks <30% individual error, <20% average
