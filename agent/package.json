@@ -1,8 +1,0 @@
-{
-  "name": "ml-perf-survey-orchestrator",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "yaml": "^2.3.4"
-  }
-}
