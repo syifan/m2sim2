@@ -77,8 +77,8 @@ func TestDependencyChain(t *testing.T) {
 	}
 
 	r := results[0]
-	if r.ExitCode != 20 {
-		t.Errorf("expected exit code 20, got %d", r.ExitCode)
+	if r.ExitCode != 200 {
+		t.Errorf("expected exit code 200, got %d", r.ExitCode)
 	}
 
 	t.Logf("dependency_chain: cycles=%d, insts=%d, CPI=%.3f",

@@ -178,16 +178,20 @@ func arithmetic8Wide() Benchmark {
 }
 
 // 2. Dependency Chain - Tests instruction latency with RAW hazards
+// Uses 200 instructions to amortize pipeline fill/drain overhead (~2% vs ~20%
+// with 20 instructions). Real M2 measures steady-state CPI via regression over
+// millions of iterations, so our benchmark needs enough instructions to make
+// pipeline startup cost negligible.
 func dependencyChain() Benchmark {
 	return Benchmark{
 		Name:        "dependency_chain",
-		Description: "20 dependent ADDs (X0 = X0 + 1) - measures forwarding latency",
+		Description: "200 dependent ADDs (X0 = X0 + 1) - measures forwarding latency",
 		Setup: func(regFile *emu.RegFile, memory *emu.Memory) {
 			regFile.WriteReg(8, 93) // X8 = 93 (exit syscall)
 			regFile.WriteReg(0, 0)  // X0 = 0 (start value)
 		},
-		Program:      buildDependencyChain(20),
-		ExpectedExit: 20, // X0 = 0 + 20*1 = 20
+		Program:      buildDependencyChain(200),
+		ExpectedExit: 200, // X0 = 0 + 200*1 = 200
 	}
 }
 
