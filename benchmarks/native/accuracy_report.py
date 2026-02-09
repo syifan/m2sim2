@@ -376,13 +376,68 @@ def generate_markdown_report(
     print(f"Report saved to: {output_path}")
 
 
+def generate_normalized_chart(comparisons: List[BenchmarkComparison], output_path: Path):
+    """Generate a normalized cycles bar chart.
+
+    Shows the ratio of sim_latency_ns / real_latency_ns for each benchmark.
+    A ratio of 1.0 indicates perfect prediction.
+    """
+    if not HAS_MATPLOTLIB:
+        print("Skipping normalized chart generation (matplotlib not available)")
+        return
+
+    # Calculate normalized ratios
+    names = [c.name for c in comparisons]
+    ratios = [c.sim_latency_ns / c.real_latency_ns for c in comparisons]
+
+    # Determine bar colors based on accuracy thresholds
+    colors = []
+    for ratio in ratios:
+        if 0.8 <= ratio <= 1.2:  # Within 20% - green
+            colors.append('green')
+        elif 0.5 <= ratio <= 1.5:  # Within 50% - orange
+            colors.append('orange')
+        else:  # Beyond 50% - red
+            colors.append('red')
+
+    # Create the bar chart
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.bar(names, ratios, color=colors, edgecolor='black', alpha=0.7)
+
+    # Add horizontal reference line at perfect prediction (1.0)
+    ax.axhline(y=1.0, color='gray', linestyle='--', alpha=0.8, linewidth=1.5, label='Perfect prediction (1.0)')
+
+    # Add text labels on bars showing the ratio value
+    for bar, ratio in zip(bars, ratios):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.02,
+                f'{ratio:.2f}', ha='center', va='bottom', fontweight='bold', fontsize=10)
+
+    # Formatting
+    ax.set_xlabel('Benchmark', fontsize=12)
+    ax.set_ylabel('Normalized Ratio (sim_latency / real_latency)', fontsize=12)
+    ax.set_title('M2Sim Normalized Cycles vs M2 Hardware', fontsize=14, fontweight='bold')
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis='y')
+
+    # Set y-axis to start from 0 and include some headroom
+    max_ratio = max(ratios)
+    ax.set_ylim(0, max_ratio * 1.15)
+
+    plt.tight_layout()
+    plt.savefig(output_path, format='pdf', bbox_inches='tight', dpi=150)
+    plt.close()
+
+    print(f"Normalized chart saved to: {output_path}")
+
+
 def generate_json_results(
     comparisons: List[BenchmarkComparison],
     output_path: Path
 ):
     """Generate machine-readable JSON results."""
     errors = [c.error for c in comparisons]
-    
+
     output = {
         "summary": {
             "average_error": sum(errors) / len(errors) if errors else 0,
@@ -401,7 +456,7 @@ def generate_json_results(
             for c in comparisons
         ]
     }
-    
+
     output_path.write_text(json.dumps(output, indent=2))
     print(f"JSON results saved to: {output_path}")
 
@@ -450,12 +505,14 @@ def main():
     figure_path = output_dir / "accuracy_figure.png"
     report_path = output_dir / "accuracy_report.md"
     json_path = output_dir / "accuracy_results.json"
-    
+    normalized_chart_path = output_dir / "accuracy_normalized.pdf"
+
     print("\n" + "=" * 60)
     print("GENERATING OUTPUTS")
     print("=" * 60)
-    
+
     generate_figure(comparisons, figure_path)
+    generate_normalized_chart(comparisons, normalized_chart_path)
     generate_markdown_report(comparisons, report_path, figure_path)
     generate_json_results(comparisons, json_path)
     

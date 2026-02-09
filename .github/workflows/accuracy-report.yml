@@ -44,6 +44,7 @@ jobs:
             benchmarks/native/accuracy_report.md
             benchmarks/native/accuracy_figure.png
             benchmarks/native/accuracy_results.json
+            benchmarks/native/accuracy_normalized.pdf
           retention-days: 90
 
       - name: Post Report Summary
@@ -76,6 +77,7 @@ jobs:
           cp benchmarks/native/accuracy_report.md "$TEMP_REPORTS/" 2>/dev/null || true
           cp benchmarks/native/accuracy_figure.png "$TEMP_REPORTS/" 2>/dev/null || true
           cp benchmarks/native/accuracy_results.json "$TEMP_REPORTS/" 2>/dev/null || true
+          cp benchmarks/native/accuracy_normalized.pdf "$TEMP_REPORTS/" 2>/dev/null || true
           
           DATE=$(date +%Y-%m-%d)
           COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "initial")
@@ -106,6 +108,7 @@ jobs:
           cp "$TEMP_REPORTS/accuracy_report.md" "$REPORT_DIR/" 2>/dev/null || true
           cp "$TEMP_REPORTS/accuracy_figure.png" "$REPORT_DIR/" 2>/dev/null || true
           cp "$TEMP_REPORTS/accuracy_results.json" "$REPORT_DIR/" 2>/dev/null || true
+          cp "$TEMP_REPORTS/accuracy_normalized.pdf" "$REPORT_DIR/" 2>/dev/null || true
           
           # Clean up temp directory
           rm -rf "$TEMP_REPORTS"
