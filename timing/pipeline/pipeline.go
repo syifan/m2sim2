@@ -129,6 +129,20 @@ func isFoldableConditionalBranch(word uint32, pc uint64) (bool, uint64) {
 	return false, 0
 }
 
+// enrichPredictionWithEncodedTarget fills in the branch target for conditional
+// branches when the predictor says "taken" but BTB doesn't have the target.
+// Real hardware (including M2) can extract the target from the instruction
+// encoding during fetch, avoiding a full misprediction penalty for taken
+// conditional branches with BTB misses.
+func enrichPredictionWithEncodedTarget(pred *Prediction, word uint32, pc uint64) {
+	if pred.Taken && !pred.TargetKnown {
+		if isCond, target := isFoldableConditionalBranch(word, pc); isCond {
+			pred.Target = target
+			pred.TargetKnown = true
+		}
+	}
+}
+
 // Statistics holds pipeline performance statistics.
 type Statistics struct {
 	// Cycles is the total number of cycles simulated.
@@ -764,6 +778,7 @@ func (p *Pipeline) tickSingleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, word, p.pc)
 
 				nextIFID = IFIDRegister{
 					Valid:           true,
@@ -1377,6 +1392,7 @@ func (p *Pipeline) tickSuperscalar() {
 						pred.TargetKnown = true
 						earlyResolved = true
 					}
+					enrichPredictionWithEncodedTarget(&pred, word, p.pc)
 
 					nextIFID = IFIDRegister{
 						Valid:           true,
@@ -2138,6 +2154,7 @@ func (p *Pipeline) tickQuadIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
 				nextIFID = IFIDRegister{
 					Valid:           true,
 					PC:              pending.PC,
@@ -2161,6 +2178,7 @@ func (p *Pipeline) tickQuadIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
 				switch slotIdx {
 				case 1:
 					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
@@ -2218,6 +2236,7 @@ func (p *Pipeline) tickQuadIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
 
 				nextIFID = IFIDRegister{
 					Valid:           true,
@@ -2244,6 +2263,7 @@ func (p *Pipeline) tickQuadIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
 				switch slotIdx {
 				case 1:
 					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
@@ -3394,6 +3414,7 @@ func (p *Pipeline) tickSextupleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
 				nextIFID = IFIDRegister{
 					Valid:           true,
 					PC:              pending.PC,
@@ -3416,6 +3437,7 @@ func (p *Pipeline) tickSextupleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
 				switch slotIdx {
 				case 1:
 					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
@@ -3476,6 +3498,7 @@ func (p *Pipeline) tickSextupleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
 				nextIFID = IFIDRegister{
 					Valid:           true,
 					PC:              fetchPC,
@@ -3499,6 +3522,7 @@ func (p *Pipeline) tickSextupleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
 				switch slotIdx {
 				case 1:
 					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
@@ -5594,6 +5618,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
 				nextIFID = IFIDRegister{
 					Valid:           true,
 					PC:              pending.PC,
@@ -5616,6 +5641,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
 				switch slotIdx {
 				case 1:
 					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
@@ -5683,8 +5709,6 @@ func (p *Pipeline) tickOctupleIssue() {
 			// proper misprediction detection and recovery.
 			//
 			// TODO: Implement proper zero-cycle folding with misprediction recovery
-			_ = isFoldableConditionalBranch // silence unused warning
-
 			if slotIdx == 0 {
 				isUncondBranch, uncondTarget := isUnconditionalBranch(word, fetchPC)
 				pred := p.branchPredictor.Predict(fetchPC)
@@ -5695,6 +5719,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
 				nextIFID = IFIDRegister{
 					Valid:           true,
 					PC:              fetchPC,
@@ -5718,6 +5743,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					pred.TargetKnown = true
 					earlyResolved = true
 				}
+				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
 				switch slotIdx {
 				case 1:
 					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}

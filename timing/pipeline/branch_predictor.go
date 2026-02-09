@@ -164,13 +164,14 @@ func NewBranchPredictor(config BranchPredictorConfig) *BranchPredictor {
 		useTournament: config.UseTournament,
 	}
 
-	// Initialize bimodal BHT with weakly not-taken (1) - matches M2 behavior
-	// M2 Avalanche cores default to "not-taken" for cold branches (see #199)
+	// Initialize bimodal BHT with weakly not-taken (1).
+	// Cold branches default to not-taken. The predictor learns quickly
+	// after the first execution of each branch.
 	for i := range bp.bimodal {
 		bp.bimodal[i] = 1
 	}
 
-	// Initialize gshare PHT with weakly not-taken (1) - matches M2 behavior
+	// Initialize gshare PHT with weakly not-taken (1).
 	for i := range bp.gshare {
 		bp.gshare[i] = 1
 	}
@@ -368,12 +369,12 @@ func (bp *BranchPredictor) Stats() BranchPredictorStats {
 
 // Reset clears all predictor state and statistics.
 func (bp *BranchPredictor) Reset() {
-	// Reset bimodal to weakly not-taken (matches M2 behavior)
+	// Reset bimodal to weakly not-taken (matches initialization)
 	for i := range bp.bimodal {
 		bp.bimodal[i] = 1
 	}
 
-	// Reset gshare to weakly not-taken (matches M2 behavior)
+	// Reset gshare to weakly not-taken (matches initialization)
 	for i := range bp.gshare {
 		bp.gshare[i] = 1
 	}
