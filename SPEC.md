@@ -163,6 +163,8 @@ SPEC benchmarks will likely exercise ARM64 instructions not yet implemented. Exp
 Error formula: `abs(t_sim - t_real) / min(t_sim, t_real)`. Target: <20% average.
 Previous baseline was 34.2% average. Branch penalty fix (14→12) dropped it to 22.8%.
 
+**Projected after #385 fix:** If branch error drops to ~4.3% (matching fast timing), average would be ~(35.2 + 10.3 + 4.3)/3 = **16.6%**, meeting the <20% target. Arithmetic error (35.2%) is an accepted in-order limitation (issue #386).
+
 #### H3.1: Calibration Infrastructure ✅ COMPLETE
 - [x] H3 calibration framework deployed (PR #321 merged)
 - [x] SIMD DUP + MRS system instructions implemented (PR #321)
@@ -187,15 +189,17 @@ The full pipeline timing simulation is ~30,000x slower than emulation, making it
 
 #### H3.3: Parameter Tuning 🚧 IN PROGRESS — CRITICAL PATH
 Root cause analysis complete (PR #367 merged). Confirmed accuracy after branch penalty fix (PR #372 merged):
-- **Arithmetic: 35.2% error** — RAW hazard blocking in `canIssueWith()` at `superscalar.go`. M2 uses register renaming; simulator blocks on false dependencies. Leo investigated (#370): requires same-cycle forwarding implementation, not a simple config change. **This is the single biggest blocker to <20% average.**
-- **Branch: 22.7% error** — Fixed from 34.5% by adjusting penalty from 14→12 cycles (PR #372).
+- **Arithmetic: 35.2% error** — **Fundamental in-order limitation** (issue #386). WAW (Write-After-Write) hazard blocking in `canIssueWith()` / `canDualIssue()` at `superscalar.go` prevents co-issue of instructions that reuse destination registers. M2's register renaming eliminates these false dependencies, but our in-order model cannot. Same-cycle forwarding (PR #381) was attempted but had zero impact because WAW blocks before RAW relaxation helps. **Accepted as architectural limitation for now.** Fixing requires OOO modeling or register renaming (future work).
+- **Branch: 22.7% error** — Root cause identified (issue #385): branch prediction only applied to fetch slot 0 in the 8-wide pipeline. Slots 1–7 default to "not taken," causing near-100% misprediction for branches not in slot 0. **This is the current top priority — fixing could reduce branch error to ~4.3% (matching fast timing), bringing average well below 20%.**
 - **Dependency: 10.3% error** — Near theoretical minimum, low priority.
 
 **Work items:**
 - [x] Fix branch misprediction penalty (14 → 12 cycles) — PR #372 merged
 - [x] Root cause analysis with tuning recommendations — PR #367 merged
-- [ ] **Reduce RAW hazard over-blocking via same-cycle forwarding (issue #370) — HIGHEST PRIORITY, detailed impl guide posted**
+- [x] Investigate same-cycle forwarding (PR #381 merged, zero impact due to WAW — issue #370 closed)
 - [x] Merge CPI comparison framework (PR #376) — merged
+- [ ] **Fix branch prediction in all fetch slots (issue #385) — HIGHEST PRIORITY, could bring avg <20%**
+- [ ] Document in-order pipeline accuracy limitation (issue #386)
 - [ ] Multi-scale validation (64x64 → 256x256 matrix multiply)
 - [ ] Target: <20% average error on microbenchmarks + medium benchmarks
 
