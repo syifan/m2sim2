@@ -1083,6 +1083,30 @@ func (r *SenaryIDEXRegister) fromIDEX(idex *IDEXRegister) {
 	r.EarlyResolved = idex.EarlyResolved
 }
 
+// maxALUPorts is the maximum number of integer ALU operations that can execute
+// per cycle. Apple M2 Avalanche has 6 integer ALU execution units.
+const maxALUPorts = 6
+
+// isALUOp returns true if the instruction uses an integer ALU execution port.
+func isALUOp(inst *IDEXRegister) bool {
+	if inst == nil || !inst.Valid {
+		return false
+	}
+	// Memory operations use load/store units, not ALU ports
+	if inst.MemRead || inst.MemWrite {
+		return false
+	}
+	// Branches use a separate branch unit
+	if inst.IsBranch {
+		return false
+	}
+	// SVC is handled separately
+	if inst.Inst != nil && inst.Inst.Op == insts.OpSVC {
+		return false
+	}
+	return true
+}
+
 // canIssueWith checks if a new instruction can be issued with a set of previously issued instructions.
 // This is a generalized version that checks dependencies against all earlier instructions in the batch.
 func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
@@ -1107,6 +1131,12 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 		memOpCount = 1
 	}
 
+	// Count ALU operations for port limiting
+	aluOpCount := 0
+	if isALUOp(newInst) {
+		aluOpCount = 1
+	}
+
 	for _, prev := range earlier {
 		if prev == nil || !prev.Valid {
 			continue
@@ -1114,6 +1144,10 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 
 		if prev.MemRead || prev.MemWrite {
 			memOpCount++
+		}
+
+		if isALUOp(prev) {
+			aluOpCount++
 		}
 
 		// Check for RAW hazard: new reads register that prev writes.
@@ -1153,6 +1187,11 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 
 	// Only 1 memory operation per cycle
 	if memOpCount > 1 {
+		return false
+	}
+
+	// Limit ALU operations to available execution ports
+	if aluOpCount > maxALUPorts {
 		return false
 	}
 
