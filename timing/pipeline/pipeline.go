@@ -470,9 +470,6 @@ func (p *Pipeline) accessSecondaryMem(slot MemorySlot) (MemoryResult, bool) {
 	}
 	if p.useDCache && p.cachedMemoryStage2 != nil {
 		result, stall := p.cachedMemoryStage2.AccessSlot(slot)
-		if stall {
-			p.stats.MemStalls++
-		}
 		return result, stall
 	}
 	// Non-cached path: 1-cycle stall model
@@ -482,7 +479,6 @@ func (p *Pipeline) accessSecondaryMem(slot MemorySlot) (MemoryResult, bool) {
 	if !p.memPending2 {
 		p.memPending2 = true
 		p.memPendingPC2 = slot.GetPC()
-		p.stats.MemStalls++
 		return MemoryResult{}, true
 	}
 	p.memPending2 = false
@@ -497,9 +493,6 @@ func (p *Pipeline) accessTertiaryMem(slot MemorySlot) (MemoryResult, bool) {
 	}
 	if p.useDCache && p.cachedMemoryStage3 != nil {
 		result, stall := p.cachedMemoryStage3.AccessSlot(slot)
-		if stall {
-			p.stats.MemStalls++
-		}
 		return result, stall
 	}
 	// Non-cached path: 1-cycle stall model
@@ -509,7 +502,6 @@ func (p *Pipeline) accessTertiaryMem(slot MemorySlot) (MemoryResult, bool) {
 	if !p.memPending3 {
 		p.memPending3 = true
 		p.memPendingPC3 = slot.GetPC()
-		p.stats.MemStalls++
 		return MemoryResult{}, true
 	}
 	p.memPending3 = false
@@ -997,27 +989,31 @@ func (p *Pipeline) tickSuperscalar() {
 		}
 	}
 
-	// Secondary slot memory (memory port 2)
-	if p.exmem2.Valid && !memStall {
-		var memResult2 MemoryResult
+	// Secondary slot memory (memory port 2) — tick in parallel with port 1
+	var memStall2 bool
+	var memResult2 MemoryResult
+	if p.exmem2.Valid {
 		if p.exmem2.MemRead || p.exmem2.MemWrite {
-			var memStall2 bool
 			memResult2, memStall2 = p.accessSecondaryMem(&p.exmem2)
-			if memStall2 {
-				memStall = true
-			}
 		}
-		if !memStall {
-			nextMEMWB2 = SecondaryMEMWBRegister{
-				Valid:     true,
-				PC:        p.exmem2.PC,
-				Inst:      p.exmem2.Inst,
-				ALUResult: p.exmem2.ALUResult,
-				MemData:   memResult2.MemData,
-				Rd:        p.exmem2.Rd,
-				RegWrite:  p.exmem2.RegWrite,
-				MemToReg:  p.exmem2.MemToReg,
-			}
+	}
+	// Track whether primary port already counted this stall cycle
+	primaryStalled := memStall
+	memStall = memStall || memStall2
+	if memStall && !primaryStalled {
+		p.stats.MemStalls++
+	}
+
+	if p.exmem2.Valid && !memStall {
+		nextMEMWB2 = SecondaryMEMWBRegister{
+			Valid:     true,
+			PC:        p.exmem2.PC,
+			Inst:      p.exmem2.Inst,
+			ALUResult: p.exmem2.ALUResult,
+			MemData:   memResult2.MemData,
+			Rd:        p.exmem2.Rd,
+			RegWrite:  p.exmem2.RegWrite,
+			MemToReg:  p.exmem2.MemToReg,
 		}
 	}
 
@@ -1663,51 +1659,55 @@ func (p *Pipeline) tickQuadIssue() {
 		}
 	}
 
-	// Secondary slot memory (memory port 2)
-	if p.exmem2.Valid && !memStall {
-		var memResult2 MemoryResult
+	// Secondary slot memory (memory port 2) — tick in parallel with port 1
+	var memStall2 bool
+	var memResult2 MemoryResult
+	if p.exmem2.Valid {
 		if p.exmem2.MemRead || p.exmem2.MemWrite {
-			var memStall2 bool
 			memResult2, memStall2 = p.accessSecondaryMem(&p.exmem2)
-			if memStall2 {
-				memStall = true
-			}
-		}
-		if !memStall {
-			nextMEMWB2 = SecondaryMEMWBRegister{
-				Valid:     true,
-				PC:        p.exmem2.PC,
-				Inst:      p.exmem2.Inst,
-				ALUResult: p.exmem2.ALUResult,
-				MemData:   memResult2.MemData,
-				Rd:        p.exmem2.Rd,
-				RegWrite:  p.exmem2.RegWrite,
-				MemToReg:  p.exmem2.MemToReg,
-			}
 		}
 	}
 
-	// Tertiary slot memory (memory port 3)
-	if p.exmem3.Valid && !memStall {
-		var memResult3 MemoryResult
+	// Tertiary slot memory (memory port 3) — tick in parallel with ports 1 & 2
+	var memStall3 bool
+	var memResult3 MemoryResult
+	if p.exmem3.Valid {
 		if p.exmem3.MemRead || p.exmem3.MemWrite {
-			var memStall3 bool
 			memResult3, memStall3 = p.accessTertiaryMem(&p.exmem3)
-			if memStall3 {
-				memStall = true
-			}
 		}
-		if !memStall {
-			nextMEMWB3 = TertiaryMEMWBRegister{
-				Valid:     true,
-				PC:        p.exmem3.PC,
-				Inst:      p.exmem3.Inst,
-				ALUResult: p.exmem3.ALUResult,
-				MemData:   memResult3.MemData,
-				Rd:        p.exmem3.Rd,
-				RegWrite:  p.exmem3.RegWrite,
-				MemToReg:  p.exmem3.MemToReg,
-			}
+	}
+
+	// Combine stall signals: pipeline stalls if ANY memory port is stalling.
+	// Track whether primary port already counted this stall cycle.
+	primaryStalled := memStall
+	memStall = memStall || memStall2 || memStall3
+	if memStall && !primaryStalled {
+		p.stats.MemStalls++
+	}
+
+	if p.exmem2.Valid && !memStall {
+		nextMEMWB2 = SecondaryMEMWBRegister{
+			Valid:     true,
+			PC:        p.exmem2.PC,
+			Inst:      p.exmem2.Inst,
+			ALUResult: p.exmem2.ALUResult,
+			MemData:   memResult2.MemData,
+			Rd:        p.exmem2.Rd,
+			RegWrite:  p.exmem2.RegWrite,
+			MemToReg:  p.exmem2.MemToReg,
+		}
+	}
+
+	if p.exmem3.Valid && !memStall {
+		nextMEMWB3 = TertiaryMEMWBRegister{
+			Valid:     true,
+			PC:        p.exmem3.PC,
+			Inst:      p.exmem3.Inst,
+			ALUResult: p.exmem3.ALUResult,
+			MemData:   memResult3.MemData,
+			Rd:        p.exmem3.Rd,
+			RegWrite:  p.exmem3.RegWrite,
+			MemToReg:  p.exmem3.MemToReg,
 		}
 	}
 
@@ -2671,51 +2671,55 @@ func (p *Pipeline) tickSextupleIssue() {
 		}
 	}
 
-	// Secondary slot memory (memory port 2)
-	if p.exmem2.Valid && !memStall {
-		var memResult2 MemoryResult
+	// Secondary slot memory (memory port 2) — tick in parallel with port 1
+	var memStall2 bool
+	var memResult2 MemoryResult
+	if p.exmem2.Valid {
 		if p.exmem2.MemRead || p.exmem2.MemWrite {
-			var memStall2 bool
 			memResult2, memStall2 = p.accessSecondaryMem(&p.exmem2)
-			if memStall2 {
-				memStall = true
-			}
-		}
-		if !memStall {
-			nextMEMWB2 = SecondaryMEMWBRegister{
-				Valid:     true,
-				PC:        p.exmem2.PC,
-				Inst:      p.exmem2.Inst,
-				ALUResult: p.exmem2.ALUResult,
-				MemData:   memResult2.MemData,
-				Rd:        p.exmem2.Rd,
-				RegWrite:  p.exmem2.RegWrite,
-				MemToReg:  p.exmem2.MemToReg,
-			}
 		}
 	}
 
-	// Tertiary slot memory (memory port 3)
-	if p.exmem3.Valid && !memStall {
-		var memResult3 MemoryResult
+	// Tertiary slot memory (memory port 3) — tick in parallel with ports 1 & 2
+	var memStall3 bool
+	var memResult3 MemoryResult
+	if p.exmem3.Valid {
 		if p.exmem3.MemRead || p.exmem3.MemWrite {
-			var memStall3 bool
 			memResult3, memStall3 = p.accessTertiaryMem(&p.exmem3)
-			if memStall3 {
-				memStall = true
-			}
 		}
-		if !memStall {
-			nextMEMWB3 = TertiaryMEMWBRegister{
-				Valid:     true,
-				PC:        p.exmem3.PC,
-				Inst:      p.exmem3.Inst,
-				ALUResult: p.exmem3.ALUResult,
-				MemData:   memResult3.MemData,
-				Rd:        p.exmem3.Rd,
-				RegWrite:  p.exmem3.RegWrite,
-				MemToReg:  p.exmem3.MemToReg,
-			}
+	}
+
+	// Combine stall signals: pipeline stalls if ANY memory port is stalling.
+	// Track whether primary port already counted this stall cycle.
+	primaryStalled := memStall
+	memStall = memStall || memStall2 || memStall3
+	if memStall && !primaryStalled {
+		p.stats.MemStalls++
+	}
+
+	if p.exmem2.Valid && !memStall {
+		nextMEMWB2 = SecondaryMEMWBRegister{
+			Valid:     true,
+			PC:        p.exmem2.PC,
+			Inst:      p.exmem2.Inst,
+			ALUResult: p.exmem2.ALUResult,
+			MemData:   memResult2.MemData,
+			Rd:        p.exmem2.Rd,
+			RegWrite:  p.exmem2.RegWrite,
+			MemToReg:  p.exmem2.MemToReg,
+		}
+	}
+
+	if p.exmem3.Valid && !memStall {
+		nextMEMWB3 = TertiaryMEMWBRegister{
+			Valid:     true,
+			PC:        p.exmem3.PC,
+			Inst:      p.exmem3.Inst,
+			ALUResult: p.exmem3.ALUResult,
+			MemData:   memResult3.MemData,
+			Rd:        p.exmem3.Rd,
+			RegWrite:  p.exmem3.RegWrite,
+			MemToReg:  p.exmem3.MemToReg,
 		}
 	}
 
@@ -3989,51 +3993,55 @@ func (p *Pipeline) tickOctupleIssue() {
 		}
 	}
 
-	// Secondary slot memory (memory port 2)
-	if p.exmem2.Valid && !memStall {
-		var memResult2 MemoryResult
+	// Secondary slot memory (memory port 2) — tick in parallel with port 1
+	var memStall2 bool
+	var memResult2 MemoryResult
+	if p.exmem2.Valid {
 		if p.exmem2.MemRead || p.exmem2.MemWrite {
-			var memStall2 bool
 			memResult2, memStall2 = p.accessSecondaryMem(&p.exmem2)
-			if memStall2 {
-				memStall = true
-			}
-		}
-		if !memStall {
-			nextMEMWB2 = SecondaryMEMWBRegister{
-				Valid:     true,
-				PC:        p.exmem2.PC,
-				Inst:      p.exmem2.Inst,
-				ALUResult: p.exmem2.ALUResult,
-				MemData:   memResult2.MemData,
-				Rd:        p.exmem2.Rd,
-				RegWrite:  p.exmem2.RegWrite,
-				MemToReg:  p.exmem2.MemToReg,
-			}
 		}
 	}
 
-	// Tertiary slot memory (memory port 3)
-	if p.exmem3.Valid && !memStall {
-		var memResult3 MemoryResult
+	// Tertiary slot memory (memory port 3) — tick in parallel with ports 1 & 2
+	var memStall3 bool
+	var memResult3 MemoryResult
+	if p.exmem3.Valid {
 		if p.exmem3.MemRead || p.exmem3.MemWrite {
-			var memStall3 bool
 			memResult3, memStall3 = p.accessTertiaryMem(&p.exmem3)
-			if memStall3 {
-				memStall = true
-			}
 		}
-		if !memStall {
-			nextMEMWB3 = TertiaryMEMWBRegister{
-				Valid:     true,
-				PC:        p.exmem3.PC,
-				Inst:      p.exmem3.Inst,
-				ALUResult: p.exmem3.ALUResult,
-				MemData:   memResult3.MemData,
-				Rd:        p.exmem3.Rd,
-				RegWrite:  p.exmem3.RegWrite,
-				MemToReg:  p.exmem3.MemToReg,
-			}
+	}
+
+	// Combine stall signals: pipeline stalls if ANY memory port is stalling.
+	// Track whether primary port already counted this stall cycle.
+	primaryStalled := memStall
+	memStall = memStall || memStall2 || memStall3
+	if memStall && !primaryStalled {
+		p.stats.MemStalls++
+	}
+
+	if p.exmem2.Valid && !memStall {
+		nextMEMWB2 = SecondaryMEMWBRegister{
+			Valid:     true,
+			PC:        p.exmem2.PC,
+			Inst:      p.exmem2.Inst,
+			ALUResult: p.exmem2.ALUResult,
+			MemData:   memResult2.MemData,
+			Rd:        p.exmem2.Rd,
+			RegWrite:  p.exmem2.RegWrite,
+			MemToReg:  p.exmem2.MemToReg,
+		}
+	}
+
+	if p.exmem3.Valid && !memStall {
+		nextMEMWB3 = TertiaryMEMWBRegister{
+			Valid:     true,
+			PC:        p.exmem3.PC,
+			Inst:      p.exmem3.Inst,
+			ALUResult: p.exmem3.ALUResult,
+			MemData:   memResult3.MemData,
+			Rd:        p.exmem3.Rd,
+			RegWrite:  p.exmem3.RegWrite,
+			MemToReg:  p.exmem3.MemToReg,
 		}
 	}
 
