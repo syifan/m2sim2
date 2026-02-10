@@ -169,6 +169,7 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		}
 
 	case insts.OpSTR:
+		instLatency = ft.latencyTable.GetLatency(inst)
 		storeValue := ft.regFile.ReadReg(inst.Rd)
 		switch inst.IndexMode {
 		case insts.IndexPost:
@@ -218,6 +219,7 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		writeValue = ^(inst.Imm << shift)
 
 	case insts.OpSTP:
+		instLatency = ft.latencyTable.GetLatency(inst)
 		addr := rnValue + uint64(inst.SignedImm)
 		value1 := ft.regFile.ReadReg(inst.Rd)
 		value2 := ft.regFile.ReadReg(inst.Rt2)
@@ -228,6 +230,7 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		}
 
 	case insts.OpLDP:
+		instLatency = ft.latencyTable.GetLatency(inst)
 		addr := rnValue + uint64(inst.SignedImm)
 		value1 := ft.memory.Read64(addr)
 		value2 := ft.memory.Read64(addr + 8)
@@ -473,6 +476,7 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		writeValue = uint64(ft.memory.Read8(addr))
 
 	case insts.OpSTRB:
+		instLatency = ft.latencyTable.GetLatency(inst)
 		addr := rnValue + uint64(int64(inst.Imm))
 		storeValue := ft.regFile.ReadReg(inst.Rd)
 		ft.memory.Write8(addr, uint8(storeValue))
@@ -484,6 +488,7 @@ func (ft *FastTiming) executeInstruction(inst *insts.Instruction, pc uint64) {
 		writeValue = uint64(ft.memory.Read16(addr))
 
 	case insts.OpSTRH:
+		instLatency = ft.latencyTable.GetLatency(inst)
 		addr := rnValue + uint64(int64(inst.Imm))
 		storeValue := ft.regFile.ReadReg(inst.Rd)
 		ft.memory.Write16(addr, uint16(storeValue))

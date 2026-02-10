@@ -87,6 +87,22 @@ var _ = Describe("Latency", func() {
 		})
 	})
 
+	Describe("Multiply Instruction Latencies", func() {
+		It("should return MultiplyLatency for MADD", func() {
+			// MADD X0, X1, X2, X3 -> 0x9B020C20
+			inst := decoder.Decode(0x9B020C20)
+			Expect(inst.Op).To(Equal(insts.OpMADD))
+			Expect(table.GetLatency(inst)).To(Equal(uint64(3)))
+		})
+
+		It("should return MultiplyLatency for MSUB", func() {
+			// MSUB X4, X5, X6, X7 -> 0x9B069CA4
+			inst := decoder.Decode(0x9B069CA4)
+			Expect(inst.Op).To(Equal(insts.OpMSUB))
+			Expect(table.GetLatency(inst)).To(Equal(uint64(3)))
+		})
+	})
+
 	Describe("Branch Instruction Latencies", func() {
 		It("should return 1 cycle for B", func() {
 			// B #100 -> 0x14000019
@@ -131,24 +147,35 @@ var _ = Describe("Latency", func() {
 			inst := decoder.Decode(0xF9000420)
 			Expect(table.GetLatency(inst)).To(Equal(uint64(1)))
 		})
+
+		It("should return LoadLatency for LDRSW", func() {
+			// LDRSW X0, [X1] -> 0xB9800020
+			inst := decoder.Decode(0xB9800020)
+			Expect(inst.Op).To(Equal(insts.OpLDRSW))
+			Expect(table.GetLatency(inst)).To(Equal(uint64(4)))
+		})
 	})
 
 	Describe("Instruction Type Detection", func() {
 		It("should detect memory operations", func() {
 			ldr := decoder.Decode(0xF9400420)
 			str := decoder.Decode(0xF9000420)
+			ldrsw := decoder.Decode(0xB9800020)
 			add := decoder.Decode(0x91002820)
 
 			Expect(table.IsMemoryOp(ldr)).To(BeTrue())
 			Expect(table.IsMemoryOp(str)).To(BeTrue())
+			Expect(table.IsMemoryOp(ldrsw)).To(BeTrue())
 			Expect(table.IsMemoryOp(add)).To(BeFalse())
 		})
 
 		It("should detect load operations", func() {
 			ldr := decoder.Decode(0xF9400420)
 			str := decoder.Decode(0xF9000420)
+			ldrsw := decoder.Decode(0xB9800020)
 
 			Expect(table.IsLoadOp(ldr)).To(BeTrue())
+			Expect(table.IsLoadOp(ldrsw)).To(BeTrue())
 			Expect(table.IsLoadOp(str)).To(BeFalse())
 		})
 

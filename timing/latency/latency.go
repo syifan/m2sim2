@@ -43,11 +43,14 @@ func (t *Table) GetLatency(inst *insts.Instruction) uint64 {
 		return t.config.BranchLatency
 
 	case insts.OpLDR, insts.OpLDP, insts.OpLDRB, insts.OpLDRSB,
-		insts.OpLDRH, insts.OpLDRSH, insts.OpLDRLit:
+		insts.OpLDRH, insts.OpLDRSH, insts.OpLDRSW, insts.OpLDRLit:
 		return t.config.LoadLatency
 
 	case insts.OpSTR, insts.OpSTP, insts.OpSTRB, insts.OpSTRH:
 		return t.config.StoreLatency
+
+	case insts.OpMADD, insts.OpMSUB:
+		return t.config.MultiplyLatency
 
 	case insts.OpSVC:
 		return t.config.SyscallLatency
@@ -100,7 +103,7 @@ func (t *Table) IsMemoryOp(inst *insts.Instruction) bool {
 	}
 	switch inst.Op {
 	case insts.OpLDR, insts.OpLDP, insts.OpLDRB, insts.OpLDRSB,
-		insts.OpLDRH, insts.OpLDRSH, insts.OpLDRLit, insts.OpLDRQ,
+		insts.OpLDRH, insts.OpLDRSH, insts.OpLDRSW, insts.OpLDRLit, insts.OpLDRQ,
 		insts.OpSTR, insts.OpSTP, insts.OpSTRB, insts.OpSTRH, insts.OpSTRQ:
 		return true
 	default:
@@ -115,7 +118,7 @@ func (t *Table) IsLoadOp(inst *insts.Instruction) bool {
 	}
 	switch inst.Op {
 	case insts.OpLDR, insts.OpLDP, insts.OpLDRB, insts.OpLDRSB,
-		insts.OpLDRH, insts.OpLDRSH, insts.OpLDRLit, insts.OpLDRQ:
+		insts.OpLDRH, insts.OpLDRSH, insts.OpLDRSW, insts.OpLDRLit, insts.OpLDRQ:
 		return true
 	default:
 		return false
