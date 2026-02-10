@@ -2,12 +2,11 @@ name: Memory Subsystem Calibration
 
 on:
   workflow_dispatch:
-    # Manual trigger - calibration is expensive
 
 jobs:
   calibrate:
     name: Run Memory Calibration on Apple Silicon
-    runs-on: macos-14  # Apple Silicon runner
+    runs-on: macos-14
     timeout-minutes: 60
 
     steps:
@@ -49,21 +48,6 @@ jobs:
             echo '```json' >> $GITHUB_STEP_SUMMARY
             cat benchmarks/native/memory_calibration_results.json >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-
-            # Extract CPI values for summary
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### CPI Summary (at 3.5 GHz)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            python3 -c "
-import json
-with open('benchmarks/native/memory_calibration_results.json') as f:
-    data = json.load(f)
-print('| Benchmark | Latency (ns) | CPI | R² |')
-print('|-----------|-------------|-----|-----|')
-for r in data['results']:
-    cpi = r['instruction_latency_ns'] * 3.5
-    print(f'| {r[\"benchmark\"]} | {r[\"instruction_latency_ns\"]:.4f} | {cpi:.3f} | {r[\"r_squared\"]:.6f} |')
-" >> $GITHUB_STEP_SUMMARY
           else
             echo "Calibration results not found." >> $GITHUB_STEP_SUMMARY
           fi
