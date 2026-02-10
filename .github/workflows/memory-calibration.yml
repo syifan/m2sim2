@@ -1,7 +1,8 @@
 name: Memory Subsystem Calibration
 
 on:
-  workflow_dispatch:  # Manual trigger only — calibration is expensive
+  workflow_dispatch:
+    # Manual trigger - calibration is expensive
 
 jobs:
   calibrate:
