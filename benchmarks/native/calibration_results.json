@@ -106,43 +106,139 @@
     },
     {
       "benchmark": "memorystrided",
-      "description": "10 store/load pairs with stride-4 access (strided memory pattern)",
-      "calibrated": false,
-      "instruction_latency_ns": 0.17142857142857143,
-      "overhead_ms": 0,
-      "r_squared": 0.995,
-      "source": "m2_baseline.json (CPI=0.6 at 3.5 GHz)",
-      "uncalibrated_reason": "Analytical estimate, not measured on hardware. Simulator runs without D-cache but baseline assumes cached performance."
+      "description": "10 store/load pairs with stride-4 access per iteration (strided memory pattern)",
+      "calibrated": true,
+      "instruction_latency_ns": 0.7565325469951448,
+      "overhead_ms": 16.85653857546501,
+      "r_squared": 0.9972815350421813,
+      "data_points": [
+        {
+          "instructions": 20000000,
+          "time_ms": 24.886199000004833
+        },
+        {
+          "instructions": 40000000,
+          "time_ms": 41.35126833333894
+        },
+        {
+          "instructions": 80000000,
+          "time_ms": 76.33693055555568
+        },
+        {
+          "instructions": 160000000,
+          "time_ms": 145.60025933334626
+        },
+        {
+          "instructions": 320000000,
+          "time_ms": 273.7935462222241
+        },
+        {
+          "instructions": 640000000,
+          "time_ms": 492.4020372222028
+        }
+      ]
     },
     {
       "benchmark": "loadheavy",
-      "description": "20 load instructions per iteration (load-heavy workload)",
-      "calibrated": false,
-      "instruction_latency_ns": 0.14285714285714285,
-      "overhead_ms": 0,
-      "r_squared": 0.995,
-      "source": "m2_baseline.json (CPI=0.5 at 3.5 GHz)",
-      "uncalibrated_reason": "Analytical estimate, not measured on hardware. Simulator runs without D-cache but baseline assumes cached performance."
+      "description": "20 independent loads per iteration (load throughput)",
+      "calibrated": true,
+      "instruction_latency_ns": 0.12267301568747019,
+      "overhead_ms": 1.819647390818563,
+      "r_squared": 0.9997318275333102,
+      "data_points": [
+        {
+          "instructions": 20000000,
+          "time_ms": 3.489305666663414
+        },
+        {
+          "instructions": 40000000,
+          "time_ms": 7.017796333330908
+        },
+        {
+          "instructions": 80000000,
+          "time_ms": 12.05431477776781
+        },
+        {
+          "instructions": 160000000,
+          "time_ms": 21.314925777782417
+        },
+        {
+          "instructions": 320000000,
+          "time_ms": 41.50973622223041
+        },
+        {
+          "instructions": 640000000,
+          "time_ms": 80.09980533334884
+        }
+      ]
     },
     {
       "benchmark": "storeheavy",
-      "description": "20 store instructions per iteration (store-heavy workload)",
-      "calibrated": false,
-      "instruction_latency_ns": 0.11428571428571428,
-      "overhead_ms": 0,
-      "r_squared": 0.995,
-      "source": "m2_baseline.json (CPI=0.4 at 3.5 GHz)",
-      "uncalibrated_reason": "Analytical estimate, not measured on hardware. Simulator runs without D-cache but baseline assumes cached performance."
+      "description": "20 independent stores per iteration (store throughput)",
+      "calibrated": true,
+      "instruction_latency_ns": 0.1748788404880628,
+      "overhead_ms": 1.9227791641632948,
+      "r_squared": 0.9981528337512541,
+      "data_points": [
+        {
+          "instructions": 20000000,
+          "time_ms": 5.045254666646946
+        },
+        {
+          "instructions": 40000000,
+          "time_ms": 10.489328777756176
+        },
+        {
+          "instructions": 80000000,
+          "time_ms": 15.252037222214515
+        },
+        {
+          "instructions": 160000000,
+          "time_ms": 27.48594877776769
+        },
+        {
+          "instructions": 320000000,
+          "time_ms": 60.447402777779445
+        },
+        {
+          "instructions": 640000000,
+          "time_ms": 113.1640417777741
+        }
+      ]
     },
     {
       "benchmark": "branchheavy",
-      "description": "20 branch instructions per iteration (branch-heavy workload)",
-      "calibrated": false,
-      "instruction_latency_ns": 0.2857142857142857,
-      "overhead_ms": 0,
-      "r_squared": 0.995,
-      "source": "m2_baseline.json (CPI=1.0 at 3.5 GHz)",
-      "uncalibrated_reason": "Analytical estimate, not measured on hardware."
+      "description": "10 conditional branches per iteration (alternating taken/not-taken)",
+      "calibrated": true,
+      "instruction_latency_ns": 0.2039629401642474,
+      "overhead_ms": 3.525283227192446,
+      "r_squared": 0.9991063897689668,
+      "data_points": [
+        {
+          "instructions": 10000000,
+          "time_ms": 4.4967916666488845
+        },
+        {
+          "instructions": 20000000,
+          "time_ms": 7.306157333333532
+        },
+        {
+          "instructions": 40000000,
+          "time_ms": 12.325365333329804
+        },
+        {
+          "instructions": 80000000,
+          "time_ms": 20.42759755555481
+        },
+        {
+          "instructions": 160000000,
+          "time_ms": 36.78765277777529
+        },
+        {
+          "instructions": 320000000,
+          "time_ms": 68.30478699998821
+        }
+      ]
     }
   ]
 }
