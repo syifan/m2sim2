@@ -1,0 +1,8 @@
+{
+  "benchmark": "matmul_4x4",
+  "mode": "fast_timing",
+  "instructions": 1189,
+  "cycles": 1621,
+  "cpi": 1.3633305298570226,
+  "exit_code": 136
+}

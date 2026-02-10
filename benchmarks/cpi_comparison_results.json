@@ -1,0 +1,116 @@
+[
+  {
+    "name": "arithmetic_sequential",
+    "full_pipeline_cpi": 0.22,
+    "fast_timing_cpi": 1,
+    "divergence_pct": 354.54545454545456
+  },
+  {
+    "name": "arithmetic_6wide",
+    "full_pipeline_cpi": 0.3333333333333333,
+    "fast_timing_cpi": 1,
+    "divergence_pct": 200.00000000000006
+  },
+  {
+    "name": "arithmetic_8wide",
+    "full_pipeline_cpi": 0.25,
+    "fast_timing_cpi": 1,
+    "divergence_pct": 300
+  },
+  {
+    "name": "dependency_chain",
+    "full_pipeline_cpi": 1.02,
+    "fast_timing_cpi": 1,
+    "divergence_pct": -1.960784313725492
+  },
+  {
+    "name": "memory_sequential",
+    "full_pipeline_cpi": 2.7,
+    "fast_timing_cpi": 2.4285714285714284,
+    "divergence_pct": -10.052910052910066
+  },
+  {
+    "name": "memory_strided",
+    "full_pipeline_cpi": 2.7,
+    "fast_timing_cpi": 2.4285714285714284,
+    "divergence_pct": -10.052910052910066
+  },
+  {
+    "name": "memory_sequential_scaled",
+    "full_pipeline_cpi": 2.51,
+    "fast_timing_cpi": 2.4962593516209477,
+    "divergence_pct": -0.5474361904004816
+  },
+  {
+    "name": "memory_strided_scaled",
+    "full_pipeline_cpi": 2.51,
+    "fast_timing_cpi": 2.4962593516209477,
+    "divergence_pct": -0.5474361904004816
+  },
+  {
+    "name": "memory_random_access",
+    "full_pipeline_cpi": 2.51,
+    "fast_timing_cpi": 2.4962593516209477,
+    "divergence_pct": -0.5474361904004816
+  },
+  {
+    "name": "load_heavy",
+    "full_pipeline_cpi": 2.25,
+    "fast_timing_cpi": 3.857142857142857,
+    "divergence_pct": 71.42857142857143
+  },
+  {
+    "name": "store_heavy",
+    "full_pipeline_cpi": 2.2,
+    "fast_timing_cpi": 1,
+    "divergence_pct": -54.545454545454554
+  },
+  {
+    "name": "branch_taken",
+    "full_pipeline_cpi": 1.8,
+    "fast_timing_cpi": 1,
+    "divergence_pct": -44.44444444444445
+  },
+  {
+    "name": "branch_taken_conditional",
+    "full_pipeline_cpi": 1.32,
+    "fast_timing_cpi": 1,
+    "divergence_pct": -24.242424242424246
+  },
+  {
+    "name": "branch_hot_loop",
+    "full_pipeline_cpi": 1.4166666666666667,
+    "fast_timing_cpi": 1,
+    "divergence_pct": -29.411764705882355
+  },
+  {
+    "name": "branch_heavy",
+    "full_pipeline_cpi": 0.8285714285714286,
+    "fast_timing_cpi": 1,
+    "divergence_pct": 20.689655172413783
+  },
+  {
+    "name": "function_calls",
+    "full_pipeline_cpi": 1.6,
+    "fast_timing_cpi": 1,
+    "divergence_pct": -37.50000000000001
+  },
+  {
+    "name": "mixed_operations",
+    "full_pipeline_cpi": 1.8333333333333333,
+    "fast_timing_cpi": 1.4736842105263157,
+    "divergence_pct": -19.61722488038278
+  },
+  {
+    "name": "matrix_operations",
+    "full_pipeline_cpi": 1.5789473684210527,
+    "fast_timing_cpi": 2.2,
+    "divergence_pct": 39.33333333333334
+  },
+  {
+    "name": "loop_simulation",
+    "full_pipeline_cpi": 0.7,
+    "fast_timing_cpi": 1,
+    "divergence_pct": 42.85714285714287
+  }
+]

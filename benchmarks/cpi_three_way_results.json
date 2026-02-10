@@ -1,0 +1,26 @@
+[
+  {
+    "name": "arithmetic",
+    "m2_cpi": 0.29579261338281376,
+    "full_pipeline_cpi": 0.22,
+    "fast_timing_cpi": 1,
+    "full_error_pct": 34.451187901278985,
+    "fast_error_pct": 238.07470327387912
+  },
+  {
+    "name": "dependency",
+    "m2_cpi": 1.0879363719543318,
+    "full_pipeline_cpi": 1.02,
+    "fast_timing_cpi": 1,
+    "full_error_pct": 6.660428622973703,
+    "fast_error_pct": 8.79363719543318
+  },
+  {
+    "name": "branch",
+    "m2_cpi": 1.3035036983615715,
+    "full_pipeline_cpi": 1.32,
+    "fast_timing_cpi": 1,
+    "full_error_pct": 1.2655354686882299,
+    "fast_error_pct": 30.350369836157153
+  }
+]
