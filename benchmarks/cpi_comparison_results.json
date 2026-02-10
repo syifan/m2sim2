@@ -13,9 +13,9 @@
   },
   {
     "name": "arithmetic_8wide",
-    "full_pipeline_cpi": 0.25,
+    "full_pipeline_cpi": 0.3125,
     "fast_timing_cpi": 1,
-    "divergence_pct": 300
+    "divergence_pct": 220.00000000000003
   },
   {
     "name": "dependency_chain",
