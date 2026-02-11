@@ -1,0 +1,86 @@
+{
+  "summary": {
+    "total_benchmarks": 18,
+    "microbenchmarks": 11,
+    "polybench": 7,
+    "average_error": 0.16898917740643793,
+    "micro_avg_error": 0.14394545454545454,
+    "poly_avg_error": 0.20834359904512614,
+    "max_error": 0.4743,
+    "h5_target_met": true
+  },
+  "benchmarks": [
+    {
+      "name": "arithmetic",
+      "error": 0.0955
+    },
+    {
+      "name": "dependency",
+      "error": 0.0666
+    },
+    {
+      "name": "branch",
+      "error": 0.0127
+    },
+    {
+      "name": "memorystrided",
+      "error": 0.1077
+    },
+    {
+      "name": "loadheavy",
+      "error": 0.0342
+    },
+    {
+      "name": "storeheavy",
+      "error": 0.4743
+    },
+    {
+      "name": "branchheavy",
+      "error": 0.1613
+    },
+    {
+      "name": "vectorsum",
+      "error": 0.296
+    },
+    {
+      "name": "vectoradd",
+      "error": 0.2429
+    },
+    {
+      "name": "reductiontree",
+      "error": 0.061
+    },
+    {
+      "name": "strideindirect",
+      "error": 0.0312
+    },
+    {
+      "name": "atax",
+      "error": 0.3356673500000001
+    },
+    {
+      "name": "bicg",
+      "error": 0.29309419999999997
+    },
+    {
+      "name": "gemm",
+      "error": 0.19466748222633454
+    },
+    {
+      "name": "mvt",
+      "error": 0.22594549999999997
+    },
+    {
+      "name": "jacobi-1d",
+      "error": 0.11128450000000005
+    },
+    {
+      "name": "2mm",
+      "error": 0.1740054530205282
+    },
+    {
+      "name": "3mm",
+      "error": 0.12374070806902013
+    }
+  ]
+}
