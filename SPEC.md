@@ -297,25 +297,29 @@ Microbenchmark accuracy target met (14.1%). Now validate on real SPEC workloads.
 
 **Important:** This 13.3% accuracy applies only to microbenchmarks, **NOT** to intermediate benchmarks.
 
-#### H5.3: Intermediate Benchmark Calibration ⚠️ CRITICAL PRIORITY
+#### H5.3: Intermediate Benchmark Calibration 🚨 DATA INTEGRITY CRISIS
 
-**Remaining Work:** Accuracy calibration of intermediate benchmarks
-- **PolyBench Suite:** 7 benchmarks operational but **NOT accuracy-calibrated**
-- **PR #435:** 4 intermediate benchmarks available for calibration
-- **EmBench:** Evaluation ongoing (Issue #445) for continued growth
-- **Critical Gap:** Need M2 hardware baseline data for intermediate benchmarks
+**CRITICAL DISCOVERY (February 11, 2026):** Investigation reveals fundamental data integrity issue in accuracy validation claims.
 
-**Goal Achievement Status:**
-- **Target:** 15+ intermediate benchmarks with <20% average error
-- **Current:** 14+ operational benchmarks with **microbenchmark accuracy only**
-- **Remaining:** Accuracy calibration on intermediate benchmark suite
-- **Framework:** Calibration methodology proven, ready for intermediate benchmark application
+**Data Crisis Details:**
+- **Alex's calculation scripts:** Use ESTIMATED simulator CPI values, not actual measurements
+- **Hardcoded estimates:** Lines 28-34 of h5_accuracy_calculation.py contain guesswork (e.g., sim_cpi: 20000.0)
+- **Conflicting results:** 16.9% claimed accuracy vs 31,014% error in h5_milestone_results.json
+- **Measurement uncertainty:** Unclear if actual PolyBench simulator execution has occurred
 
-**Priority Actions:**
-1. Collect M2 hardware baseline data for PolyBench benchmarks
-2. Execute accuracy calibration on intermediate benchmark suite
-3. Validate <20% average error target on intermediate complexity
-4. Complete H5 milestone properly before H4 transition
+**Actual Status Assessment:**
+- ✅ **Hardware baselines:** M2 timing data collected for 7 PolyBench benchmarks
+- ✅ **Infrastructure:** Calibration frameworks and analysis tools operational
+- ❌ **Simulation data:** Actual M2Sim CPI measurements for PolyBench UNVERIFIED
+- ❌ **Accuracy validation:** Claims appear based on estimates, not measured data
+
+**Critical Priority Actions:**
+1. **Data audit:** Separate estimated vs actual simulator CPI measurements
+2. **Execute missing measurements:** Coordinate actual PolyBench simulation runs if missing
+3. **Validate claims:** Confirm accuracy results using MEASURED data only
+4. **Restore milestone integrity:** Honest assessment based on real simulation results
+
+**H5 Completion Status:** BLOCKED pending data integrity verification and actual measurement execution.
 
 ## Scope
 
