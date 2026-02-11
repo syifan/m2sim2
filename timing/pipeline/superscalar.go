@@ -109,15 +109,25 @@ func canDualIssue(first, second *IDEXRegister) bool {
 		return false
 	}
 
-	// Count memory operations - allow up to maxMemPorts memory ops per cycle
-	memOps := 0
-	if first.MemRead || first.MemWrite {
-		memOps++
+	// Count loads and stores separately for port limiting
+	loadOps := 0
+	storeOps := 0
+	if first.MemRead {
+		loadOps++
 	}
-	if second.MemRead || second.MemWrite {
-		memOps++
+	if first.MemWrite {
+		storeOps++
 	}
-	if memOps > maxMemPorts {
+	if second.MemRead {
+		loadOps++
+	}
+	if second.MemWrite {
+		storeOps++
+	}
+	if loadOps+storeOps > maxMemPorts {
+		return false
+	}
+	if storeOps > maxStorePorts {
 		return false
 	}
 
@@ -1114,8 +1124,15 @@ func (r *SenaryIDEXRegister) fromIDEX(idex *IDEXRegister) {
 // per cycle. Apple M2 Avalanche has 6 integer ALU execution units.
 const maxALUPorts = 6
 
-// maxMemPorts is the maximum number of load/store operations that can execute
-// per cycle. Apple M2 Avalanche has 3 load/store units (2 load + 1 store).
+// maxLoadPorts is the maximum number of load operations that can execute per
+// cycle. Apple M2 Avalanche has 3 load ports (2 dedicated LD + 1 dual LD/ST).
+const maxLoadPorts = 3
+
+// maxStorePorts is the maximum number of store operations that can execute per
+// cycle. Apple M2 Avalanche has 2 store ports (1 dedicated ST + 1 dual LD/ST).
+const maxStorePorts = 2
+
+// maxMemPorts is the total AGU bandwidth (load + store combined).
 const maxMemPorts = 3
 
 // maxWritePorts is the maximum number of register file write-back ports per
@@ -1169,9 +1186,15 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 	if newAccessesMem && len(earlier) >= maxMemPorts {
 		return false
 	}
-	memOpCount := 0
-	if newAccessesMem {
-		memOpCount = 1
+
+	// Count loads and stores separately for port limiting
+	loadCount := 0
+	storeCount := 0
+	if newInst.MemRead {
+		loadCount = 1
+	}
+	if newInst.MemWrite {
+		storeCount = 1
 	}
 
 	// Count ALU operations for port limiting
@@ -1196,8 +1219,11 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 			return false
 		}
 
-		if prev.MemRead || prev.MemWrite {
-			memOpCount++
+		if prev.MemRead {
+			loadCount++
+		}
+		if prev.MemWrite {
+			storeCount++
 		}
 
 		if isALUOp(prev) {
@@ -1243,8 +1269,18 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 		}
 	}
 
-	// Limit memory operations to available load/store ports
-	if memOpCount > maxMemPorts {
+	// Limit total memory operations to AGU bandwidth
+	if loadCount+storeCount > maxMemPorts {
+		return false
+	}
+
+	// Limit loads to available load ports
+	if loadCount > maxLoadPorts {
+		return false
+	}
+
+	// Limit stores to available store ports
+	if storeCount > maxStorePorts {
 		return false
 	}
 
