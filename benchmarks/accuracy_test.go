@@ -69,10 +69,13 @@ type AccuracySummary struct {
 
 // benchmarkMapping maps simulator benchmark names to baseline names.
 // Uses branch_taken_conditional to match native benchmark pattern (CMP + B.GE).
+// Memory-latency benchmarks (loadheavy, storeheavy, memorystrided) require
+// D-cache for meaningful comparison — see dcache_accuracy_test.go (PR #429).
 var benchmarkMapping = map[string]string{
 	"arithmetic_sequential":    "arithmetic",
 	"dependency_chain":         "dependency",
 	"branch_taken_conditional": "branch",
+	"branch_heavy":             "branchheavy",
 }
 
 // loadBaseline loads the M2 baseline data from the native directory.
