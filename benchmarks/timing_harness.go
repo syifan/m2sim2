@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sarchlab/m2sim/emu"
+	"github.com/sarchlab/m2sim/loader"
 	"github.com/sarchlab/m2sim/timing/cache"
 	"github.com/sarchlab/m2sim/timing/pipeline"
 )
@@ -82,11 +83,23 @@ type Benchmark struct {
 	// Setup prepares the emulator state (e.g., initialize registers, memory)
 	Setup func(regFile *emu.RegFile, memory *emu.Memory)
 
-	// Program is the ARM64 machine code to execute
+	// Program is the ARM64 machine code to execute (used when ELFPath is empty)
 	Program []byte
+
+	// ELFPath is the path to an ARM64 ELF binary to load (overrides Program)
+	ELFPath string
 
 	// ExpectedExit is the expected exit code (for validation)
 	ExpectedExit int64
+}
+
+// BenchmarkFromELF creates a Benchmark that loads an ARM64 ELF binary.
+func BenchmarkFromELF(name, description, elfPath string) Benchmark {
+	return Benchmark{
+		Name:        name,
+		Description: description,
+		ELFPath:     elfPath,
+	}
 }
 
 // HarnessConfig configures the benchmark harness.
@@ -188,10 +201,36 @@ func (h *Harness) runBenchmark(bench Benchmark) BenchmarkResult {
 		bench.Setup(regFile, memory)
 	}
 
-	// Load program at 0x1000
-	programAddr := uint64(0x1000)
-	for i, b := range bench.Program {
-		memory.Write8(programAddr+uint64(i), b)
+	var programAddr uint64
+
+	if bench.ELFPath != "" {
+		// Load ELF binary
+		prog, err := loader.Load(bench.ELFPath)
+		if err != nil {
+			return BenchmarkResult{
+				Name:        bench.Name,
+				Description: bench.Description,
+				ExitCode:    -1,
+			}
+		}
+
+		for _, seg := range prog.Segments {
+			for i, b := range seg.Data {
+				memory.Write8(seg.VirtAddr+uint64(i), b)
+			}
+			for i := uint64(len(seg.Data)); i < seg.MemSize; i++ {
+				memory.Write8(seg.VirtAddr+i, 0)
+			}
+		}
+
+		programAddr = prog.EntryPoint
+		regFile.SP = prog.InitialSP
+	} else {
+		// Load inline program at 0x1000
+		programAddr = uint64(0x1000)
+		for i, b := range bench.Program {
+			memory.Write8(programAddr+uint64(i), b)
+		}
 	}
 
 	// Create pipeline with options

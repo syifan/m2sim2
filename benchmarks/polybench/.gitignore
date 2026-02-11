@@ -1,4 +1,3 @@
-# Build artifacts
+# Build artifacts (ELFs are committed for CI)
 *.o
-*.elf
 *.dis
