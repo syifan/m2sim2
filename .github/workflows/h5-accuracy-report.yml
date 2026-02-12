@@ -41,6 +41,11 @@ jobs:
           echo "Checking PolyBench ELF files..."
           ls -la benchmarks/polybench/*.elf || echo "Some ELF files missing - will skip those benchmarks"
 
+      - name: Verify EmBench ELFs exist
+        run: |
+          echo "Checking EmBench ELF files..."
+          ls -la benchmarks/aha-mont64-m2sim/*.elf benchmarks/crc32-m2sim/*.elf benchmarks/edn-m2sim/*.elf benchmarks/huffbench-m2sim/*.elf benchmarks/matmult-int-m2sim/*.elf benchmarks/statemate-m2sim/*.elf benchmarks/primecount-m2sim/*.elf || echo "Some EmBench ELF files missing - will skip those benchmarks"
+
       - name: Run H5 Accuracy Report
         run: |
           echo "Running H5 accuracy framework..."

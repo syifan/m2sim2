@@ -23,6 +23,9 @@ agent/state.json
 # Agent workspace (managed outside repo)
 workspace/
 
+# EmBench native calibration build artifacts
+benchmarks/embench-native-build/
+
 # Profiling output
 *.prof
 

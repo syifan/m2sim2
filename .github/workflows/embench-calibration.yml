@@ -1,0 +1,64 @@
+name: EmBench Hardware Calibration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  calibrate:
+    name: EmBench Linear Regression Calibration on Apple Silicon
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install numpy scipy
+
+      - name: Verify ARM64 architecture
+        run: |
+          ARCH=$(uname -m)
+          echo "Architecture: $ARCH"
+          if [ "$ARCH" != "arm64" ]; then
+            echo "ERROR: This workflow requires ARM64 (Apple Silicon)"
+            exit 1
+          fi
+
+      - name: Run EmBench calibration
+        run: |
+          cd benchmarks/native
+          python3 embench_calibration.py \
+            --runs 15 \
+            --output embench_calibration_results.json
+        timeout-minutes: 40
+
+      - name: Display results
+        if: always()
+        run: |
+          echo "## EmBench Calibration Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f benchmarks/native/embench_calibration_results.json ]; then
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat benchmarks/native/embench_calibration_results.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Calibration results not found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload calibration results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embench-calibration-results
+          path: benchmarks/native/embench_calibration_results.json
+          retention-days: 90
+
+      - name: Clean up build artifacts
+        if: always()
+        run: rm -rf benchmarks/embench-native-build

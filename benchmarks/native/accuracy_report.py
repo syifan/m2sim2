@@ -160,6 +160,14 @@ def get_simulator_cpi_for_benchmarks(repo_root: Path) -> dict:
         'polybench_gemm': 'gemm',
         'polybench_2mm': '2mm',
         'polybench_3mm': '3mm',
+        # EmBench benchmarks
+        'embench_aha_mont64': 'aha-mont64',
+        'embench_crc32': 'crc32-embench',
+        'embench_edn': 'edn',
+        'embench_huffbench': 'huffbench',
+        'embench_matmult_int': 'matmult-int',
+        'embench_statemate': 'statemate',
+        'embench_primecount': 'primecount',
     }
 
     # Fallback CPI values if test can't run (updated 2026-02-11 with looped benchmarks)
@@ -185,6 +193,14 @@ def get_simulator_cpi_for_benchmarks(repo_root: Path) -> dict:
         "gemm": 0.41,        # Matrix multiplication (compute-intensive)
         "2mm": 0.39,         # Two matrix multiplications
         "3mm": 0.40,         # Three matrix multiplications
+        # EmBench benchmarks - fallback CPI values
+        "aha-mont64": 0.42,     # Montgomery multiplication (crypto)
+        "crc32-embench": 0.40,  # CRC32 (bit manipulation)
+        "edn": 0.41,            # FIR filter (DSP)
+        "huffbench": 0.43,      # Huffman compression/decompression
+        "matmult-int": 0.42,    # Integer matrix multiplication
+        "statemate": 0.40,      # State machine
+        "primecount": 0.41,     # Prime number sieve
     }
 
     # Run two test configurations and merge results.
@@ -298,7 +314,65 @@ def get_simulator_cpi_for_benchmarks(repo_root: Path) -> dict:
                         print(f"  WARNING: Using FALLBACK CPI for {bench_name}: {fallback_cpis[bench_name]} (test failed)")
                         print(f"  WARNING: Accuracy results for {bench_name} may not reflect actual simulation")
 
-    # Merge: use D-cache CPI for dcache_benchmarks, no-cache for the rest, PolyBench for intermediate benchmarks
+    # Run EmBench benchmarks
+    print("  Running EmBench benchmarks...")
+    embench_cpis = {}
+    embench_tests = [
+        ("TestEmbenchAhaMont64", "aha-mont64"),
+        ("TestEmbenchCRC32", "crc32-embench"),
+        ("TestEmbenchEDN", "edn"),
+        ("TestEmbenchHuffbench", "huffbench"),
+        ("TestEmbenchMatmultInt", "matmult-int"),
+        ("TestEmbenchStatemate", "statemate"),
+        ("TestEmbenchPrimecount", "primecount"),
+    ]
+
+    for test_name, bench_name in embench_tests:
+        cmd = ["go", "test", "-v", "-run", test_name, "-count=1", "./benchmarks/"]
+        max_retries = 2
+
+        for attempt in range(max_retries + 1):
+            try:
+                import time
+                start_time = time.time()
+                output = subprocess.check_output(
+                    cmd, cwd=str(repo_root), stderr=subprocess.STDOUT,
+                    text=True, timeout=600
+                )
+                execution_time = time.time() - start_time
+
+                for line in output.split('\n'):
+                    if 'CPI=' in line:
+                        try:
+                            cpi_str = line.split('CPI=')[1].split(',')[0]
+                            embench_cpis[bench_name] = float(cpi_str)
+                            print(f"  Found EmBench: {bench_name}: CPI={embench_cpis[bench_name]} (took {execution_time:.1f}s)")
+                            break
+                        except (IndexError, ValueError):
+                            pass
+                break
+
+            except subprocess.TimeoutExpired:
+                if attempt < max_retries:
+                    print(f"  Timeout on attempt {attempt + 1} for {test_name}, retrying...")
+                    time.sleep(5)
+                else:
+                    print(f"  Timeout: EmBench test {test_name} exceeded 600s timeout after {max_retries + 1} attempts")
+                    if bench_name in fallback_cpis:
+                        embench_cpis[bench_name] = fallback_cpis[bench_name]
+                        print(f"  WARNING: Using FALLBACK CPI for {bench_name}: {fallback_cpis[bench_name]} (test timed out)")
+            except Exception as e:
+                if attempt < max_retries:
+                    print(f"  Error on attempt {attempt + 1} for {test_name}: {e}, retrying...")
+                    time.sleep(5)
+                else:
+                    print(f"  Failed: EmBench test {test_name} failed after {max_retries + 1} attempts: {e}")
+                    if bench_name in fallback_cpis:
+                        embench_cpis[bench_name] = fallback_cpis[bench_name]
+                        print(f"  WARNING: Using FALLBACK CPI for {bench_name}: {fallback_cpis[bench_name]} (test failed)")
+
+    # Merge: use D-cache CPI for dcache_benchmarks, no-cache for the rest,
+    # PolyBench for intermediate benchmarks, EmBench for embedded benchmarks
     cpis = {}
     for short_name in fallback_cpis:
         if short_name in dcache_benchmarks and short_name in dcache_cpis:
@@ -307,6 +381,9 @@ def get_simulator_cpi_for_benchmarks(repo_root: Path) -> dict:
         elif short_name in polybench_cpis:
             cpis[short_name] = polybench_cpis[short_name]
             print(f"  Using PolyBench CPI for {short_name}: {cpis[short_name]}")
+        elif short_name in embench_cpis:
+            cpis[short_name] = embench_cpis[short_name]
+            print(f"  Using EmBench CPI for {short_name}: {cpis[short_name]}")
         elif short_name in no_cache_cpis:
             cpis[short_name] = no_cache_cpis[short_name]
         # else: will fall through to fallback below
@@ -704,9 +781,21 @@ def main():
         print("Continuing with microbenchmarks only...")
         polybench_results = {"results": []}
 
-    # Merge calibration results
-    print("Merging microbenchmark and PolyBench calibration results...")
+    # Load EmBench calibration results
+    embench_path = script_dir / "embench_calibration_results.json"
+    print(f"Loading EmBench calibration results from: {embench_path}")
+    try:
+        embench_results = load_calibration_results(embench_path)
+    except FileNotFoundError:
+        print(f"Warning: EmBench calibration results not found at {embench_path}")
+        print("Continuing without EmBench calibration data...")
+        embench_results = {"results": []}
+
+    # Merge calibration results from all benchmark suites
+    print("Merging microbenchmark, PolyBench, and EmBench calibration results...")
     calibration_results = merge_calibration_results(microbench_results, polybench_results)
+    # Also merge EmBench results
+    calibration_results["results"].extend(embench_results.get("results", []))
     
     # Get simulator CPI values
     print("\nRunning simulator benchmarks...")
