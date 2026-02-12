@@ -1,0 +1,125 @@
+name: Hardware Calibration
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Calibration suite to run'
+        type: choice
+        required: true
+        default: 'all'
+        options:
+          - all
+          - microbench
+          - polybench
+          - embench
+
+jobs:
+  microbench-calibration:
+    name: Microbenchmark Calibration
+    if: inputs.suite == 'all' || inputs.suite == 'microbench'
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy scipy
+
+      - name: Verify ARM64
+        run: |
+          if [ "$(uname -m)" != "arm64" ]; then
+            echo "ERROR: Requires ARM64 (Apple Silicon)"
+            exit 1
+          fi
+
+      - name: Run memory benchmark calibration
+        run: |
+          cd benchmarks/native
+          python3 linear_calibration.py \
+            --benchmarks memorystrided loadheavy storeheavy branchheavy \
+            --runs 15 \
+            --output memory_calibration_results.json
+        timeout-minutes: 45
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microbench-calibration
+          path: benchmarks/native/memory_calibration_results.json
+          retention-days: 90
+
+  polybench-calibration:
+    name: PolyBench Calibration
+    if: inputs.suite == 'all' || inputs.suite == 'polybench'
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy scipy
+
+      - name: Verify ARM64
+        run: |
+          if [ "$(uname -m)" != "arm64" ]; then
+            echo "ERROR: Requires ARM64 (Apple Silicon)"
+            exit 1
+          fi
+
+      - name: Run PolyBench calibration
+        run: |
+          cd benchmarks/native
+          python3 polybench_calibration.py \
+            --runs 15 \
+            --output polybench_calibration_results.json
+        timeout-minutes: 40
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polybench-calibration
+          path: benchmarks/native/polybench_calibration_results.json
+          retention-days: 90
+
+  embench-calibration:
+    name: EmBench Calibration
+    if: inputs.suite == 'all' || inputs.suite == 'embench'
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy scipy
+
+      - name: Verify ARM64
+        run: |
+          if [ "$(uname -m)" != "arm64" ]; then
+            echo "ERROR: Requires ARM64 (Apple Silicon)"
+            exit 1
+          fi
+
+      - name: Run EmBench calibration
+        run: |
+          cd benchmarks/native
+          python3 embench_calibration.py \
+            --runs 15 \
+            --output embench_calibration_results.json
+        timeout-minutes: 40
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embench-calibration
+          path: benchmarks/native/embench_calibration_results.json
+          retention-days: 90

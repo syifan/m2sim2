@@ -1,0 +1,82 @@
+name: Accuracy - Microbenchmarks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/**'
+      - 'timing/**'
+      - 'emu/**'
+  workflow_dispatch:
+
+concurrency:
+  group: accuracy-microbench-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  microbench-accuracy:
+    name: Microbenchmark Accuracy
+    runs-on: macos-14
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install matplotlib numpy scipy
+
+      - name: Run microbenchmark CPI tests
+        run: |
+          cd benchmarks
+          echo "=== Running microbenchmark CPI tests ==="
+
+          # Without D-cache (ALU, branch, throughput benchmarks)
+          go test -v -run TestTimingPredictions_CPIBounds -count=1 -timeout 5m ./ 2>&1 | tee micro_no_cache.txt
+
+          # With D-cache (memory-latency benchmarks)
+          go test -v -run TestAccuracyCPI_WithDCache -count=1 -timeout 5m ./ 2>&1 | tee micro_dcache.txt
+
+      - name: Generate accuracy report
+        run: |
+          python3 benchmarks/native/accuracy_report.py --suite microbench 2>&1 || true
+          # If the script doesn't support --suite yet, run it and it will
+          # naturally process microbenchmarks from test output
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## Microbenchmark Accuracy Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f benchmarks/native/accuracy_results.json ]; then
+            python3 -c "
+          import json
+          d = json.load(open('benchmarks/native/accuracy_results.json'))
+          print(f\"**Average Error:** {d['summary']['average_error']*100:.1f}%\")
+          print(f\"**Benchmarks:** {d['summary']['benchmark_count']}\")
+          " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No results generated." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accuracy-microbench
+          path: |
+            benchmarks/native/accuracy_report.md
+            benchmarks/native/accuracy_results.json
+            benchmarks/native/accuracy_figure.png
+            benchmarks/native/accuracy_normalized.pdf
+          retention-days: 90

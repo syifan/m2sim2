@@ -3,8 +3,6 @@ name: Performance Regression Detection
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
-  push:
-    branches: [main]
 
 jobs:
   performance-regression:

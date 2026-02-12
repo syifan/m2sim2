@@ -1,0 +1,113 @@
+name: Accuracy - EmBench
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/aha-mont64-m2sim/**'
+      - 'benchmarks/crc32-m2sim/**'
+      - 'benchmarks/edn-m2sim/**'
+      - 'benchmarks/huffbench-m2sim/**'
+      - 'benchmarks/matmult-int-m2sim/**'
+      - 'benchmarks/statemate-m2sim/**'
+      - 'benchmarks/primecount-m2sim/**'
+      - 'benchmarks/embench_test.go'
+      - 'timing/**'
+  workflow_dispatch:
+
+concurrency:
+  group: accuracy-embench-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  embench-accuracy:
+    name: EmBench Accuracy
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify EmBench ELFs
+        run: |
+          echo "Checking EmBench ELF files..."
+          ls -la benchmarks/aha-mont64-m2sim/*.elf 2>/dev/null || echo "aha-mont64 missing"
+          ls -la benchmarks/crc32-m2sim/*.elf 2>/dev/null || echo "crc32 missing"
+          ls -la benchmarks/edn-m2sim/*.elf 2>/dev/null || echo "edn missing"
+          ls -la benchmarks/huffbench-m2sim/*.elf 2>/dev/null || echo "huffbench missing"
+          ls -la benchmarks/matmult-int-m2sim/*.elf 2>/dev/null || echo "matmult-int missing"
+          ls -la benchmarks/statemate-m2sim/*.elf 2>/dev/null || echo "statemate missing"
+          ls -la benchmarks/primecount-m2sim/*.elf 2>/dev/null || echo "primecount missing"
+
+      - name: Run EmBench tests
+        run: |
+          TESTS=(
+            TestEmbenchAhaMont64
+            TestEmbenchCRC32
+            TestEmbenchEDN
+            TestEmbenchHuffbench
+            TestEmbenchMatmultInt
+            TestEmbenchStatemate
+            TestEmbenchPrimecount
+          )
+
+          > embench_output.txt
+          for TEST in "${TESTS[@]}"; do
+            echo "--- $TEST ---"
+            go test -v -run "^${TEST}$" -count=1 -timeout 5m ./benchmarks/ 2>&1 | tee -a embench_output.txt || true
+          done
+
+      - name: Extract CPI results
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import json, re
+
+          results = {}
+          with open("embench_output.txt") as f:
+              for line in f:
+                  if "CPI=" not in line:
+                      continue
+                  # Try to extract benchmark name and CPI
+                  match = re.search(r'(\w+):\s+.*CPI=([\d.]+)', line)
+                  if match:
+                      name = match.group(1)
+                      cpi = float(match.group(2))
+                      results[name] = {"cpi": cpi}
+
+          output = {"benchmarks_run": len(results), "results": results}
+          with open("embench_results.json", "w") as f:
+              json.dump(output, f, indent=2)
+          print(json.dumps(output, indent=2))
+          PYEOF
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## EmBench Accuracy Results" >> $GITHUB_STEP_SUMMARY
+          if [ -f embench_results.json ]; then
+            python3 -c "
+          import json
+          d = json.load(open('embench_results.json'))
+          print(f'**Benchmarks measured:** {d[\"benchmarks_run\"]}/7')
+          if d['results']:
+              print()
+              print('| Benchmark | CPI |')
+              print('|-----------|-----|')
+              for name, r in sorted(d['results'].items()):
+                  print(f'| {name} | {r[\"cpi\"]:.3f} |')
+          " >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embench-accuracy
+          path: |
+            embench_results.json
+            embench_output.txt
+          retention-days: 90

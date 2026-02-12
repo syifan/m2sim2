@@ -1,0 +1,176 @@
+name: Accuracy - PolyBench
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/polybench/**'
+      - 'benchmarks/polybench_test.go'
+      - 'benchmarks/timing_harness.go'
+      - 'timing/**'
+  workflow_dispatch:
+
+concurrency:
+  group: accuracy-polybench-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  polybench-group-1:
+    name: PolyBench Group 1 (ATAX, BiCG, Jacobi1D)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify ELFs
+        run: |
+          ls -la benchmarks/polybench/atax_m2sim.elf
+          ls -la benchmarks/polybench/bicg_m2sim.elf
+          ls -la benchmarks/polybench/jacobi-1d_m2sim.elf
+
+      - name: Run tests
+        run: |
+          for TEST in TestPolybenchATAX TestPolybenchBiCG TestPolybenchJacobi1D; do
+            echo "--- $TEST ---"
+            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group1_output.txt || true
+          done
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polybench-group-1
+          path: group1_output.txt
+          retention-days: 30
+
+  polybench-group-2:
+    name: PolyBench Group 2 (MVT, GEMM)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify ELFs
+        run: |
+          ls -la benchmarks/polybench/mvt_m2sim.elf
+          ls -la benchmarks/polybench/gemm_m2sim.elf
+
+      - name: Run tests
+        run: |
+          for TEST in TestPolybenchMVT TestPolybenchGEMM; do
+            echo "--- $TEST ---"
+            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group2_output.txt || true
+          done
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polybench-group-2
+          path: group2_output.txt
+          retention-days: 30
+
+  polybench-group-3:
+    name: PolyBench Group 3 (2MM, 3MM)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify ELFs
+        run: |
+          ls -la benchmarks/polybench/2mm_m2sim.elf
+          ls -la benchmarks/polybench/3mm_m2sim.elf
+
+      - name: Run tests
+        run: |
+          for TEST in TestPolybench2MM TestPolybench3MM; do
+            echo "--- $TEST ---"
+            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group3_output.txt || true
+          done
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polybench-group-3
+          path: group3_output.txt
+          retention-days: 30
+
+  consolidate:
+    name: Consolidate PolyBench Results
+    runs-on: ubuntu-latest
+    needs: [polybench-group-1, polybench-group-2, polybench-group-3]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download results
+        uses: actions/download-artifact@v4
+        with:
+          path: group-results
+
+      - name: Extract CPI results
+        run: |
+          cat group-results/polybench-group-1/group1_output.txt > combined.txt 2>/dev/null || true
+          cat group-results/polybench-group-2/group2_output.txt >> combined.txt 2>/dev/null || true
+          cat group-results/polybench-group-3/group3_output.txt >> combined.txt 2>/dev/null || true
+
+          python3 - <<'PYEOF'
+          import json, re
+
+          results = {}
+          with open("combined.txt") as f:
+              for line in f:
+                  if "CPI=" not in line:
+                      continue
+                  match = re.search(r'(polybench_\w+):\s+cycles=(\d+),\s+insts=(\d+),\s+CPI=([\d.]+)', line)
+                  if match:
+                      name = match.group(1).replace("polybench_", "")
+                      if name == "jacobi1d":
+                          name = "jacobi-1d"
+                      results[name] = {
+                          "cycles": int(match.group(2)),
+                          "instructions": int(match.group(3)),
+                          "cpi": float(match.group(4)),
+                      }
+
+          output = {"benchmarks_run": len(results), "results": results}
+          with open("polybench_results.json", "w") as f:
+              json.dump(output, f, indent=2)
+          print(json.dumps(output, indent=2))
+          PYEOF
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## PolyBench Accuracy Results" >> $GITHUB_STEP_SUMMARY
+          if [ -f polybench_results.json ]; then
+            python3 -c "
+          import json
+          d = json.load(open('polybench_results.json'))
+          print(f'**Benchmarks measured:** {d[\"benchmarks_run\"]}/7')
+          if d['results']:
+              print()
+              print('| Benchmark | CPI |')
+              print('|-----------|-----|')
+              for name, r in sorted(d['results'].items()):
+                  print(f'| {name} | {r[\"cpi\"]:.3f} |')
+          " >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload consolidated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: polybench-consolidated
+          path: polybench_results.json
+          retention-days: 90
