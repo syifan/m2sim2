@@ -27,11 +27,6 @@ type IFIDRegister struct {
 // Clear resets the IF/ID register to empty state.
 func (r *IFIDRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
-	r.InstructionWord = 0
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // IDEXRegister holds state between Decode and Execute stages.
@@ -81,27 +76,7 @@ type IDEXRegister struct {
 // Clear resets the ID/EX register to empty state.
 func (r *IDEXRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.RnValue = 0
-	r.RmValue = 0
-	r.Rd = 0
-	r.Rn = 0
-	r.Rm = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsBranch = false
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
-	r.IsFused = false
-	r.FusedRnVal = 0
-	r.FusedRmVal = 0
-	r.FusedIs64 = false
-	r.FusedIsImm = false
-	r.FusedImmVal = 0
 }
 
 // EXMEMRegister holds state between Execute and Memory stages.
@@ -147,21 +122,7 @@ type EXMEMRegister struct {
 // Clear resets the EX/MEM register to empty state.
 func (r *EXMEMRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.StoreValue = 0
-	r.Rd = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsFused = false
-	r.SetsFlags = false
-	r.FlagN = false
-	r.FlagZ = false
-	r.FlagC = false
-	r.FlagV = false
 }
 
 // MemorySlot interface implementation for EXMEMRegister
@@ -219,14 +180,7 @@ type MEMWBRegister struct {
 // Clear resets the MEM/WB register to empty state.
 func (r *MEMWBRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.MemData = 0
-	r.Rd = 0
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsFused = false
 }
 
 // WritebackSlot interface implementation for MEMWBRegister

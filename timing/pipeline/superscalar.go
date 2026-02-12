@@ -237,50 +237,18 @@ type SecondaryMEMWBRegister struct {
 // Clear resets the secondary IF/ID register.
 func (r *SecondaryIFIDRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
-	r.InstructionWord = 0
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the secondary ID/EX register.
 func (r *SecondaryIDEXRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.RnValue = 0
-	r.RmValue = 0
-	r.Rd = 0
-	r.Rn = 0
-	r.Rm = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsBranch = false
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the secondary EX/MEM register.
 func (r *SecondaryEXMEMRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.StoreValue = 0
-	r.Rd = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.SetsFlags = false
-	r.FlagN = false
-	r.FlagZ = false
-	r.FlagC = false
-	r.FlagV = false
 }
 
 // MemorySlot interface implementation for SecondaryEXMEMRegister
@@ -309,13 +277,7 @@ func (r *SecondaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 // Clear resets the secondary MEM/WB register.
 func (r *SecondaryMEMWBRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.MemData = 0
-	r.Rd = 0
-	r.RegWrite = false
-	r.MemToReg = false
 }
 
 // toIDEX converts SecondaryIDEXRegister to IDEXRegister for use with existing hazard/execute logic.
@@ -426,50 +388,18 @@ type TertiaryMEMWBRegister struct {
 // Clear resets the tertiary IF/ID register.
 func (r *TertiaryIFIDRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
-	r.InstructionWord = 0
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the tertiary ID/EX register.
 func (r *TertiaryIDEXRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.RnValue = 0
-	r.RmValue = 0
-	r.Rd = 0
-	r.Rn = 0
-	r.Rm = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsBranch = false
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the tertiary EX/MEM register.
 func (r *TertiaryEXMEMRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.StoreValue = 0
-	r.Rd = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.SetsFlags = false
-	r.FlagN = false
-	r.FlagZ = false
-	r.FlagC = false
-	r.FlagV = false
 }
 
 // MemorySlot interface implementation for TertiaryEXMEMRegister
@@ -498,13 +428,7 @@ func (r *TertiaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 // Clear resets the tertiary MEM/WB register.
 func (r *TertiaryMEMWBRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.MemData = 0
-	r.Rd = 0
-	r.RegWrite = false
-	r.MemToReg = false
 }
 
 // toIDEX converts TertiaryIDEXRegister to IDEXRegister.
@@ -617,50 +541,18 @@ type QuaternaryMEMWBRegister struct {
 // Clear resets the quaternary IF/ID register.
 func (r *QuaternaryIFIDRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
-	r.InstructionWord = 0
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the quaternary ID/EX register.
 func (r *QuaternaryIDEXRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.RnValue = 0
-	r.RmValue = 0
-	r.Rd = 0
-	r.Rn = 0
-	r.Rm = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsBranch = false
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the quaternary EX/MEM register.
 func (r *QuaternaryEXMEMRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.StoreValue = 0
-	r.Rd = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.SetsFlags = false
-	r.FlagN = false
-	r.FlagZ = false
-	r.FlagC = false
-	r.FlagV = false
 }
 
 // MemorySlot interface implementation for QuaternaryEXMEMRegister
@@ -689,13 +581,7 @@ func (r *QuaternaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 // Clear resets the quaternary MEM/WB register.
 func (r *QuaternaryMEMWBRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.MemData = 0
-	r.Rd = 0
-	r.RegWrite = false
-	r.MemToReg = false
 }
 
 // toIDEX converts QuaternaryIDEXRegister to IDEXRegister.
@@ -808,50 +694,18 @@ type QuinaryMEMWBRegister struct {
 // Clear resets the quinary IF/ID register.
 func (r *QuinaryIFIDRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
-	r.InstructionWord = 0
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the quinary ID/EX register.
 func (r *QuinaryIDEXRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.RnValue = 0
-	r.RmValue = 0
-	r.Rd = 0
-	r.Rn = 0
-	r.Rm = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsBranch = false
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the quinary EX/MEM register.
 func (r *QuinaryEXMEMRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.StoreValue = 0
-	r.Rd = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.SetsFlags = false
-	r.FlagN = false
-	r.FlagZ = false
-	r.FlagC = false
-	r.FlagV = false
 }
 
 // MemorySlot interface implementation for QuinaryEXMEMRegister
@@ -880,13 +734,7 @@ func (r *QuinaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 // Clear resets the quinary MEM/WB register.
 func (r *QuinaryMEMWBRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.MemData = 0
-	r.Rd = 0
-	r.RegWrite = false
-	r.MemToReg = false
 }
 
 // toIDEX converts QuinaryIDEXRegister to IDEXRegister.
@@ -997,50 +845,18 @@ type SenaryMEMWBRegister struct {
 // Clear resets the senary IF/ID register.
 func (r *SenaryIFIDRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
-	r.InstructionWord = 0
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the senary ID/EX register.
 func (r *SenaryIDEXRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.RnValue = 0
-	r.RmValue = 0
-	r.Rd = 0
-	r.Rn = 0
-	r.Rm = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsBranch = false
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the senary EX/MEM register.
 func (r *SenaryEXMEMRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.StoreValue = 0
-	r.Rd = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.SetsFlags = false
-	r.FlagN = false
-	r.FlagZ = false
-	r.FlagC = false
-	r.FlagV = false
 }
 
 // MemorySlot interface implementation for SenaryEXMEMRegister
@@ -1069,13 +885,7 @@ func (r *SenaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 // Clear resets the senary MEM/WB register.
 func (r *SenaryMEMWBRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.MemData = 0
-	r.Rd = 0
-	r.RegWrite = false
-	r.MemToReg = false
 }
 
 // toIDEX converts SenaryIDEXRegister to IDEXRegister.
@@ -1479,50 +1289,18 @@ type SeptenaryMEMWBRegister struct {
 // Clear resets the septenary IF/ID register.
 func (r *SeptenaryIFIDRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
-	r.InstructionWord = 0
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the septenary ID/EX register.
 func (r *SeptenaryIDEXRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.RnValue = 0
-	r.RmValue = 0
-	r.Rd = 0
-	r.Rn = 0
-	r.Rm = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsBranch = false
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the septenary EX/MEM register.
 func (r *SeptenaryEXMEMRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.StoreValue = 0
-	r.Rd = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.SetsFlags = false
-	r.FlagN = false
-	r.FlagZ = false
-	r.FlagC = false
-	r.FlagV = false
 }
 
 // MemorySlot interface implementation for SeptenaryEXMEMRegister
@@ -1551,13 +1329,7 @@ func (r *SeptenaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 // Clear resets the septenary MEM/WB register.
 func (r *SeptenaryMEMWBRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.MemData = 0
-	r.Rd = 0
-	r.RegWrite = false
-	r.MemToReg = false
 }
 
 // toIDEX converts SeptenaryIDEXRegister to IDEXRegister.
@@ -1691,50 +1463,18 @@ type OctonaryMEMWBRegister struct {
 // Clear resets the octonary IF/ID register.
 func (r *OctonaryIFIDRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
-	r.InstructionWord = 0
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the octonary ID/EX register.
 func (r *OctonaryIDEXRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.RnValue = 0
-	r.RmValue = 0
-	r.Rd = 0
-	r.Rn = 0
-	r.Rm = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.IsBranch = false
-	r.PredictedTaken = false
-	r.PredictedTarget = 0
-	r.EarlyResolved = false
 }
 
 // Clear resets the octonary EX/MEM register.
 func (r *OctonaryEXMEMRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.StoreValue = 0
-	r.Rd = 0
-	r.MemRead = false
-	r.MemWrite = false
-	r.RegWrite = false
-	r.MemToReg = false
-	r.SetsFlags = false
-	r.FlagN = false
-	r.FlagZ = false
-	r.FlagC = false
-	r.FlagV = false
 }
 
 // MemorySlot interface implementation for OctonaryEXMEMRegister
@@ -1763,13 +1503,7 @@ func (r *OctonaryEXMEMRegister) GetStoreValue() uint64 { return r.StoreValue }
 // Clear resets the octonary MEM/WB register.
 func (r *OctonaryMEMWBRegister) Clear() {
 	r.Valid = false
-	r.PC = 0
 	r.Inst = nil
-	r.ALUResult = 0
-	r.MemData = 0
-	r.Rd = 0
-	r.RegWrite = false
-	r.MemToReg = false
 }
 
 // toIDEX converts OctonaryIDEXRegister to IDEXRegister.

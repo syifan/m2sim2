@@ -233,7 +233,19 @@ func NewDecoder() *Decoder {
 // Decode decodes a 32-bit ARM64 instruction word.
 func (d *Decoder) Decode(word uint32) *Instruction {
 	inst := &Instruction{Op: OpUnknown, Format: FormatUnknown}
+	d.decodeInto(word, inst)
+	return inst
+}
 
+// DecodeInto decodes a 32-bit ARM64 instruction word into a pre-allocated
+// Instruction, avoiding heap allocation. The caller is responsible for
+// ensuring inst is zeroed or freshly initialized before calling.
+func (d *Decoder) DecodeInto(word uint32, inst *Instruction) {
+	*inst = Instruction{Op: OpUnknown, Format: FormatUnknown}
+	d.decodeInto(word, inst)
+}
+
+func (d *Decoder) decodeInto(word uint32, inst *Instruction) {
 	// Extract top-level opcode bits to determine instruction class
 	// ARM64 uses bits [31:25] for primary classification
 
@@ -298,8 +310,6 @@ func (d *Decoder) Decode(word uint32) *Instruction {
 		// Unknown instruction
 		_ = op0 // unused, but extracted for future expansion
 	}
-
-	return inst
 }
 
 // isDataProcessingImm checks if instruction is Data Processing (Immediate).

@@ -360,6 +360,10 @@ type Pipeline struct {
 	// Superscalar configuration
 	superscalarConfig SuperscalarConfig
 
+	// Pre-allocated scratch instruction for load-use hazard detection.
+	// Avoids heap allocation per cycle for the transient decode result.
+	hazardScratchInst insts.Instruction
+
 	// Statistics
 	stats Statistics
 
@@ -559,8 +563,9 @@ func (p *Pipeline) tickSingleIssue() {
 	loadUseHazard := false
 	if p.idex.Valid && p.idex.MemRead && p.idex.Rd != 31 && p.ifid.Valid {
 		// Peek at the next instruction to check for load-use hazard
-		nextInst := p.decodeStage.decoder.Decode(p.ifid.InstructionWord)
-		if nextInst != nil && nextInst.Op != insts.OpUnknown {
+		p.decodeStage.decoder.DecodeInto(p.ifid.InstructionWord, &p.hazardScratchInst)
+		nextInst := &p.hazardScratchInst
+		if nextInst.Op != insts.OpUnknown {
 			usesRn := true                                 // Most instructions use Rn
 			usesRm := nextInst.Format == insts.FormatDPReg // Only register format uses Rm
 
