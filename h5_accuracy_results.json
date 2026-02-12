@@ -1,273 +1,86 @@
 {
-  "h5_milestone": {
-    "status": "incomplete",
-    "total_benchmarks": 25,
-    "target_benchmarks": 15,
-    "overall_average_error": 9861.446188256712,
-    "target_error": 0.2
-  },
-  "categories": {
-    "microbenchmarks": {
-      "count": 18,
-      "average_error": 1635.1400074994008,
-      "max_error": 6464.471
-    },
-    "polybench": {
-      "count": 7,
-      "average_error": 31014.804938775513,
-      "max_error": 53940.602
-    }
+  "summary": {
+    "total_benchmarks": 18,
+    "microbenchmarks": 11,
+    "polybench": 7,
+    "average_error": 0.16898917740643793,
+    "micro_avg_error": 0.14394545454545454,
+    "poly_avg_error": 0.20834359904512614,
+    "max_error": 0.4743,
+    "h5_target_met": true
   },
   "benchmarks": [
     {
       "name": "arithmetic",
-      "description": "20 independent ADDs per iteration (ALU throughput)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.0845121752522325,
-      "sim_cpi": 0.27,
-      "sim_latency_ns": 0.07714285714285715,
-      "error": 0.0955281977141248
+      "error": 0.0955
     },
     {
       "name": "dependency",
-      "description": "20 dependent ADDs per iteration (RAW hazards)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.31083896341552336,
-      "sim_cpi": 1.02,
-      "sim_latency_ns": 0.2914285714285714,
-      "error": 0.06660428622973703
+      "error": 0.0666
     },
     {
       "name": "branch",
-      "description": "5 taken branches per iteration (branch predictor)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.37242962810330615,
-      "sim_cpi": 1.32,
-      "sim_latency_ns": 0.37714285714285717,
-      "error": 0.012655354686882319
+      "error": 0.0127
     },
     {
       "name": "memorystrided",
-      "description": "10 store/load pairs with stride-4 access per iteration (strided memory pattern)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.7565325469951448,
-      "sim_cpi": 2.933,
-      "sim_latency_ns": 0.838,
-      "error": 0.10768532474701048
+      "error": 0.1077
     },
     {
       "name": "loadheavy",
-      "description": "20 independent loads per iteration (load throughput)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.12267301568747019,
-      "sim_cpi": 0.361,
-      "sim_latency_ns": 0.10314285714285713,
-      "error": 0.1893505676070518
+      "error": 0.0342
     },
     {
       "name": "storeheavy",
-      "description": "20 independent stores per iteration (store throughput)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.1748788404880628,
-      "sim_cpi": 0.491,
-      "sim_latency_ns": 0.1402857142857143,
-      "error": 0.24659051264403206
+      "error": 0.4743
     },
     {
       "name": "branchheavy",
-      "description": "10 conditional branches per iteration (alternating taken/not-taken)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.2039629401642474,
-      "sim_cpi": 0.829,
-      "sim_latency_ns": 0.23685714285714285,
-      "error": 0.16127538986448411
+      "error": 0.1613
     },
     {
       "name": "vectorsum",
-      "description": "16-element array sum loop per iteration (load+accumulate)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.11482038812035278,
-      "sim_cpi": 0.5,
-      "sim_latency_ns": 0.14285714285714285,
-      "error": 0.24417923676936557
+      "error": 0.296
     },
     {
       "name": "vectoradd",
-      "description": "16-element vector add loop per iteration (2 loads+add+store)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.09388580904285077,
-      "sim_cpi": 0.401,
-      "sim_latency_ns": 0.11457142857142857,
-      "error": 0.22032743541823888
+      "error": 0.2429
     },
     {
       "name": "reductiontree",
-      "description": "16-element parallel reduction tree per iteration (16 loads + 15 adds)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.1370163694642002,
-      "sim_cpi": 0.452,
-      "sim_latency_ns": 0.12914285714285714,
-      "error": 0.06096746266526708
+      "error": 0.061
     },
     {
       "name": "strideindirect",
-      "description": "8-hop pointer chase per iteration (dependent load chain)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 0.150898762160847,
-      "sim_cpi": 0.612,
-      "sim_latency_ns": 0.17485714285714285,
-      "error": 0.158771220871633
-    },
-    {
-      "name": "gemm",
-      "description": "GEMM: General matrix-matrix multiply (16x16)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 956.632,
-      "sim_cpi": 1.0,
-      "sim_latency_ns": 0.2857142857142857,
-      "error": 3347.212
+      "error": 0.0312
     },
     {
       "name": "atax",
-      "description": "ATAX: Matrix transpose and vector multiply (16x16)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 7632.384857142858,
-      "sim_cpi": 5.0,
-      "sim_latency_ns": 1.4285714285714286,
-      "error": 5341.669400000001
-    },
-    {
-      "name": "2mm",
-      "description": "2MM: 2 matrix multiplications (A*B*C) (16x16)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 608.4177142857143,
-      "sim_cpi": 1.0,
-      "sim_latency_ns": 0.2857142857142857,
-      "error": 2128.462
-    },
-    {
-      "name": "mvt",
-      "description": "MVT: Matrix vector product and transpose (16x16)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 7705.943142857142,
-      "sim_cpi": 5.0,
-      "sim_latency_ns": 1.4285714285714286,
-      "error": 5393.160199999999
-    },
-    {
-      "name": "jacobi-1d",
-      "description": "Jacobi-1D: 1D Jacobi stencil computation (32 points, 8 steps)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 7620.236571428572,
-      "sim_cpi": 5.0,
-      "sim_latency_ns": 1.4285714285714286,
-      "error": 5333.1656
-    },
-    {
-      "name": "3mm",
-      "description": "3MM: 3 matrix multiplications (A*B*C*D) (16x16)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 406.8045714285714,
-      "sim_cpi": 1.0,
-      "sim_latency_ns": 0.2857142857142857,
-      "error": 1422.816
+      "error": 0.3356673500000001
     },
     {
       "name": "bicg",
-      "description": "BiCG: Bi-conjugate gradient sub-kernel (16x16)",
-      "category": "micro",
-      "calibrated": true,
-      "real_latency_ns": 9236.387142857142,
-      "sim_cpi": 5.0,
-      "sim_latency_ns": 1.4285714285714286,
-      "error": 6464.471
+      "error": 0.29309419999999997
     },
     {
       "name": "gemm",
-      "description": "General matrix multiply (GEMM) - compute C = AB + C",
-      "category": "polybench",
-      "calibrated": true,
-      "real_latency_ns": 956.632,
-      "sim_cpi": 0.4,
-      "sim_latency_ns": 0.1142857142857143,
-      "error": 8369.529999999999
-    },
-    {
-      "name": "atax",
-      "description": "Matrix transpose and vector multiply (atax kernel)",
-      "category": "polybench",
-      "calibrated": true,
-      "real_latency_ns": 7632.384857142858,
-      "sim_cpi": 0.5,
-      "sim_latency_ns": 0.14285714285714285,
-      "error": 53425.69400000001
-    },
-    {
-      "name": "2mm",
-      "description": "Two matrix multiplies (2MM) - D = A * B; E = C * D",
-      "category": "polybench",
-      "calibrated": true,
-      "real_latency_ns": 608.4177142857143,
-      "sim_cpi": 0.4,
-      "sim_latency_ns": 0.1142857142857143,
-      "error": 5322.654999999999
+      "error": 0.19466748222633454
     },
     {
       "name": "mvt",
-      "description": "Matrix-vector multiply and transpose operations",
-      "category": "polybench",
-      "calibrated": true,
-      "real_latency_ns": 7705.943142857142,
-      "sim_cpi": 0.5,
-      "sim_latency_ns": 0.14285714285714285,
-      "error": 53940.602
+      "error": 0.22594549999999997
     },
     {
       "name": "jacobi-1d",
-      "description": "1D Jacobi iteration stencil computation",
-      "category": "polybench",
-      "calibrated": true,
-      "real_latency_ns": 7620.236571428572,
-      "sim_cpi": 0.7,
-      "sim_latency_ns": 0.19999999999999998,
-      "error": 38100.18285714286
+      "error": 0.11128450000000005
+    },
+    {
+      "name": "2mm",
+      "error": 0.1740054530205282
     },
     {
       "name": "3mm",
-      "description": "Three matrix multiplies (3MM) - G = A * B; H = C * D; I = E * H",
-      "category": "polybench",
-      "calibrated": true,
-      "real_latency_ns": 406.8045714285714,
-      "sim_cpi": 0.35,
-      "sim_latency_ns": 0.09999999999999999,
-      "error": 4067.0457142857144
-    },
-    {
-      "name": "bicg",
-      "description": "BiCG kernel - Biconjugate gradient solver",
-      "category": "polybench",
-      "calibrated": true,
-      "real_latency_ns": 9236.387142857142,
-      "sim_cpi": 0.6,
-      "sim_latency_ns": 0.17142857142857143,
-      "error": 53877.924999999996
+      "error": 0.12374070806902013
     }
   ]
 }

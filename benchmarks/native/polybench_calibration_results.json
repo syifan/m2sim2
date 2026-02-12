@@ -23,33 +23,33 @@
       "benchmark": "gemm",
       "description": "General matrix multiply (GEMM) - C := alpha*A*B + beta*C",
       "calibrated": true,
-      "instruction_latency_ns": 0.1169892604173915,
-      "overhead_ms": 1.1871343157717622,
-      "r_squared": 0.9999145280974906,
+      "instruction_latency_ns": 0.07808503693742005,
+      "overhead_ms": 8.258915751154944,
+      "r_squared": 0.9994669853479089,
       "data_points": [
         {
-          "instructions": 33700764,
-          "time_ms": 6.426421336881402
+          "instructions": null,
+          "time_ms": 4.169115888888403
         },
         {
-          "instructions": 129328268,
-          "time_ms": 22.028444451279938
+          "instructions": null,
+          "time_ms": 12.827342555559717
         },
         {
-          "instructions": 250432560,
-          "time_ms": 33.956925882699174
+          "instructions": null,
+          "time_ms": 21.758323777774535
         },
         {
-          "instructions": 1209101817,
-          "time_ms": 137.45302289155208
+          "instructions": null,
+          "time_ms": 105.51832900000117
         },
         {
-          "instructions": 2407789933,
-          "time_ms": 275.76893989721106
+          "instructions": null,
+          "time_ms": 210.88024544444136
         },
         {
-          "instructions": 12001834436,
-          "time_ms": 1407.08284245597
+          "instructions": null,
+          "time_ms": 940.3042915555488
         }
       ]
     },
@@ -57,33 +57,33 @@
       "benchmark": "atax",
       "description": "Matrix transpose and vector multiply - y = A^T * (A * x)",
       "calibrated": true,
-      "instruction_latency_ns": 0.11816937113991745,
-      "overhead_ms": 3.3719661808012233,
-      "r_squared": 0.9999725580565254,
+      "instruction_latency_ns": 0.0646662100016191,
+      "overhead_ms": 6.05722544104399,
+      "r_squared": 0.998574628562558,
       "data_points": [
         {
-          "instructions": 18301873,
-          "time_ms": 4.813055436696029
+          "instructions": null,
+          "time_ms": 4.980791666664825
         },
         {
-          "instructions": 52103854,
-          "time_ms": 10.535467674748766
+          "instructions": null,
+          "time_ms": 5.645166555552805
         },
         {
-          "instructions": 94357987,
-          "time_ms": 14.683430555224833
+          "instructions": null,
+          "time_ms": 8.425698999995271
         },
         {
-          "instructions": 434624809,
-          "time_ms": 55.70358345155708
+          "instructions": null,
+          "time_ms": 36.54689811110896
         },
         {
-          "instructions": 859039654,
-          "time_ms": 103.24794912270994
+          "instructions": null,
+          "time_ms": 69.45256466666984
         },
         {
-          "instructions": 4261571055,
-          "time_ms": 507.17702301012145
+          "instructions": null,
+          "time_ms": 285.0896853333293
         }
       ]
     },
@@ -91,33 +91,33 @@
       "benchmark": "2mm",
       "description": "Two matrix multiplications - D = A*B; E = C*D",
       "calibrated": true,
-      "instruction_latency_ns": 0.1118019664434671,
-      "overhead_ms": 5.059218712184399,
-      "r_squared": 0.9999995122280511,
+      "instruction_latency_ns": 0.06499581292485536,
+      "overhead_ms": 19.358708234882386,
+      "r_squared": 0.9994250091343156,
       "data_points": [
         {
-          "instructions": 60906756,
-          "time_ms": 10.783273235170377
+          "instructions": null,
+          "time_ms": 8.918662111117076
         },
         {
-          "instructions": 265209408,
-          "time_ms": 35.72430999742614
+          "instructions": null,
+          "time_ms": 24.6736481111106
         },
         {
-          "instructions": 520500740,
-          "time_ms": 63.94366645771596
+          "instructions": null,
+          "time_ms": 45.018064777780054
         },
         {
-          "instructions": 2565581773,
-          "time_ms": 291.6889722109772
+          "instructions": null,
+          "time_ms": 198.28298600000002
         },
         {
-          "instructions": 5120072348,
-          "time_ms": 576.9786252187462
+          "instructions": null,
+          "time_ms": 373.13105544444625
         },
         {
-          "instructions": 25555404668,
-          "time_ms": 2862.3056391176456
+          "instructions": null,
+          "time_ms": 1661.8937081111085
         }
       ]
     },
@@ -125,33 +125,33 @@
       "benchmark": "mvt",
       "description": "Matrix vector product and transpose",
       "calibrated": true,
-      "instruction_latency_ns": 0.117643337141782,
-      "overhead_ms": 5.074837901944268,
-      "r_squared": 0.9999781344755971,
+      "instruction_latency_ns": 0.065447951992458,
+      "overhead_ms": 4.019337205400504,
+      "r_squared": 0.9991325242307184,
       "data_points": [
         {
-          "instructions": 18202614,
-          "time_ms": 5.736972004847808
+          "instructions": null,
+          "time_ms": 4.426944444437216
         },
         {
-          "instructions": 52301923,
-          "time_ms": 10.906694443999893
+          "instructions": null,
+          "time_ms": 5.703240777772105
         },
         {
-          "instructions": 94875067,
-          "time_ms": 17.40812487615686
+          "instructions": null,
+          "time_ms": 8.56003699999835
         },
         {
-          "instructions": 435303206,
-          "time_ms": 56.959097111959835
+          "instructions": null,
+          "time_ms": 30.950370666665272
         },
         {
-          "instructions": 859738895,
-          "time_ms": 106.26679178353191
+          "instructions": null,
+          "time_ms": 70.2544030000038
         },
         {
-          "instructions": 4261929922,
-          "time_ms": 506.3678888901551
+          "instructions": null,
+          "time_ms": 300.5131019999933
         }
       ]
     },
@@ -159,33 +159,33 @@
       "benchmark": "jacobi-1d",
       "description": "1D Jacobi iterative stencil computation",
       "calibrated": true,
-      "instruction_latency_ns": 0.12017833595423802,
-      "overhead_ms": 4.358557962293105,
-      "r_squared": 0.9998472358153783,
+      "instruction_latency_ns": 0.06182209871821088,
+      "overhead_ms": 2.9388326183223192,
+      "r_squared": 0.9992993127183075,
       "data_points": [
         {
-          "instructions": 14659937,
-          "time_ms": 5.263481554316564
+          "instructions": null,
+          "time_ms": 2.7639816666685926
         },
         {
-          "instructions": 27850630,
-          "time_ms": 7.578023334240748
+          "instructions": null,
+          "time_ms": 3.3431434444411128
         },
         {
-          "instructions": 46251829,
-          "time_ms": 9.353541665607029
+          "instructions": null,
+          "time_ms": 3.808319555550573
         },
         {
-          "instructions": 188706719,
-          "time_ms": 29.051254658649366
+          "instructions": null,
+          "time_ms": 14.506069222227957
         },
         {
-          "instructions": 365210079,
-          "time_ms": 47.90043522370979
+          "instructions": null,
+          "time_ms": 25.444838000001685
         },
         {
-          "instructions": 1787830465,
-          "time_ms": 219.0992176765576
+          "instructions": null,
+          "time_ms": 107.32428222222426
         }
       ]
     },
@@ -193,33 +193,33 @@
       "benchmark": "3mm",
       "description": "Three matrix multiplications",
       "calibrated": true,
-      "instruction_latency_ns": 0.11319950827314158,
-      "overhead_ms": 8.950162103672787,
-      "r_squared": 0.9999855142449359,
+      "instruction_latency_ns": 0.06297708430998868,
+      "overhead_ms": 10.417599318409884,
+      "r_squared": 0.9999038002112147,
       "data_points": [
         {
-          "instructions": 110578414,
-          "time_ms": 17.143435336442458
+          "instructions": null,
+          "time_ms": 7.886842444444635
         },
         {
-          "instructions": 504846587,
-          "time_ms": 61.41974978123067
+          "instructions": null,
+          "time_ms": 31.500305555555187
         },
         {
-          "instructions": 1000354867,
-          "time_ms": 119.20448587948664
+          "instructions": null,
+          "time_ms": 70.31314833333289
         },
         {
-          "instructions": 4963051610,
-          "time_ms": 569.0369395435685
+          "instructions": null,
+          "time_ms": 344.93340266666905
         },
         {
-          "instructions": 9920951234,
-          "time_ms": 1148.7845186558034
+          "instructions": null,
+          "time_ms": 634.9881621111075
         },
         {
-          "instructions": 49541896196,
-          "time_ms": 5613.997421343811
+          "instructions": null,
+          "time_ms": 3126.343490777771
         }
       ]
     },
@@ -227,33 +227,33 @@
       "benchmark": "bicg",
       "description": "BiCG sub-kernel of BiCGStab linear solver",
       "calibrated": true,
-      "instruction_latency_ns": 0.12368706663340644,
-      "overhead_ms": 4.180487519597136,
-      "r_squared": 0.9999226020420589,
+      "instruction_latency_ns": 0.09588554891456166,
+      "overhead_ms": 4.382122622528577,
+      "r_squared": 0.9998754342909947,
       "data_points": [
         {
-          "instructions": 15465599,
-          "time_ms": 5.023231568177128
+          "instructions": null,
+          "time_ms": 4.984851666658112
         },
         {
-          "instructions": 38950901,
-          "time_ms": 8.049819553788337
+          "instructions": null,
+          "time_ms": 5.446310333348316
         },
         {
-          "instructions": 67912565,
-          "time_ms": 12.025546327802456
+          "instructions": null,
+          "time_ms": 9.370782333342554
         },
         {
-          "instructions": 302869566,
-          "time_ms": 43.795815002845806
+          "instructions": null,
+          "time_ms": 34.21833344444596
         },
         {
-          "instructions": 597888636,
-          "time_ms": 78.8966899854131
+          "instructions": null,
+          "time_ms": 61.62233355554589
         },
         {
-          "instructions": 2944332219,
-          "time_ms": 368.0103010071131
+          "instructions": null,
+          "time_ms": 285.36012955556896
         }
       ]
     }
