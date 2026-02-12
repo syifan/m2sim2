@@ -240,29 +240,20 @@ Microbenchmark accuracy target met (14.1%). Now validate on real SPEC workloads.
 
 ---
 
-### H4: Multi-Core Support 🚧 STRATEGIC PLANNING IN PROGRESS
+### H4: Multi-Core Support ⬜ NOT STARTED
 
 **Goal:** Extend M2Sim to simulate multi-core M2 architectures with cache coherence and shared memory.
 
-**Strategic Priority:** Major architectural milestone enabling comprehensive Apple M2 system simulation.
+**Status:** Not started. Previous "strategic planning" produced analysis documents but no actual multi-core simulation code. The real work — cache coherence protocol, shared memory subsystem, inter-core communication — has not begun.
 
-**Status Update (February 11, 2026):** Strategic transition initiated following H5 completion. Architecture design assessment in progress.
+**Prerequisites:** H5 must be CI-verified before H4 work begins.
 
-**Strategic Planning (Issue #453):**
-- 🚧 Multi-core architecture design assessment
-- [ ] Cache coherence protocol implementation strategy
-- [ ] Shared memory subsystem integration
-- [ ] Inter-core communication and synchronization mechanisms
-- [ ] Performance scaling validation methodology
-
-**Prerequisites:** ✅ H5 completion provides stable single-core foundation for multi-core extension.
-
-**Design Considerations:**
-- Leverage Akita's multi-core simulation patterns while adapting to ARM64/M2 specifics
-- Maintain sub-20% accuracy targets for multi-core workloads
-- Ensure compatibility with existing single-core benchmark and calibration infrastructure
-
-**STRATEGIC PREREQUISITES (CRITICAL):** H5 completion REQUIRED before H4 transition. Current 13.3% accuracy applies to microbenchmarks ONLY; intermediate benchmark accuracy validation is MANDATORY to complete H5 milestone properly. H4 planning is PREMATURE without validated H5 achievement.
+**Required implementation (future):**
+- [ ] Cache coherence protocol (e.g., MOESI)
+- [ ] Shared memory subsystem
+- [ ] Inter-core communication and synchronization
+- [ ] Multi-core timing validation
+- [ ] Leverage Akita's multi-component patterns for cache coherence modeling
 
 ---
 
