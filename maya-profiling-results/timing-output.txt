@@ -1,0 +1,4 @@
+Loaded: ./benchmarks/statemate-m2sim/statemate_m2sim.elf
+Entry point: 0x10000
+
+Timeout reached after 20s - stopping execution

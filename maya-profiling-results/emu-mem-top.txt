@@ -1,0 +1,23 @@
+File: profile-tool
+Type: alloc_space
+Time: 2026-02-12 13:29:30 EST
+Showing nodes accounting for 3313kB, 100% of 3313kB total
+      flat  flat%   sum%        cum   cum%
+ 1762.94kB 53.21% 53.21%  1762.94kB 53.21%  runtime/pprof.StartCPUProfile
+  521.05kB 15.73% 68.94%   521.05kB 15.73%  github.com/sarchlab/m2sim/emu.(*Memory).Write8 (inline)
+  516.01kB 15.58% 84.52%   516.01kB 15.58%  runtime/pprof.(*profMap).lookup
+     513kB 15.48%   100%      513kB 15.48%  runtime.allocm
+         0     0%   100%   521.05kB 15.73%  main.loadSegments (inline)
+         0     0%   100%  2283.99kB 68.94%  main.main
+         0     0%   100%   521.05kB 15.73%  main.runEmulationProfile
+         0     0%   100%  2283.99kB 68.94%  runtime.main
+         0     0%   100%      513kB 15.48%  runtime.mstart
+         0     0%   100%      513kB 15.48%  runtime.mstart0
+         0     0%   100%      513kB 15.48%  runtime.mstart1
+         0     0%   100%      513kB 15.48%  runtime.newm
+         0     0%   100%      513kB 15.48%  runtime.resetspinning
+         0     0%   100%      513kB 15.48%  runtime.schedule
+         0     0%   100%      513kB 15.48%  runtime.startm
+         0     0%   100%      513kB 15.48%  runtime.wakep
+         0     0%   100%   516.01kB 15.58%  runtime/pprof.(*profileBuilder).addCPUData
+         0     0%   100%   516.01kB 15.58%  runtime/pprof.profileWriter

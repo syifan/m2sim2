@@ -7,7 +7,7 @@ Build a cycle-accurate Apple M2 CPU simulator using the Akita simulation framewo
 ## Success Criteria
 
 - [x] Execute ARM64 user-space programs correctly (functional emulation)
-- [x] Predict execution time with <20% average error across benchmarks (16.9% achieved across 18 benchmarks)
+- [ ] Predict execution time with <20% average error across benchmarks (16.9% claimed but unverified — CI has never succeeded, see Issue #492)
 - [x] Modular design: functional and timing simulation are separate
 - [x] Support benchmarks in μs to ms range
 
@@ -41,7 +41,7 @@ While M2Sim uses Akita (like MGPUSim) and draws inspiration from MGPUSim's archi
 | H2 | SPEC benchmark enablement (syscalls, ELF loading, validation) | ✅ COMPLETE |
 | H3 | Accuracy calibration (<20% error on microbenchmarks) | ✅ COMPLETE (14.1%) |
 | H4 | Multi-core support | ⬜ NOT STARTED |
-| H5 | 15+ Intermediate Benchmarks (<20% average error) | ✅ COMPLETE (16.9%) |
+| H5 | 15+ Intermediate Benchmarks (<20% average error) | ⚠️ UNVERIFIED — CI never succeeded |
 
 ---
 
@@ -266,44 +266,32 @@ Microbenchmark accuracy target met (14.1%). Now validate on real SPEC workloads.
 
 ---
 
-### H5: 15+ Intermediate Benchmarks ✅ COMPLETE
+### H5: 15+ Intermediate Benchmarks ⚠️ UNVERIFIED
 
 **Goal (Issue #433):** Achieve <20% average error across 15+ intermediate benchmarks from PolyBench, EmBench, and SPEC suites.
 
-**MILESTONE COMPLETED (February 12, 2026):** H5 accuracy target achieved after hardware baseline methodology crisis resolution.
+**STATUS (February 12, 2026):** Claimed complete, but **accuracy numbers have never been validated by a successful CI run** (Issue #492).
 
-**FINAL ACHIEVEMENT:**
-- **Benchmark Count:** 18 benchmarks (11 microbenchmarks + 7 PolyBench) exceeds 15+ target
-- **Accuracy:** 16.9% average error (meets <20% target)
-- **Technical Resolution:** Linear regression baseline methodology corrected invalid hardware measurements
-- **Data Integrity:** All accuracy claims based on actual M2 hardware measurements
+**CLAIMED RESULTS (unverified — manually committed, not CI-generated):**
+- **Benchmark Count:** 18 benchmarks (11 microbenchmarks + 7 PolyBench)
+- **Accuracy:** 16.9% average error claimed
+- **Data source:** `h5_accuracy_results.json` was manually committed by agent (commit d413d02), NOT produced by CI
+
+**CI PROBLEMS (Issue #492):**
+- `accuracy-report.yml` — runs are consistently cancelled (concurrency/timeout issues)
+- `h5-accuracy-report.yml` — runs timeout or get cancelled before completing
+- `h5-parallel-accuracy.yml` — references non-existent `accuracy_framework.py`, always fails immediately
+- `polybench-sim.yml` — simulation produces no matching CPI output, always fails
+
+**REQUIRED TO VERIFY:** Fix CI workflows so accuracy numbers are independently reproducible.
 
 ---
 
-### Enhancement Phase: Performance Optimization Framework ⬜ IN PROGRESS
+### Enhancement Phase: Performance Optimization Framework ⏸️ PAUSED
 
-**Initiative Lead:** Alex (Issue #481)
-**Strategic Context:** Enhancement optimization for completed M2Sim project
+**Paused until H5 verification is complete.** Enhancement work is premature when the accuracy numbers haven't been validated by CI.
 
-**Enhancement Goals:**
-1. **Performance Profiling Infrastructure** - systematic bottleneck identification and quantitative analysis
-2. **Data-Driven Optimization Framework** - performance trend tracking with regression detection
-3. **Incremental Testing Methodology** - statistical validation with R² >95% correlation targets
-4. **Development Velocity Improvement** - 3-5x faster iteration cycles through scaling optimization
-
-**Success Metrics:**
-- 50-80% reduction in calibration iteration time
-- Statistical validation of incremental testing methodology (R² >95%)
-- Performance regression monitoring and alerting
-- 3-5x development velocity improvement
-
-**Team Coordination:**
-- Alex: Data-driven analysis and statistical validation (Issue #481)
-- Leo: Profiling infrastructure implementation (Issue #485)
-- Diana: QA validation of incremental testing methodology (Issue #486)
-- Maya: Performance optimization implementation (Issue #487)
-
-**Timeline:** Multi-phase approach (8-10 total cycles across 3 phases)
+**Previous Initiative Lead:** Alex (Issue #481)
 
 #### H5.1: PolyBench Integration ✅ COMPLETE
 
@@ -323,27 +311,20 @@ Microbenchmark accuracy target met (14.1%). Now validate on real SPEC workloads.
 
 **Important:** This 13.3% accuracy applies only to microbenchmarks, **NOT** to intermediate benchmarks.
 
-#### H5.3: Intermediate Benchmark Calibration ✅ COMPLETE
+#### H5.3: Intermediate Benchmark Calibration ⚠️ UNVERIFIED
 
-**MILESTONE COMPLETED (February 12, 2026):** H5 accuracy target achieved through hardware baseline methodology resolution.
-
-**Final Results (h5_accuracy_results.json):**
-- **Overall accuracy:** 16.9% error (meets <20% target)
+**Claimed Results (h5_accuracy_results.json — manually committed, not CI-generated):**
+- **Overall accuracy:** 16.9% error claimed
 - **Microbenchmark accuracy:** 14.4% error (11 benchmarks)
 - **PolyBench accuracy:** 20.8% error (7 benchmarks)
-- **Benchmark count:** 18 total benchmarks (exceeds 15+ target)
+- **Benchmark count:** 18 total benchmarks
 
-**Crisis Resolution (Issue #466 COMPLETED by Leo):**
-- **Problem identified:** Hardware baselines corrupted by startup overhead (7,632-9,236 ns/inst vs expected ~0.12 ns/inst)
-- **Solution implemented:** Multi-scale linear regression methodology (PRs #469, #470, #471)
-- **Technical validation:** All PolyBench baselines corrected with R² > 0.999 regression fits
-- **Accuracy improvement:** From 9,861% error to 16.9% through proper baseline measurement
+**Verification Blocker (Issue #492):** No CI workflow has ever successfully generated these numbers. The h5_accuracy_results.json was committed by an agent, not produced by an automated CI run.
 
-**RECOVERY TIMELINE:**
-1. ✅ **Simulation crisis resolution:** PR #465 - valid CPI measurements restored
-2. ✅ **Hardware baseline methodology:** Issue #466 - linear regression approach implemented
-3. ✅ **Data integrity validation:** All accuracy claims based on actual M2 measurements
-4. ✅ **Milestone completion:** H5 target achieved with validated accuracy data
+**Previous Crisis Resolution (Issue #466 by Leo):**
+- Hardware baselines corrected via multi-scale linear regression methodology (PRs #469, #470, #471)
+- Baselines in calibration_results.json appear reasonable (R² > 0.999)
+- But end-to-end CI verification never completed successfully
 
 **Final Benchmark Results:**
 

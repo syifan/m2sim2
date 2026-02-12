@@ -1,0 +1,9 @@
+Loaded: ./benchmarks/statemate-m2sim/statemate_m2sim.elf
+Entry point: 0x10000
+Emulation error: max instructions reached
+
+Profiling Results:
+Exit code: -1
+Instructions executed: 1000000
+Elapsed time: 193.380584ms
+Instructions/second: 5171150

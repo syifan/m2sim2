@@ -26,6 +26,10 @@ func (s *FetchStage) Fetch(pc uint64) (uint32, bool) {
 type DecodeStage struct {
 	regFile *emu.RegFile
 	decoder *insts.Decoder
+	// Pool of pre-allocated instructions to avoid heap allocations during decode
+	// Supports up to 8 concurrent decode operations (for 8-wide superscalar pipelines)
+	instPool [8]insts.Instruction
+	poolIndex int
 }
 
 // NewDecodeStage creates a new decode stage.
@@ -54,7 +58,12 @@ type DecodeResult struct {
 
 // Decode decodes an instruction word and reads register values.
 func (s *DecodeStage) Decode(word uint32, pc uint64) DecodeResult {
-	inst := s.decoder.Decode(word)
+	// Get next available pre-allocated instruction from pool
+	inst := &s.instPool[s.poolIndex]
+	s.poolIndex = (s.poolIndex + 1) % len(s.instPool)
+
+	// Use DecodeInto with pre-allocated instruction to eliminate heap allocation
+	s.decoder.DecodeInto(word, inst)
 
 	result := DecodeResult{
 		Inst: inst,

@@ -1,0 +1,11 @@
+Loaded: ./benchmarks/statemate-m2sim/statemate_m2sim.elf
+Entry point: 0x10000
+fast_timing: 3 instructions executed as 1-cycle NOP (unhandled opcode)
+
+Profiling Results:
+Exit code: -1
+Instructions executed: 153
+Cycles: 235
+CPI: 1.536
+Elapsed time: 766.084µs
+Instructions/second: 199717

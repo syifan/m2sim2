@@ -1,0 +1,43 @@
+File: profile-tool
+Type: cpu
+Time: 2026-02-12 13:29:30 EST
+Duration: 301.98ms, Total samples = 160ms (52.98%)
+Showing nodes accounting for 160ms, 100% of 160ms total
+      flat  flat%   sum%        cum   cum%
+      20ms 12.50% 12.50%      100ms 62.50%  github.com/sarchlab/m2sim/emu.(*Emulator).execute
+      20ms 12.50% 25.00%       20ms 12.50%  internal/runtime/maps.(*groupReference).key (inline)
+      20ms 12.50% 37.50%       20ms 12.50%  internal/runtime/maps.(*groupsReference).group (inline)
+      20ms 12.50% 50.00%       80ms 50.00%  runtime.mapaccess1_fast64
+      20ms 12.50% 62.50%       20ms 12.50%  runtime.memhash64
+      10ms  6.25% 68.75%       80ms 50.00%  github.com/sarchlab/m2sim/emu.(*Emulator).executeLoadStore
+      10ms  6.25% 75.00%       90ms 56.25%  github.com/sarchlab/m2sim/emu.(*Memory).Read32 (inline)
+      10ms  6.25% 81.25%       10ms  6.25%  internal/runtime/maps.ctrlGroupMatchEmpty (inline)
+      10ms  6.25% 87.50%       10ms  6.25%  internal/runtime/maps.probeSeq.next (inline)
+      10ms  6.25% 93.75%       30ms 18.75%  runtime.mapassign_fast64
+      10ms  6.25%   100%       10ms  6.25%  syscall.syscall
+         0     0%   100%       10ms  6.25%  compress/flate.(*Writer).Close (inline)
+         0     0%   100%       10ms  6.25%  compress/flate.(*compressor).close
+         0     0%   100%       10ms  6.25%  compress/flate.(*compressor).encSpeed
+         0     0%   100%       10ms  6.25%  compress/flate.(*huffmanBitWriter).write (inline)
+         0     0%   100%       10ms  6.25%  compress/flate.(*huffmanBitWriter).writeBlockDynamic
+         0     0%   100%       10ms  6.25%  compress/flate.(*huffmanBitWriter).writeCode
+         0     0%   100%       10ms  6.25%  compress/flate.(*huffmanBitWriter).writeTokens
+         0     0%   100%       10ms  6.25%  compress/gzip.(*Writer).Close
+         0     0%   100%      150ms 93.75%  github.com/sarchlab/m2sim/emu.(*Emulator).Run
+         0     0%   100%      150ms 93.75%  github.com/sarchlab/m2sim/emu.(*Emulator).Step
+         0     0%   100%       30ms 18.75%  github.com/sarchlab/m2sim/emu.(*Memory).Write32 (inline)
+         0     0%   100%       10ms  6.25%  internal/poll.(*FD).Write
+         0     0%   100%       10ms  6.25%  internal/poll.ignoringEINTRIO (inline)
+         0     0%   100%       10ms  6.25%  internal/runtime/maps.ctrlGroup.matchEmpty (inline)
+         0     0%   100%      160ms   100%  main.main
+         0     0%   100%      150ms 93.75%  main.runEmulationProfile
+         0     0%   100%       10ms  6.25%  os.(*File).Write
+         0     0%   100%       10ms  6.25%  os.(*File).write (inline)
+         0     0%   100%      160ms   100%  runtime.main
+         0     0%   100%       10ms  6.25%  runtime/pprof.(*profileBuilder).build
+         0     0%   100%       10ms  6.25%  runtime/pprof.WriteHeapProfile (inline)
+         0     0%   100%       10ms  6.25%  runtime/pprof.writeHeap (inline)
+         0     0%   100%       10ms  6.25%  runtime/pprof.writeHeapInternal
+         0     0%   100%       10ms  6.25%  runtime/pprof.writeHeapProto
+         0     0%   100%       10ms  6.25%  syscall.Write (inline)
+         0     0%   100%       10ms  6.25%  syscall.write

@@ -1,0 +1,42 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/sarchlab/m2sim/timing/pipeline
+cpu: Apple M2
+BenchmarkPipelineTick8Wide-8              	    1000	      3906 ns/op	     641 B/op	      10 allocs/op
+BenchmarkPipelineTick8Wide-8              	    1000	      1550 ns/op	     641 B/op	      10 allocs/op
+BenchmarkPipelineTick8Wide-8              	    1000	      1456 ns/op	     641 B/op	      10 allocs/op
+BenchmarkPipelineTick1Wide-8              	    1000	      1574 ns/op	     512 B/op	       8 allocs/op
+BenchmarkPipelineTick1Wide-8              	    1000	      2240 ns/op	     512 B/op	       8 allocs/op
+BenchmarkPipelineTick1Wide-8              	    1000	       885.5 ns/op	     512 B/op	       8 allocs/op
+BenchmarkPipelineDepChain8Wide-8          	    1000	      3921 ns/op	     641 B/op	      10 allocs/op
+BenchmarkPipelineDepChain8Wide-8          	    1000	      1417 ns/op	     641 B/op	      10 allocs/op
+BenchmarkPipelineDepChain8Wide-8          	    1000	      3506 ns/op	     641 B/op	      10 allocs/op
+BenchmarkPipelineDepChain1Wide-8          	    1000	      1972 ns/op	     512 B/op	       8 allocs/op
+BenchmarkPipelineDepChain1Wide-8          	    1000	      1300 ns/op	     512 B/op	       8 allocs/op
+BenchmarkPipelineDepChain1Wide-8          	    1000	       886.2 ns/op	     512 B/op	       8 allocs/op
+BenchmarkPipelineLoadHeavy8Wide-8         	    1000	      4814 ns/op	    1538 B/op	      24 allocs/op
+BenchmarkPipelineLoadHeavy8Wide-8         	    1000	      4868 ns/op	    1538 B/op	      24 allocs/op
+BenchmarkPipelineLoadHeavy8Wide-8         	    1000	      6955 ns/op	    1538 B/op	      24 allocs/op
+BenchmarkPipelineLoadHeavy8WideCache-8    	    1000	      5541 ns/op	    1185 B/op	      21 allocs/op
+BenchmarkPipelineLoadHeavy8WideCache-8    	    1000	      4590 ns/op	    1185 B/op	      21 allocs/op
+BenchmarkPipelineLoadHeavy8WideCache-8    	    1000	      5858 ns/op	    1185 B/op	      21 allocs/op
+BenchmarkPipelineStoreHeavy8Wide-8        	    1000	      1525 ns/op	     517 B/op	       8 allocs/op
+BenchmarkPipelineStoreHeavy8Wide-8        	    1000	      3806 ns/op	     517 B/op	       8 allocs/op
+BenchmarkPipelineStoreHeavy8Wide-8        	    1000	      4010 ns/op	     517 B/op	       8 allocs/op
+BenchmarkPipelineStoreHeavy8WideCache-8   	    1000	      2171 ns/op	     519 B/op	       8 allocs/op
+BenchmarkPipelineStoreHeavy8WideCache-8   	    1000	      3087 ns/op	     519 B/op	       8 allocs/op
+BenchmarkPipelineStoreHeavy8WideCache-8   	    1000	      2129 ns/op	     519 B/op	       8 allocs/op
+BenchmarkPipelineMixed8Wide-8             	    1000	     16222 ns/op	    2302 B/op	      35 allocs/op
+BenchmarkPipelineMixed8Wide-8             	    1000	     18568 ns/op	    2302 B/op	      35 allocs/op
+BenchmarkPipelineMixed8Wide-8             	    1000	     17279 ns/op	    2302 B/op	      35 allocs/op
+BenchmarkPipelineMixed8WideCache-8        	    1000	     15602 ns/op	    1940 B/op	      32 allocs/op
+BenchmarkPipelineMixed8WideCache-8        	    1000	      9211 ns/op	    1940 B/op	      32 allocs/op
+BenchmarkPipelineMixed8WideCache-8        	    1000	     14260 ns/op	    1940 B/op	      32 allocs/op
+BenchmarkDecoderDecode-8                  	    1000	        10.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDecoderDecode-8                  	    1000	         6.333 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDecoderDecode-8                  	    1000	        10.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDecoderDecodeInto-8              	    1000	        18.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDecoderDecodeInto-8              	    1000	        10.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDecoderDecodeInto-8              	    1000	        19.50 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/sarchlab/m2sim/timing/pipeline	0.600s
