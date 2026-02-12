@@ -9,6 +9,7 @@ jobs:
   accuracy-report:
     name: Generate Accuracy Report
     runs-on: macos-14  # Apple Silicon runner
+    timeout-minutes: 45  # Prevent indefinite hanging
     
     steps:
       - name: Checkout code
@@ -34,7 +35,25 @@ jobs:
       - name: Run Accuracy Report
         run: |
           cd benchmarks/native
-          python3 accuracy_report.py
+          echo "Starting accuracy report generation at $(date)"
+          START_TIME=$(date +%s)
+
+          # Run with timing and enhanced error reporting
+          if ! python3 accuracy_report.py; then
+            END_TIME=$(date +%s)
+            RUNTIME=$((END_TIME - START_TIME))
+            echo "❌ Accuracy report failed after ${RUNTIME}s"
+            echo "Recent system performance metrics:"
+            echo "  - Available memory: $(vm_stat | grep 'free\|active\|inactive' | head -3)"
+            echo "  - CPU load: $(uptime)"
+            echo "Checking for generated files:"
+            ls -la accuracy_* || echo "No accuracy files found"
+            exit 1
+          fi
+
+          END_TIME=$(date +%s)
+          RUNTIME=$((END_TIME - START_TIME))
+          echo "✅ Accuracy report completed successfully in ${RUNTIME}s"
 
       - name: Upload Accuracy Report
         uses: actions/upload-artifact@v4

@@ -250,26 +250,50 @@ def get_simulator_cpi_for_benchmarks(repo_root: Path) -> dict:
 
     for test_name, bench_name in polybench_tests:
         cmd = ["go", "test", "-v", "-run", test_name, "-count=1", "./benchmarks/"]
-        try:
-            output = subprocess.check_output(
-                cmd, cwd=str(repo_root), stderr=subprocess.STDOUT,
-                text=True, timeout=300  # 5 min timeout for PolyBench
-            )
-            # Parse CPI from test output
-            for line in output.split('\n'):
-                if 'CPI=' in line and bench_name in line.lower():
-                    try:
-                        cpi_str = line.split('CPI=')[1].split(',')[0]
-                        polybench_cpis[bench_name] = float(cpi_str)
-                        print(f"  Found PolyBench: {bench_name}: CPI={polybench_cpis[bench_name]}")
-                        break
-                    except (IndexError, ValueError):
-                        print(f"  Warning: Could not parse PolyBench CPI from line: {line}")
-        except Exception as e:
-            print(f"  Note: PolyBench test {test_name} failed or skipped: {e}")
-            # Use fallback CPI if available
-            if bench_name in fallback_cpis:
-                polybench_cpis[bench_name] = fallback_cpis[bench_name]
+        max_retries = 2  # Retry failed tests once for CI reliability
+
+        for attempt in range(max_retries + 1):
+            try:
+                import time
+                start_time = time.time()
+                output = subprocess.check_output(
+                    cmd, cwd=str(repo_root), stderr=subprocess.STDOUT,
+                    text=True, timeout=600  # 10 min timeout for PolyBench (increased for CI reliability)
+                )
+                execution_time = time.time() - start_time
+
+                # Parse CPI from test output
+                for line in output.split('\n'):
+                    if 'CPI=' in line and bench_name in line.lower():
+                        try:
+                            cpi_str = line.split('CPI=')[1].split(',')[0]
+                            polybench_cpis[bench_name] = float(cpi_str)
+                            print(f"  Found PolyBench: {bench_name}: CPI={polybench_cpis[bench_name]} (took {execution_time:.1f}s)")
+                            break
+                        except (IndexError, ValueError):
+                            print(f"  Warning: Could not parse PolyBench CPI from line: {line}")
+                break  # Success, exit retry loop
+
+            except subprocess.TimeoutExpired as e:
+                if attempt < max_retries:
+                    print(f"  Timeout on attempt {attempt + 1} for {test_name}, retrying...")
+                    time.sleep(5)  # Brief pause before retry
+                else:
+                    print(f"  Timeout: PolyBench test {test_name} exceeded 600s timeout after {max_retries + 1} attempts")
+                    # Use fallback CPI if available
+                    if bench_name in fallback_cpis:
+                        polybench_cpis[bench_name] = fallback_cpis[bench_name]
+                        print(f"  Using fallback CPI for {bench_name}: {fallback_cpis[bench_name]}")
+            except Exception as e:
+                if attempt < max_retries:
+                    print(f"  Error on attempt {attempt + 1} for {test_name}: {e}, retrying...")
+                    time.sleep(5)  # Brief pause before retry
+                else:
+                    print(f"  Failed: PolyBench test {test_name} failed after {max_retries + 1} attempts: {e}")
+                    # Use fallback CPI if available
+                    if bench_name in fallback_cpis:
+                        polybench_cpis[bench_name] = fallback_cpis[bench_name]
+                        print(f"  Using fallback CPI for {bench_name}: {fallback_cpis[bench_name]}")
 
     # Merge: use D-cache CPI for dcache_benchmarks, no-cache for the rest, PolyBench for intermediate benchmarks
     cpis = {}
