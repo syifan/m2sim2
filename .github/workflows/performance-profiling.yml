@@ -3,32 +3,32 @@ name: Performance Profiling Analysis
 on:
   workflow_dispatch:
     inputs:
-      benchmark_filter:
-        description: 'Benchmark filter (e.g., "gemm,atax" or "all")'
+      bench_filter:
+        description: 'Benchmark regex filter (e.g., "Pipeline", "Decoder", or ".")'
         required: false
-        default: 'all'
-      profile_duration:
-        description: 'Profiling duration in seconds'
+        default: '.'
+      benchtime:
+        description: 'Iterations per benchmark (e.g., 1000x or 5s)'
         required: false
-        default: '30'
-      max_instructions:
-        description: 'Max instructions per benchmark (0 = unlimited)'
+        default: '1000x'
+      cpu_profile:
+        description: 'Generate CPU profile (pprof)'
+        type: boolean
         required: false
-        default: '1000000'
+        default: true
+      mem_profile:
+        description: 'Generate memory profile (pprof)'
+        type: boolean
+        required: false
+        default: true
   schedule:
-    # Run weekly performance analysis on main branch
     - cron: '0 2 * * 0'  # Sunday 2 AM UTC
 
 jobs:
-  profile:
-    name: Systematic Performance Profiling
-    runs-on: macos-14
-    timeout-minutes: 90
-
-    strategy:
-      matrix:
-        mode: ['emulation', 'timing', 'fast-timing']
-        benchmark: ['microbench', 'polybench']
+  profile-pipeline:
+    name: Profile Pipeline Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -37,187 +37,182 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
 
-      - name: Build profiler
-        run: go build -o profile-tool ./cmd/profile
+      - name: Create output directory
+        run: mkdir -p profiling-results
 
-      - name: Create profiling output directory
-        run: mkdir -p profiling-results/${{ matrix.mode }}/${{ matrix.benchmark }}
-
-      - name: Run Microbenchmark Profiling
-        if: matrix.benchmark == 'microbench'
+      - name: Run benchmarks with timing
         run: |
-          cd benchmarks
+          FILTER="${{ github.event.inputs.bench_filter || '.' }}"
+          BENCHTIME="${{ github.event.inputs.benchtime || '1000x' }}"
 
-          # Build microbenchmarks
-          go build -o microbench microbenchmarks.go
+          go test -run='XXX_NO_MATCH' -bench="$FILTER" \
+            -benchtime="$BENCHTIME" -count=5 \
+            -benchmem \
+            ./timing/pipeline/ | tee profiling-results/bench-output.txt
 
-          # Profile microbenchmarks
-          case "${{ matrix.mode }}" in
-            "emulation")
-              ../profile-tool -cpuprofile=../profiling-results/${{ matrix.mode }}/microbench/cpu.prof \
-                             -memprofile=../profiling-results/${{ matrix.mode }}/microbench/mem.prof \
-                             -duration=${{ github.event.inputs.profile_duration || '30' }}s \
-                             -max-instr=${{ github.event.inputs.max_instructions || '1000000' }} \
-                             ./microbench > ../profiling-results/${{ matrix.mode }}/microbench/output.txt
-              ;;
-            "timing")
-              ../profile-tool -timing \
-                             -cpuprofile=../profiling-results/${{ matrix.mode }}/microbench/cpu.prof \
-                             -memprofile=../profiling-results/${{ matrix.mode }}/microbench/mem.prof \
-                             -duration=${{ github.event.inputs.profile_duration || '30' }}s \
-                             -max-instr=${{ github.event.inputs.max_instructions || '1000000' }} \
-                             ./microbench > ../profiling-results/${{ matrix.mode }}/microbench/output.txt
-              ;;
-            "fast-timing")
-              ../profile-tool -fast-timing \
-                             -cpuprofile=../profiling-results/${{ matrix.mode }}/microbench/cpu.prof \
-                             -memprofile=../profiling-results/${{ matrix.mode }}/microbench/mem.prof \
-                             -duration=${{ github.event.inputs.profile_duration || '30' }}s \
-                             -max-instr=${{ github.event.inputs.max_instructions || '1000000' }} \
-                             ./microbench > ../profiling-results/${{ matrix.mode }}/microbench/output.txt
-              ;;
-          esac
-
-      - name: Run PolyBench Profiling
-        if: matrix.benchmark == 'polybench'
+      - name: Generate CPU profile
+        if: github.event.inputs.cpu_profile != 'false'
         run: |
-          # Get list of PolyBench benchmarks to profile
-          BENCHMARKS="gemm atax 2mm mvt jacobi-1d 3mm bicg"
-          FILTER="${{ github.event.inputs.benchmark_filter || 'all' }}"
+          # Run a representative benchmark for CPU profiling
+          go test -run='XXX_NO_MATCH' -bench=BenchmarkPipelineTick8Wide \
+            -benchtime=5s -count=1 \
+            -cpuprofile=profiling-results/cpu.prof \
+            ./timing/pipeline/
 
-          if [ "$FILTER" != "all" ]; then
-            BENCHMARKS=$(echo "$FILTER" | tr ',' ' ')
-          fi
+          # Generate text report from CPU profile
+          go tool pprof -text profiling-results/cpu.prof > profiling-results/cpu-profile-text.txt 2>&1 || true
+          go tool pprof -top profiling-results/cpu.prof > profiling-results/cpu-top.txt 2>&1 || true
 
-          cd benchmarks/polybench
-
-          for bench in $BENCHMARKS; do
-            echo "Profiling $bench in ${{ matrix.mode }} mode"
-
-            # Build benchmark (SMALL dataset)
-            cd $bench
-            make clean && make DATASET=SMALL
-
-            if [ -f $bench ]; then
-              mkdir -p ../../../profiling-results/${{ matrix.mode }}/polybench/$bench
-
-              case "${{ matrix.mode }}" in
-                "emulation")
-                  ../../../profile-tool -cpuprofile=../../../profiling-results/${{ matrix.mode }}/polybench/$bench/cpu.prof \
-                                       -memprofile=../../../profiling-results/${{ matrix.mode }}/polybench/$bench/mem.prof \
-                                       -duration=${{ github.event.inputs.profile_duration || '30' }}s \
-                                       -max-instr=${{ github.event.inputs.max_instructions || '1000000' }} \
-                                       ./$bench > ../../../profiling-results/${{ matrix.mode }}/polybench/$bench/output.txt
-                  ;;
-                "timing")
-                  ../../../profile-tool -timing \
-                                       -cpuprofile=../../../profiling-results/${{ matrix.mode }}/polybench/$bench/cpu.prof \
-                                       -memprofile=../../../profiling-results/${{ matrix.mode }}/polybench/$bench/mem.prof \
-                                       -duration=${{ github.event.inputs.profile_duration || '30' }}s \
-                                       -max-instr=${{ github.event.inputs.max_instructions || '1000000' }} \
-                                       ./$bench > ../../../profiling-results/${{ matrix.mode }}/polybench/$bench/output.txt
-                  ;;
-                "fast-timing")
-                  ../../../profile-tool -fast-timing \
-                                       -cpuprofile=../../../profiling-results/${{ matrix.mode }}/polybench/$bench/cpu.prof \
-                                       -memprofile=../../../profiling-results/${{ matrix.mode }}/polybench/$bench/mem.prof \
-                                       -duration=${{ github.event.inputs.profile_duration || '30' }}s \
-                                       -max-instr=${{ github.event.inputs.max_instructions || '1000000' }} \
-                                       ./$bench > ../../../profiling-results/${{ matrix.mode }}/polybench/$bench/output.txt
-                  ;;
-              esac
-            else
-              echo "Warning: Benchmark $bench failed to build"
-            fi
-
-            cd ..
-          done
-
-      - name: Generate Performance Analysis
+      - name: Generate memory profile
+        if: github.event.inputs.mem_profile != 'false'
         run: |
-          # Create performance summary
-          echo "# Performance Profiling Results" > profiling-results/SUMMARY.md
-          echo "**Mode:** ${{ matrix.mode }}" >> profiling-results/SUMMARY.md
-          echo "**Benchmark Suite:** ${{ matrix.benchmark }}" >> profiling-results/SUMMARY.md
-          echo "**Date:** $(date)" >> profiling-results/SUMMARY.md
+          go test -run='XXX_NO_MATCH' -bench=BenchmarkPipelineTick8Wide \
+            -benchtime=5s -count=1 \
+            -memprofile=profiling-results/mem.prof \
+            ./timing/pipeline/
+
+          go tool pprof -text -alloc_space profiling-results/mem.prof > profiling-results/mem-alloc-text.txt 2>&1 || true
+          go tool pprof -top -alloc_space profiling-results/mem.prof > profiling-results/mem-alloc-top.txt 2>&1 || true
+
+      - name: Generate summary report
+        if: always()
+        run: |
+          cat > profiling-results/SUMMARY.md << 'HEADER'
+          # Performance Profiling Results
+          HEADER
+
+          echo "**Date:** $(date -u)" >> profiling-results/SUMMARY.md
           echo "**Commit:** ${{ github.sha }}" >> profiling-results/SUMMARY.md
           echo "" >> profiling-results/SUMMARY.md
 
-          # Extract performance metrics from output files
-          find profiling-results/${{ matrix.mode }}/${{ matrix.benchmark }} -name "output.txt" | while read file; do
-            benchmark=$(echo $file | sed 's|.*/\([^/]*\)/output.txt|\1|')
-            echo "## $benchmark" >> profiling-results/SUMMARY.md
+          echo "## Benchmark Results" >> profiling-results/SUMMARY.md
+          echo '```' >> profiling-results/SUMMARY.md
+          cat profiling-results/bench-output.txt >> profiling-results/SUMMARY.md
+          echo '```' >> profiling-results/SUMMARY.md
+          echo "" >> profiling-results/SUMMARY.md
+
+          if [ -f profiling-results/cpu-top.txt ]; then
+            echo "## CPU Profile (Top Functions)" >> profiling-results/SUMMARY.md
             echo '```' >> profiling-results/SUMMARY.md
-            tail -n 10 "$file" >> profiling-results/SUMMARY.md
+            head -30 profiling-results/cpu-top.txt >> profiling-results/SUMMARY.md
             echo '```' >> profiling-results/SUMMARY.md
             echo "" >> profiling-results/SUMMARY.md
-          done
+          fi
 
-      - name: Upload Profiling Results
+          if [ -f profiling-results/mem-alloc-top.txt ]; then
+            echo "## Memory Allocation Profile (Top)" >> profiling-results/SUMMARY.md
+            echo '```' >> profiling-results/SUMMARY.md
+            head -30 profiling-results/mem-alloc-top.txt >> profiling-results/SUMMARY.md
+            echo '```' >> profiling-results/SUMMARY.md
+          fi
+
+      - name: Upload profiling results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: performance-profiling-${{ matrix.mode }}-${{ matrix.benchmark }}
+          name: performance-profiling-results
           path: profiling-results/
           retention-days: 30
 
-      - name: Display Results Summary
+      - name: Display summary
+        if: always()
         run: |
           if [ -f profiling-results/SUMMARY.md ]; then
-            cat profiling-results/SUMMARY.md >> $GITHUB_STEP_SUMMARY
+            cat profiling-results/SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
           fi
 
-  analyze:
-    name: Cross-Mode Performance Analysis
-    runs-on: macos-14
-    needs: profile
-    if: always()
+  profile-cmd:
+    name: Profile via cmd/profile tool
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Download all profiling artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          pattern: performance-profiling-*
-          merge-multiple: true
-          path: all-profiling-results
+          go-version: '1.25'
 
-      - name: Generate Comparative Analysis
+      - name: Build profile tool
+        run: go build -o profile-tool ./cmd/profile
+
+      - name: Create output directory
+        run: mkdir -p cmd-profiling-results
+
+      - name: Profile emulation mode
         run: |
-          echo "# Comparative Performance Analysis" > comparative_analysis.md
-          echo "**Analysis Date:** $(date)" >> comparative_analysis.md
-          echo "**Commit:** ${{ github.sha }}" >> comparative_analysis.md
-          echo "" >> comparative_analysis.md
+          # Use a microbenchmark ELF if available, otherwise skip
+          ELF=$(find benchmarks -name '*.elf' -type f | head -1)
+          if [ -z "$ELF" ]; then
+            echo "No ELF binaries found, skipping cmd/profile tests"
+            exit 0
+          fi
 
-          # Cross-mode performance comparison
-          echo "## Performance Mode Comparison" >> comparative_analysis.md
-          echo "| Mode | Benchmark | Instructions/sec | CPI | Notes |" >> comparative_analysis.md
-          echo "|------|-----------|------------------|-----|-------|" >> comparative_analysis.md
+          echo "Profiling: $ELF"
+          ./profile-tool \
+            -cpuprofile=cmd-profiling-results/emu-cpu.prof \
+            -memprofile=cmd-profiling-results/emu-mem.prof \
+            -duration=10s \
+            "$ELF" > cmd-profiling-results/emu-output.txt 2>&1 || true
 
-          # Parse performance data from all modes
-          find all-profiling-results -name "output.txt" | while read file; do
-            mode=$(echo $file | cut -d'/' -f2)
-            suite=$(echo $file | cut -d'/' -f3)
-            bench=$(echo $file | cut -d'/' -f4)
+      - name: Profile timing mode
+        run: |
+          ELF=$(find benchmarks -name '*.elf' -type f | head -1)
+          if [ -z "$ELF" ]; then
+            exit 0
+          fi
 
-            # Extract metrics
-            instr_per_sec=$(grep "Instructions/second:" "$file" | cut -d':' -f2 | tr -d ' ')
-            cpi=$(grep "CPI:" "$file" | cut -d':' -f2 | tr -d ' ')
+          ./profile-tool -timing \
+            -cpuprofile=cmd-profiling-results/timing-cpu.prof \
+            -memprofile=cmd-profiling-results/timing-mem.prof \
+            -duration=10s \
+            "$ELF" > cmd-profiling-results/timing-output.txt 2>&1 || true
 
-            if [ -n "$instr_per_sec" ] && [ -n "$cpi" ]; then
-              echo "| $mode | $suite/$bench | $instr_per_sec | $cpi | - |" >> comparative_analysis.md
+      - name: Profile fast-timing mode
+        run: |
+          ELF=$(find benchmarks -name '*.elf' -type f | head -1)
+          if [ -z "$ELF" ]; then
+            exit 0
+          fi
+
+          ./profile-tool -fast-timing \
+            -cpuprofile=cmd-profiling-results/fast-timing-cpu.prof \
+            -memprofile=cmd-profiling-results/fast-timing-mem.prof \
+            -duration=10s \
+            "$ELF" > cmd-profiling-results/fast-timing-output.txt 2>&1 || true
+
+      - name: Generate mode comparison
+        if: always()
+        run: |
+          echo "# cmd/profile Mode Comparison" > cmd-profiling-results/SUMMARY.md
+          echo "" >> cmd-profiling-results/SUMMARY.md
+
+          for mode in emu timing fast-timing; do
+            outfile="cmd-profiling-results/${mode}-output.txt"
+            if [ -f "$outfile" ]; then
+              echo "## ${mode}" >> cmd-profiling-results/SUMMARY.md
+              echo '```' >> cmd-profiling-results/SUMMARY.md
+              cat "$outfile" >> cmd-profiling-results/SUMMARY.md
+              echo '```' >> cmd-profiling-results/SUMMARY.md
+              echo "" >> cmd-profiling-results/SUMMARY.md
             fi
           done
 
-      - name: Upload Comparative Analysis
+      - name: Upload results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: performance-analysis-report
-          path: comparative_analysis.md
-          retention-days: 90
+          name: cmd-profiling-results
+          path: cmd-profiling-results/
+          retention-days: 30
 
-      - name: Display Comparative Results
+      - name: Display summary
+        if: always()
         run: |
-          if [ -f comparative_analysis.md ]; then
-            cat comparative_analysis.md >> $GITHUB_STEP_SUMMARY
+          if [ -f cmd-profiling-results/SUMMARY.md ]; then
+            cat cmd-profiling-results/SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
           fi

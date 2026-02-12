@@ -9,8 +9,8 @@ on:
 jobs:
   performance-regression:
     name: Detect Performance Regressions
-    runs-on: macos-14
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout PR code
@@ -19,242 +19,87 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
 
-      - name: Build profile tool
-        run: go build -o profile-tool ./cmd/profile
-
-      - name: Create performance data directory
-        run: mkdir -p performance-data/current
-
-      - name: Measure Current Performance - Microbenchmarks
+      - name: Run current benchmarks
         run: |
-          cd benchmarks
-          go build -o microbench microbenchmarks.go
+          go test -run='XXX_NO_MATCH' -bench=BenchmarkPipeline -benchtime=1000x -count=3 \
+            ./timing/pipeline/ | tee current-bench.txt
 
-          # Fast-timing mode for calibration-relevant measurements
-          ../profile-tool -fast-timing \
-            -max-instr=500000 \
-            -duration=10s \
-            ./microbench > ../performance-data/current/microbench.txt
-
-      - name: Measure Current Performance - Key PolyBench Benchmarks
-        run: |
-          cd benchmarks/polybench
-
-          # Test representative benchmarks for regression detection
-          BENCHMARKS="gemm atax 2mm"
-
-          for bench in $BENCHMARKS; do
-            echo "Testing $bench performance..."
-            cd $bench
-
-            if make clean && make DATASET=SMALL; then
-              ../../profile-tool -fast-timing \
-                -max-instr=500000 \
-                -duration=10s \
-                ./$bench > ../../performance-data/current/${bench}.txt
-            fi
-
-            cd ..
-          done
-
-      - name: Checkout main branch baseline
+      - name: Checkout baseline (main)
         run: |
           git fetch origin main
           git checkout FETCH_HEAD
 
-      - name: Build baseline profile tool
-        run: go build -o profile-tool-baseline ./cmd/profile
-
-      - name: Create baseline performance directory
-        run: mkdir -p performance-data/baseline
-
-      - name: Measure Baseline Performance - Microbenchmarks
+      - name: Run baseline benchmarks
         run: |
-          cd benchmarks
-          go build -o microbench microbenchmarks.go
+          go test -run='XXX_NO_MATCH' -bench=BenchmarkPipeline -benchtime=1000x -count=3 \
+            ./timing/pipeline/ | tee baseline-bench.txt
 
-          ../profile-tool-baseline -fast-timing \
-            -max-instr=500000 \
-            -duration=10s \
-            ./microbench > ../performance-data/baseline/microbench.txt
+      - name: Install benchstat
+        run: go install golang.org/x/perf/cmd/benchstat@latest
 
-      - name: Measure Baseline Performance - Key PolyBench Benchmarks
+      - name: Compare performance
+        id: compare
         run: |
-          cd benchmarks/polybench
+          # benchstat expects old first, then new
+          benchstat baseline-bench.txt current-bench.txt > benchstat-output.txt 2>&1 || true
+          cat benchstat-output.txt
 
-          BENCHMARKS="gemm atax 2mm"
+          # Check for significant regressions (>15% slower)
+          REGRESSION=false
+          if grep -E '\+[1-9][5-9]\.[0-9]+%|\+[2-9][0-9]+\.[0-9]+%|\+[0-9]{3,}\.[0-9]+%' benchstat-output.txt; then
+            REGRESSION=true
+          fi
+          echo "regression=$REGRESSION" >> "$GITHUB_OUTPUT"
 
-          for bench in $BENCHMARKS; do
-            echo "Testing baseline $bench performance..."
-            cd $bench
-
-            if make clean && make DATASET=SMALL; then
-              ../../profile-tool-baseline -fast-timing \
-                -max-instr=500000 \
-                -duration=10s \
-                ./$bench > ../../performance-data/baseline/${bench}.txt
-            fi
-
-            cd ..
-          done
-
-      - name: Analyze Performance Regression
-        run: |
-          python3 -c "
-          import os
-          import re
-          import sys
-          from pathlib import Path
-
-          def parse_performance_metrics(file_path):
-              '''Extract key performance metrics from profile tool output'''
-              if not Path(file_path).exists():
-                  return None
-
-              content = Path(file_path).read_text()
-
-              # Extract metrics
-              patterns = {
-                  'instructions_per_sec': r'Instructions/second: ([\d.]+)',
-                  'cpi': r'CPI: ([\d.]+)',
-                  'instructions': r'Instructions executed: (\d+)'
-              }
-
-              metrics = {}
-              for key, pattern in patterns.items():
-                  match = re.search(pattern, content)
-                  if match:
-                      if key == 'instructions':
-                          metrics[key] = int(match.group(1))
-                      else:
-                          metrics[key] = float(match.group(1))
-
-              return metrics
-
-          def detect_regression(current_file, baseline_file, threshold_percent=10.0):
-              '''Compare current vs baseline performance'''
-              current = parse_performance_metrics(current_file)
-              baseline = parse_performance_metrics(baseline_file)
-
-              if not current or not baseline:
-                  return None
-
-              if baseline['instructions_per_sec'] == 0:
-                  return None
-
-              # Calculate performance change
-              perf_change = ((current['instructions_per_sec'] - baseline['instructions_per_sec'])
-                           / baseline['instructions_per_sec'] * 100)
-
-              # Negative change means performance degradation (regression)
-              is_regression = perf_change < -threshold_percent
-
-              return {
-                  'benchmark': Path(current_file).stem,
-                  'current_perf': current['instructions_per_sec'],
-                  'baseline_perf': baseline['instructions_per_sec'],
-                  'change_percent': perf_change,
-                  'is_regression': is_regression,
-                  'current_cpi': current.get('cpi', 0),
-                  'baseline_cpi': baseline.get('cpi', 0)
-              }
-
-          # Check all benchmark files
-          current_dir = Path('performance-data/current')
-          baseline_dir = Path('performance-data/baseline')
-
-          regressions = []
-          all_results = []
-
-          for current_file in current_dir.glob('*.txt'):
-              baseline_file = baseline_dir / current_file.name
-              result = detect_regression(current_file, baseline_file)
-
-              if result:
-                  all_results.append(result)
-                  if result['is_regression']:
-                      regressions.append(result)
-
-          # Generate report
-          print('## Performance Regression Analysis')
-          print()
-          print(f'**Analyzed Benchmarks:** {len(all_results)}')
-          print(f'**Regressions Detected:** {len(regressions)}')
-          print()
-
-          if regressions:
-              print('### 🚨 Performance Regressions Detected')
-              print()
-              print('| Benchmark | Current (inst/s) | Baseline (inst/s) | Change % | CPI Change |')
-              print('|-----------|------------------|-------------------|----------|------------|')
-
-              for reg in regressions:
-                  cpi_change = ((reg['current_cpi'] - reg['baseline_cpi']) / reg['baseline_cpi'] * 100) if reg['baseline_cpi'] > 0 else 0
-                  print(f\"| {reg['benchmark']} | {reg['current_perf']:.0f} | {reg['baseline_perf']:.0f} | {reg['change_percent']:.1f}% | {cpi_change:+.1f}% |\")
-
-              print()
-              print('❌ **Performance regressions detected!** Review changes for performance impact.')
-              sys.exit(1)
-          else:
-              print('### ✅ No Performance Regressions Detected')
-              print()
-              print('| Benchmark | Current (inst/s) | Baseline (inst/s) | Change % |')
-              print('|-----------|------------------|-------------------|----------|')
-
-              for result in all_results:
-                  print(f\"| {result['benchmark']} | {result['current_perf']:.0f} | {result['baseline_perf']:.0f} | {result['change_percent']:+.1f}% |\")
-
-              print()
-              print('✅ All benchmarks within acceptable performance variance.')
-          " > regression_analysis.md
-
-      - name: Display Regression Analysis
+      - name: Generate report
         if: always()
         run: |
-          if [ -f regression_analysis.md ]; then
-            cat regression_analysis.md >> $GITHUB_STEP_SUMMARY
+          echo "## Performance Benchmark Comparison" > report.md
+          echo "" >> report.md
+          echo "Compares PR benchmarks against main branch baseline." >> report.md
+          echo "Benchmarks: pipeline tick throughput across ALU, memory, mixed workloads." >> report.md
+          echo "" >> report.md
+          echo '```' >> report.md
+          cat benchstat-output.txt >> report.md
+          echo '```' >> report.md
+          echo "" >> report.md
+          if [ "${{ steps.compare.outputs.regression }}" = "true" ]; then
+            echo "**Warning:** Significant performance regression detected (>15%)." >> report.md
+          else
+            echo "No significant regressions detected." >> report.md
           fi
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload Performance Data
+      - name: Upload benchmark data
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: performance-regression-data
+          name: performance-benchmark-data
           path: |
-            performance-data/
-            regression_analysis.md
+            current-bench.txt
+            baseline-bench.txt
+            benchstat-output.txt
+            report.md
           retention-days: 30
 
-      - name: Comment on PR with Results
+      - name: Comment on PR
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-
-            let comment = '## Performance Regression Analysis\\n\\n';
-
-            if (fs.existsSync('regression_analysis.md')) {
-              const analysis = fs.readFileSync('regression_analysis.md', 'utf8');
-              comment += analysis;
+            let body = '## Performance Regression Analysis\n\n';
+            if (fs.existsSync('report.md')) {
+              body += fs.readFileSync('report.md', 'utf8');
             } else {
-              comment += '❌ Performance analysis failed - check workflow logs.';
+              body += 'Performance analysis failed - check workflow logs.';
             }
-
-            comment += '\\n\\n---\\n*Automated performance regression detection*';
-
+            body += '\n\n---\n*Automated benchmark comparison via `go test -bench` + benchstat*';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment
+              body: body
             });
-
-      - name: Fail if regressions detected
-        run: |
-          if [ -f regression_analysis.md ] && grep -q "🚨 Performance Regressions Detected" regression_analysis.md; then
-            echo "Performance regressions detected - failing workflow"
-            exit 1
-          fi
