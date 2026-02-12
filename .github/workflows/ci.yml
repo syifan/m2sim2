@@ -10,6 +10,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # Phase 2 hardening: explicit timeouts
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +25,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Phase 2 hardening: explicit timeouts
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +43,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20  # Phase 2 hardening: explicit timeouts
     steps:
       - uses: actions/checkout@v4
 
@@ -67,6 +70,7 @@ jobs:
   acceptance-tests:
     name: Acceptance Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # Phase 2 hardening: explicit timeouts
     steps:
       - uses: actions/checkout@v4
 

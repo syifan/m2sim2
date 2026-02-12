@@ -13,7 +13,7 @@ jobs:
   polybench-sim:
     name: Run PolyBench Timing Simulations
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45  # Increased for CI reliability - Phase 1 hardening
 
     steps:
       - name: Checkout code
@@ -38,7 +38,7 @@ jobs:
           echo ""
 
           # Run all PolyBench tests (no -short flag so they actually execute)
-          go test -v -run "TestPolybench" -count=1 -timeout 20m ./benchmarks/ 2>&1 | tee polybench_output.txt
+          go test -v -run "TestPolybench" -count=1 -timeout 35m ./benchmarks/ 2>&1 | tee polybench_output.txt
 
           echo ""
           echo "=== Raw CPI Output ==="

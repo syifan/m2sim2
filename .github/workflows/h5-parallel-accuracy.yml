@@ -1,0 +1,300 @@
+name: H5 Parallel Accuracy Report
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/**'
+      - 'h5_accuracy_report.py'
+      - 'timing/**'
+
+jobs:
+  # Phase 2 CI hardening: Parallel execution across multiple runners
+  microbenchmarks:
+    name: Microbenchmarks Accuracy
+    runs-on: macos-14
+    timeout-minutes: 30
+    outputs:
+      micro-results: ${{ steps.micro-results.outputs.results }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install matplotlib numpy scipy
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Run microbenchmarks accuracy tests
+        run: |
+          echo "Running microbenchmarks accuracy measurement..."
+          cd benchmarks/native
+          python3 accuracy_framework.py --microbenchmarks-only --output micro_results.json
+
+      - name: Extract microbenchmarks results
+        id: micro-results
+        run: |
+          if [ -f benchmarks/native/micro_results.json ]; then
+            echo "results=$(cat benchmarks/native/micro_results.json | jq -c .)" >> $GITHUB_OUTPUT
+          else
+            echo "results={}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload microbenchmarks artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: microbenchmarks-results
+          path: |
+            benchmarks/native/micro_results.json
+            benchmarks/native/accuracy_*.png
+          retention-days: 30
+
+  polybench-parallel:
+    name: PolyBench Parallel Accuracy
+    runs-on: macos-14
+    timeout-minutes: 60
+    outputs:
+      polybench-results: ${{ steps.poly-results.outputs.results }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install matplotlib numpy scipy
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Verify PolyBench ELFs
+        run: |
+          echo "Checking PolyBench ELF files..."
+          ls -la benchmarks/polybench/*.elf || echo "Some ELFs missing - will be handled gracefully"
+
+      - name: Run PolyBench accuracy tests
+        run: |
+          echo "Running PolyBench accuracy measurement..."
+          cd benchmarks/native
+          python3 accuracy_framework.py --polybench-only --output polybench_results.json
+
+      - name: Extract PolyBench results
+        id: poly-results
+        run: |
+          if [ -f benchmarks/native/polybench_results.json ]; then
+            echo "results=$(cat benchmarks/native/polybench_results.json | jq -c .)" >> $GITHUB_OUTPUT
+          else
+            echo "results={}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload PolyBench artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: polybench-results
+          path: |
+            benchmarks/native/polybench_results.json
+            benchmarks/native/accuracy_*.png
+          retention-days: 30
+
+  consolidate-h5:
+    name: Consolidate H5 Results
+    runs-on: ubuntu-latest
+    needs: [microbenchmarks, polybench-parallel]
+    timeout-minutes: 15
+    if: always()  # Run even if some parallel jobs fail
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install matplotlib numpy scipy
+
+      - name: Download all results
+        uses: actions/download-artifact@v4
+        with:
+          path: parallel-results
+
+      - name: Consolidate parallel results
+        run: |
+          echo "Consolidating results from parallel accuracy runs..."
+
+          python3 - <<'PYEOF'
+          import json
+          import os
+          from datetime import datetime
+
+          # Load results from parallel jobs
+          micro_results = {}
+          polybench_results = {}
+
+          try:
+              if os.path.exists("parallel-results/microbenchmarks-results/micro_results.json"):
+                  with open("parallel-results/microbenchmarks-results/micro_results.json") as f:
+                      micro_results = json.load(f)
+                      print(f"Loaded microbenchmarks: {len(micro_results.get('benchmarks', {}))} results")
+          except Exception as e:
+              print(f"Warning: Could not load microbenchmarks results: {e}")
+
+          try:
+              if os.path.exists("parallel-results/polybench-results/polybench_results.json"):
+                  with open("parallel-results/polybench-results/polybench_results.json") as f:
+                      polybench_results = json.load(f)
+                      print(f"Loaded PolyBench: {len(polybench_results.get('benchmarks', {}))} results")
+          except Exception as e:
+              print(f"Warning: Could not load PolyBench results: {e}")
+
+          # Consolidate into H5 format
+          h5_results = {
+              "timestamp": datetime.now().isoformat(),
+              "execution_mode": "parallel",
+              "categories": {
+                  "microbenchmarks": {
+                      "count": len(micro_results.get('benchmarks', {})),
+                      "benchmarks": micro_results.get('benchmarks', {}),
+                      "average_error": micro_results.get('average_error', 999.0)
+                  },
+                  "polybench": {
+                      "count": len(polybench_results.get('benchmarks', {})),
+                      "benchmarks": polybench_results.get('benchmarks', {}),
+                      "average_error": polybench_results.get('average_error', 999.0)
+                  }
+              }
+          }
+
+          # Calculate overall H5 metrics
+          total_benchmarks = h5_results["categories"]["microbenchmarks"]["count"] + h5_results["categories"]["polybench"]["count"]
+
+          if total_benchmarks > 0:
+              # Weighted average error
+              micro_weight = h5_results["categories"]["microbenchmarks"]["count"] / total_benchmarks
+              poly_weight = h5_results["categories"]["polybench"]["count"] / total_benchmarks
+
+              overall_error = (
+                  micro_weight * h5_results["categories"]["microbenchmarks"]["average_error"] +
+                  poly_weight * h5_results["categories"]["polybench"]["average_error"]
+              )
+          else:
+              overall_error = 999.0
+
+          h5_results["h5_milestone"] = {
+              "total_benchmarks": total_benchmarks,
+              "overall_average_error": overall_error,
+              "status": "PASS" if total_benchmarks >= 15 and overall_error <= 0.20 else "FAIL",
+              "target_benchmarks": 15,
+              "target_error": 0.20
+          }
+
+          print("=== H5 Parallel Results ===")
+          print(json.dumps(h5_results, indent=2))
+
+          # Write consolidated results
+          with open("h5_parallel_results.json", "w") as f:
+              json.dump(h5_results, f, indent=2)
+
+          # Generate markdown report
+          with open("h5_parallel_report.md", "w") as f:
+              f.write("# H5 Milestone Parallel Accuracy Report\n\n")
+              f.write(f"**Execution Mode:** Parallel (multi-runner)\n")
+              f.write(f"**Timestamp:** {h5_results['timestamp']}\n")
+              f.write(f"**Status:** {h5_results['h5_milestone']['status']}\n\n")
+
+              f.write("## H5 Milestone Summary\n\n")
+              f.write(f"- **Total Benchmarks:** {total_benchmarks}/15 (Target: 15+)\n")
+              f.write(f"- **Overall Average Error:** {overall_error*100:.1f}% (Target: <20%)\n\n")
+
+              f.write("## Category Breakdown\n\n")
+              f.write(f"### Microbenchmarks\n")
+              f.write(f"- **Count:** {h5_results['categories']['microbenchmarks']['count']}\n")
+              f.write(f"- **Average Error:** {h5_results['categories']['microbenchmarks']['average_error']*100:.1f}%\n\n")
+
+              f.write(f"### PolyBench Intermediate\n")
+              f.write(f"- **Count:** {h5_results['categories']['polybench']['count']}\n")
+              f.write(f"- **Average Error:** {h5_results['categories']['polybench']['average_error']*100:.1f}%\n\n")
+
+              f.write("## Parallel Execution Benefits\n\n")
+              f.write("This report was generated using parallel execution across multiple runners,\n")
+              f.write("improving reliability and reducing total execution time.\n")
+
+          print(f"\n✅ H5 parallel consolidation complete: {h5_results['h5_milestone']['status']}")
+          PYEOF
+
+      - name: Upload H5 parallel report
+        uses: actions/upload-artifact@v4
+        with:
+          name: h5-parallel-report
+          path: |
+            h5_parallel_results.json
+            h5_parallel_report.md
+          retention-days: 90
+
+      - name: Post H5 parallel summary
+        if: always()
+        run: |
+          echo "## H5 Parallel Accuracy Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f h5_parallel_results.json ]; then
+            python3 -c "
+          import json
+          d = json.load(open('h5_parallel_results.json'))
+          print(f\"**Status:** {d['h5_milestone']['status']}\")
+          print(f\"**Total Benchmarks:** {d['h5_milestone']['total_benchmarks']}/15\")
+          print(f\"**Overall Average Error:** {d['h5_milestone']['overall_average_error']*100:.1f}%\")
+          print(f\"**Execution Mode:** {d['execution_mode'].title()}\")
+          print()
+          print('### Category Results')
+          print(f\"- **Microbenchmarks:** {d['categories']['microbenchmarks']['count']} benchmarks, {d['categories']['microbenchmarks']['average_error']*100:.1f}% error\")
+          print(f\"- **PolyBench:** {d['categories']['polybench']['count']} benchmarks, {d['categories']['polybench']['average_error']*100:.1f}% error\")
+          " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ H5 parallel consolidation failed." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on H5 milestone issue
+        if: github.ref == 'refs/heads/main' && always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f h5_parallel_results.json ]; then
+            STATUS=$(python3 -c "import json; d=json.load(open('h5_parallel_results.json')); print(d['h5_milestone']['status'])")
+            TOTAL=$(python3 -c "import json; d=json.load(open('h5_parallel_results.json')); print(d['h5_milestone']['total_benchmarks'])")
+            ERROR=$(python3 -c "import json; d=json.load(open('h5_parallel_results.json')); print(f\"{d['h5_milestone']['overall_average_error']*100:.1f}%\")")
+
+            COMMENT_BODY="# [Diana] H5 Parallel Accuracy Framework Results
+            ## H5 Milestone Validation (Parallel Execution)
+            **Status**: ${STATUS}
+            - **Total Benchmarks**: ${TOTAL}/15 (Target: 15+)
+            - **Overall Average Error**: ${ERROR} (Target: <20%)
+            - **Execution Mode**: Parallel (multi-runner for improved reliability)
+            **Commit**: ${GITHUB_SHA:0:8}
+            **Workflow Run**: [View Details]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)
+            [Download H5 Parallel Report]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)"
+
+            gh issue comment 460 --body "$COMMENT_BODY" || echo "Could not comment on H5 issue"
+          fi

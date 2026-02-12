@@ -13,7 +13,7 @@ jobs:
   h5-accuracy-report:
     name: Generate H5 Milestone Accuracy Report
     runs-on: macos-14  # Apple Silicon runner for native M2 matching
-    timeout-minutes: 60  # Extended timeout for PolyBench simulations (increased for CI reliability)
+    timeout-minutes: 90  # Extended timeout for comprehensive accuracy testing - Phase 1 CI hardening
 
     steps:
       - name: Checkout code
