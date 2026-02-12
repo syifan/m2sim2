@@ -2099,8 +2099,11 @@ func (p *Pipeline) tickQuadIssue() {
 			EarlyResolved:   p.ifid.EarlyResolved,
 		}
 
-		// Try to issue instructions 2, 3, 4 if they can issue with earlier instructions
-		issuedInsts := []*IDEXRegister{&nextIDEX}
+		// Try to issue instructions 2, 3, 4 if they can issue with earlier instructions.
+		// Uses fixed-size array to avoid heap allocation per tick.
+		var issuedInsts [8]*IDEXRegister
+		issuedInsts[0] = &nextIDEX
+		issuedCount := 1
 
 		// Decode slot 2
 		if p.ifid2.Valid {
@@ -2124,9 +2127,10 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX2, issuedInsts) {
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
-				issuedInsts = append(issuedInsts, &tempIDEX2)
+				issuedInsts[issuedCount] = &tempIDEX2
+				issuedCount++
 			}
 		}
 
@@ -2152,9 +2156,10 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX3, issuedInsts) {
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
-				issuedInsts = append(issuedInsts, &tempIDEX3)
+				issuedInsts[issuedCount] = &tempIDEX3
+				issuedCount++
 			}
 		}
 
@@ -2180,7 +2185,7 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX4, issuedInsts) {
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
 			}
 		}
@@ -2215,7 +2220,7 @@ func (p *Pipeline) tickQuadIssue() {
 
 	if !stallResult.StallIF && !stallResult.FlushIF && !memStall && !execStall {
 		// Shift unissued instructions forward
-		pendingInsts := p.collectPendingFetchInstructions(issueCount)
+		pendingInsts, pendingCount := p.collectPendingFetchInstructions(issueCount)
 
 		// Fill slots with pending instructions first, then fetch new ones
 		fetchPC := p.pc
@@ -2223,7 +2228,8 @@ func (p *Pipeline) tickQuadIssue() {
 
 		// Place pending instructions
 		branchPredictedTaken := false
-		for _, pending := range pendingInsts {
+		for pi := 0; pi < pendingCount; pi++ {
+			pending := pendingInsts[pi]
 			// If slot 0 had a predicted-taken branch, discard remaining pending instructions
 			// (they're on the wrong path)
 			if branchPredictedTaken {
@@ -2438,32 +2444,41 @@ type pendingFetchInst struct {
 
 // collectPendingFetchInstructions returns unissued instructions that need to remain in fetch.
 // issueCount is how many instructions were issued from the current IF/ID registers.
+// Uses a fixed-size array to avoid heap allocation per tick.
 //
 //nolint:unused // Scaffolding for 4-wide implementation (PR #114)
-func (p *Pipeline) collectPendingFetchInstructions(issueCount int) []pendingFetchInst {
-	var pending []pendingFetchInst
+func (p *Pipeline) collectPendingFetchInstructions(issueCount int) ([8]pendingFetchInst, int) {
+	var allFetched [8]pendingFetchInst
+	count := 0
 
-	// All fetched instructions in order
-	allFetched := []pendingFetchInst{}
 	if p.ifid.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord}
+		count++
 	}
 	if p.ifid2.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord}
+		count++
 	}
 	if p.ifid3.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord}
+		count++
 	}
 	if p.ifid4.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord}
+		count++
 	}
 
-	// Skip the first issueCount instructions (they were issued)
-	if issueCount < len(allFetched) {
-		pending = allFetched[issueCount:]
+	// Skip the first issueCount instructions (they were issued).
+	// Shift remaining down to index 0.
+	pendingCount := 0
+	if issueCount < count {
+		pendingCount = count - issueCount
+		for i := 0; i < pendingCount; i++ {
+			allFetched[i] = allFetched[i+issueCount]
+		}
 	}
 
-	return pending
+	return allFetched, pendingCount
 }
 
 // forwardFromAllSlots checks all secondary pipeline stages for forwarding.
@@ -3317,8 +3332,11 @@ func (p *Pipeline) tickSextupleIssue() {
 			}
 		}
 
-		// Try to issue instructions 2-6 if they can issue with earlier instructions
-		issuedInsts := []*IDEXRegister{&nextIDEX}
+		// Try to issue instructions 2-6 if they can issue with earlier instructions.
+		// Uses fixed-size array to avoid heap allocation per tick.
+		var issuedInsts [8]*IDEXRegister
+		issuedInsts[0] = &nextIDEX
+		issuedCount := 1
 
 		// Track if IFID2 was consumed by fusion (skip its decode)
 		ifid2ConsumedByFusion := fusedCMPBcond
@@ -3344,9 +3362,10 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid2.PredictedTarget,
 				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX2, issuedInsts) {
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
-				issuedInsts = append(issuedInsts, &tempIDEX2)
+				issuedInsts[issuedCount] = &tempIDEX2
+				issuedCount++
 			}
 		}
 
@@ -3371,9 +3390,10 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid3.PredictedTarget,
 				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX3, issuedInsts) {
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
-				issuedInsts = append(issuedInsts, &tempIDEX3)
+				issuedInsts[issuedCount] = &tempIDEX3
+				issuedCount++
 			}
 		}
 
@@ -3398,9 +3418,10 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid4.PredictedTarget,
 				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX4, issuedInsts) {
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
-				issuedInsts = append(issuedInsts, &tempIDEX4)
+				issuedInsts[issuedCount] = &tempIDEX4
+				issuedCount++
 			}
 		}
 
@@ -3425,9 +3446,10 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid5.PredictedTarget,
 				EarlyResolved:   p.ifid5.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX5, issuedInsts) {
+			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount) {
 				nextIDEX5.fromIDEX(&tempIDEX5)
-				issuedInsts = append(issuedInsts, &tempIDEX5)
+				issuedInsts[issuedCount] = &tempIDEX5
+				issuedCount++
 			}
 		}
 
@@ -3452,7 +3474,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid6.PredictedTarget,
 				EarlyResolved:   p.ifid6.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX6, issuedInsts) {
+			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount) {
 				nextIDEX6.fromIDEX(&tempIDEX6)
 			}
 		}
@@ -3502,7 +3524,7 @@ func (p *Pipeline) tickSextupleIssue() {
 
 	if !stallResult.StallIF && !stallResult.FlushIF && !memStall && !execStall {
 		// Shift unissued instructions forward
-		pendingInsts := p.collectPendingFetchInstructions6(issueCount)
+		pendingInsts, pendingCount := p.collectPendingFetchInstructions6(issueCount)
 
 		// Fill slots with pending instructions first, then fetch new ones
 		fetchPC := p.pc
@@ -3510,7 +3532,8 @@ func (p *Pipeline) tickSextupleIssue() {
 
 		// Place pending instructions
 		branchPredictedTaken := false
-		for _, pending := range pendingInsts {
+		for pi := 0; pi < pendingCount; pi++ {
+			pending := pendingInsts[pi]
 			if branchPredictedTaken {
 				break
 			}
@@ -3735,34 +3758,45 @@ func (p *Pipeline) tickSextupleIssue() {
 }
 
 // collectPendingFetchInstructions6 returns unissued instructions for 6-wide.
-func (p *Pipeline) collectPendingFetchInstructions6(issueCount int) []pendingFetchInst {
-	var pending []pendingFetchInst
+// Uses a fixed-size array to avoid heap allocation per tick.
+func (p *Pipeline) collectPendingFetchInstructions6(issueCount int) ([8]pendingFetchInst, int) {
+	var allFetched [8]pendingFetchInst
+	count := 0
 
-	allFetched := []pendingFetchInst{}
 	if p.ifid.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord}
+		count++
 	}
 	if p.ifid2.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord}
+		count++
 	}
 	if p.ifid3.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord}
+		count++
 	}
 	if p.ifid4.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord}
+		count++
 	}
 	if p.ifid5.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid5.PC, Word: p.ifid5.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid5.PC, Word: p.ifid5.InstructionWord}
+		count++
 	}
 	if p.ifid6.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid6.PC, Word: p.ifid6.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid6.PC, Word: p.ifid6.InstructionWord}
+		count++
 	}
 
-	if issueCount < len(allFetched) {
-		pending = allFetched[issueCount:]
+	pendingCount := 0
+	if issueCount < count {
+		pendingCount = count - issueCount
+		for i := 0; i < pendingCount; i++ {
+			allFetched[i] = allFetched[i+issueCount]
+		}
 	}
 
-	return pending
+	return allFetched, pendingCount
 }
 
 // Reset clears all pipeline state.
@@ -5484,8 +5518,11 @@ func (p *Pipeline) tickOctupleIssue() {
 			}
 		}
 
-		// Try to issue instructions 2-8 if they can issue with earlier instructions
-		issuedInsts := []*IDEXRegister{&nextIDEX}
+		// Try to issue instructions 2-8 if they can issue with earlier instructions.
+		// Uses fixed-size array to avoid heap allocation per tick.
+		var issuedInsts [8]*IDEXRegister
+		issuedInsts[0] = &nextIDEX
+		issuedCount := 1
 
 		// Track if IFID2 was consumed by fusion (skip its decode)
 		ifid2ConsumedByFusion := fusedCMPBcond
@@ -5511,9 +5548,10 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid2.PredictedTarget,
 				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX2, issuedInsts) {
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
-				issuedInsts = append(issuedInsts, &tempIDEX2)
+				issuedInsts[issuedCount] = &tempIDEX2
+				issuedCount++
 			}
 		}
 
@@ -5538,9 +5576,10 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid3.PredictedTarget,
 				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX3, issuedInsts) {
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
-				issuedInsts = append(issuedInsts, &tempIDEX3)
+				issuedInsts[issuedCount] = &tempIDEX3
+				issuedCount++
 			}
 		}
 
@@ -5565,9 +5604,10 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid4.PredictedTarget,
 				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX4, issuedInsts) {
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
-				issuedInsts = append(issuedInsts, &tempIDEX4)
+				issuedInsts[issuedCount] = &tempIDEX4
+				issuedCount++
 			}
 		}
 
@@ -5592,9 +5632,10 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid5.PredictedTarget,
 				EarlyResolved:   p.ifid5.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX5, issuedInsts) {
+			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount) {
 				nextIDEX5.fromIDEX(&tempIDEX5)
-				issuedInsts = append(issuedInsts, &tempIDEX5)
+				issuedInsts[issuedCount] = &tempIDEX5
+				issuedCount++
 			}
 		}
 
@@ -5619,9 +5660,10 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid6.PredictedTarget,
 				EarlyResolved:   p.ifid6.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX6, issuedInsts) {
+			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount) {
 				nextIDEX6.fromIDEX(&tempIDEX6)
-				issuedInsts = append(issuedInsts, &tempIDEX6)
+				issuedInsts[issuedCount] = &tempIDEX6
+				issuedCount++
 			}
 		}
 
@@ -5646,9 +5688,10 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid7.PredictedTarget,
 				EarlyResolved:   p.ifid7.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX7, issuedInsts) {
+			if canIssueWith(&tempIDEX7, &issuedInsts, issuedCount) {
 				nextIDEX7.fromIDEX(&tempIDEX7)
-				issuedInsts = append(issuedInsts, &tempIDEX7)
+				issuedInsts[issuedCount] = &tempIDEX7
+				issuedCount++
 			}
 		}
 
@@ -5673,7 +5716,7 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid8.PredictedTarget,
 				EarlyResolved:   p.ifid8.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX8, issuedInsts) {
+			if canIssueWith(&tempIDEX8, &issuedInsts, issuedCount) {
 				nextIDEX8.fromIDEX(&tempIDEX8)
 			}
 		}
@@ -5733,7 +5776,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 	if !stallResult.StallIF && !stallResult.FlushIF && !memStall && !execStall {
 		// Shift unissued instructions forward
-		pendingInsts := p.collectPendingFetchInstructions8(issueCount)
+		pendingInsts, pendingCount := p.collectPendingFetchInstructions8(issueCount)
 
 		// Fill slots with pending instructions first, then fetch new ones
 		fetchPC := p.pc
@@ -5741,7 +5784,8 @@ func (p *Pipeline) tickOctupleIssue() {
 
 		// Place pending instructions
 		branchPredictedTaken := false
-		for _, pending := range pendingInsts {
+		for pi := 0; pi < pendingCount; pi++ {
+			pending := pendingInsts[pi]
 			if branchPredictedTaken {
 				break
 			}
@@ -6007,38 +6051,51 @@ func (p *Pipeline) tickOctupleIssue() {
 }
 
 // collectPendingFetchInstructions8 returns unissued instructions for 8-wide.
-func (p *Pipeline) collectPendingFetchInstructions8(issueCount int) []pendingFetchInst {
-	var pending []pendingFetchInst
+// Uses a fixed-size array to avoid heap allocation per tick.
+func (p *Pipeline) collectPendingFetchInstructions8(issueCount int) ([8]pendingFetchInst, int) {
+	var allFetched [8]pendingFetchInst
+	count := 0
 
-	allFetched := []pendingFetchInst{}
 	if p.ifid.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord}
+		count++
 	}
 	if p.ifid2.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord}
+		count++
 	}
 	if p.ifid3.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord}
+		count++
 	}
 	if p.ifid4.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord}
+		count++
 	}
 	if p.ifid5.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid5.PC, Word: p.ifid5.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid5.PC, Word: p.ifid5.InstructionWord}
+		count++
 	}
 	if p.ifid6.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid6.PC, Word: p.ifid6.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid6.PC, Word: p.ifid6.InstructionWord}
+		count++
 	}
 	if p.ifid7.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid7.PC, Word: p.ifid7.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid7.PC, Word: p.ifid7.InstructionWord}
+		count++
 	}
 	if p.ifid8.Valid {
-		allFetched = append(allFetched, pendingFetchInst{PC: p.ifid8.PC, Word: p.ifid8.InstructionWord})
+		allFetched[count] = pendingFetchInst{PC: p.ifid8.PC, Word: p.ifid8.InstructionWord}
+		count++
 	}
 
-	if issueCount < len(allFetched) {
-		pending = allFetched[issueCount:]
+	pendingCount := 0
+	if issueCount < count {
+		pendingCount = count - issueCount
+		for i := 0; i < pendingCount; i++ {
+			allFetched[i] = allFetched[i+issueCount]
+		}
 	}
 
-	return pending
+	return allFetched, pendingCount
 }

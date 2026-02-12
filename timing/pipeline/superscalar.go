@@ -1164,8 +1164,8 @@ func isALUOp(inst *IDEXRegister) bool {
 }
 
 // canIssueWith checks if a new instruction can be issued with a set of previously issued instructions.
-// This is a generalized version that checks dependencies against all earlier instructions in the batch.
-func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
+// Uses a fixed-size array to avoid heap allocation per tick cycle.
+func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int) bool {
 	if newInst == nil || !newInst.Valid {
 		return false
 	}
@@ -1181,9 +1181,9 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 	}
 
 	// Memory operations can only execute in slots with memory ports (first maxMemPorts slots).
-	// The new instruction would go into slot len(earlier), so reject memory ops in slots >= maxMemPorts.
+	// The new instruction would go into slot earlierCount, so reject memory ops in slots >= maxMemPorts.
 	newAccessesMem := newInst.MemRead || newInst.MemWrite
-	if newAccessesMem && len(earlier) >= maxMemPorts {
+	if newAccessesMem && earlierCount >= maxMemPorts {
 		return false
 	}
 
@@ -1209,7 +1209,8 @@ func canIssueWith(newInst *IDEXRegister, earlier []*IDEXRegister) bool {
 		writePortCount = 1
 	}
 
-	for _, prev := range earlier {
+	for i := 0; i < earlierCount; i++ {
+		prev := earlier[i]
 		if prev == nil || !prev.Valid {
 			continue
 		}
