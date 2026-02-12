@@ -28,7 +28,7 @@ type DecodeStage struct {
 	decoder *insts.Decoder
 	// Pool of pre-allocated instructions to avoid heap allocations during decode
 	// Supports up to 8 concurrent decode operations (for 8-wide superscalar pipelines)
-	instPool [8]insts.Instruction
+	instPool  [8]insts.Instruction
 	poolIndex int
 }
 

@@ -10,11 +10,10 @@ on:
       - 'timing/**'
 
 jobs:
-  # Test segmentation: Split PolyBench tests into smaller, more reliable chunks
   polybench-group-1:
     name: PolyBench Group 1 (ATAX, BiCG, Jacobi1D)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: macos-14
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,14 +26,14 @@ jobs:
       - name: Verify PolyBench ELFs exist
         run: |
           echo "Checking required ELF files for Group 1..."
-          ls -la benchmarks/polybench/polybench_atax.elf
-          ls -la benchmarks/polybench/polybench_bicg.elf
-          ls -la benchmarks/polybench/polybench_jacobi1d.elf
+          ls -la benchmarks/polybench/atax_m2sim.elf
+          ls -la benchmarks/polybench/bicg_m2sim.elf
+          ls -la benchmarks/polybench/jacobi-1d_m2sim.elf
 
       - name: Run Group 1 tests
         run: |
           echo "Running PolyBench Group 1: ATAX, BiCG, Jacobi1D"
-          go test -v -run "TestPolybenchATAX|TestPolybenchBiCG|TestPolybenchJacobi1D" -count=1 -timeout 15m ./benchmarks/ 2>&1 | tee group1_output.txt
+          go test -v -run "TestPolybenchATAX|TestPolybenchBiCG|TestPolybenchJacobi1D" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee group1_output.txt
 
       - name: Upload Group 1 results
         if: always()
@@ -45,9 +44,9 @@ jobs:
           retention-days: 7
 
   polybench-group-2:
-    name: PolyBench Group 2 (FDTD2D, Gemm, Gesummv)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    name: PolyBench Group 2 (MVT, GEMM)
+    runs-on: macos-14
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,14 +59,13 @@ jobs:
       - name: Verify PolyBench ELFs exist
         run: |
           echo "Checking required ELF files for Group 2..."
-          ls -la benchmarks/polybench/polybench_fdtd2d.elf
-          ls -la benchmarks/polybench/polybench_gemm.elf
-          ls -la benchmarks/polybench/polybench_gesummv.elf
+          ls -la benchmarks/polybench/mvt_m2sim.elf
+          ls -la benchmarks/polybench/gemm_m2sim.elf
 
       - name: Run Group 2 tests
         run: |
-          echo "Running PolyBench Group 2: FDTD2D, Gemm, Gesummv"
-          go test -v -run "TestPolybenchFDTD2D|TestPolybenchGemm|TestPolybenchGesummv" -count=1 -timeout 15m ./benchmarks/ 2>&1 | tee group2_output.txt
+          echo "Running PolyBench Group 2: MVT, GEMM"
+          go test -v -run "TestPolybenchMVT|TestPolybenchGEMM" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee group2_output.txt
 
       - name: Upload Group 2 results
         if: always()
@@ -78,9 +76,9 @@ jobs:
           retention-days: 7
 
   polybench-group-3:
-    name: PolyBench Group 3 (Syr2K)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: PolyBench Group 3 (2MM, 3MM)
+    runs-on: macos-14
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -93,12 +91,13 @@ jobs:
       - name: Verify PolyBench ELFs exist
         run: |
           echo "Checking required ELF files for Group 3..."
-          ls -la benchmarks/polybench/polybench_syr2k.elf
+          ls -la benchmarks/polybench/2mm_m2sim.elf
+          ls -la benchmarks/polybench/3mm_m2sim.elf
 
       - name: Run Group 3 tests
         run: |
-          echo "Running PolyBench Group 3: Syr2K"
-          go test -v -run "TestPolybenchSyr2K" -count=1 -timeout 10m ./benchmarks/ 2>&1 | tee group3_output.txt
+          echo "Running PolyBench Group 3: 2MM, 3MM"
+          go test -v -run "TestPolybench2MM|TestPolybench3MM" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee group3_output.txt
 
       - name: Upload Group 3 results
         if: always()
@@ -112,7 +111,7 @@ jobs:
     name: Consolidate PolyBench Results
     runs-on: ubuntu-latest
     needs: [polybench-group-1, polybench-group-2, polybench-group-3]
-    if: always()  # Run even if some groups fail
+    if: always()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -131,11 +130,11 @@ jobs:
           cat group-results/polybench-group-2-results/group2_output.txt >> consolidated_polybench.txt || echo "Group 2 results missing"
           cat group-results/polybench-group-3-results/group3_output.txt >> consolidated_polybench.txt || echo "Group 3 results missing"
 
-          # Extract CPI data using the same logic as the main workflow
+          # Extract CPI data
           python3 - <<'PYEOF'
           import json
           import re
-          import sys
+          import os
 
           results = {}
           try:
@@ -169,8 +168,6 @@ jobs:
               "groups_completed": []
           }
 
-          # Check which groups completed successfully
-          import os
           if os.path.exists("group-results/polybench-group-1-results/group1_output.txt"):
               output["groups_completed"].append("group-1")
           if os.path.exists("group-results/polybench-group-2-results/group2_output.txt"):
@@ -205,7 +202,7 @@ jobs:
           import json
           d = json.load(open('polybench_segmented_results.json'))
           print(f'**Benchmarks measured:** {d[\"benchmarks_run\"]}/7 (from {len(d[\"groups_completed\"])} groups)')
-          print(f'**Groups completed:** {", ".join(d[\"groups_completed\"])}')
+          print(f'**Groups completed:** {\", \".join(d[\"groups_completed\"])}')
           print()
           if d['results']:
               print('| Benchmark | Cycles | Instructions | CPI |')
@@ -216,5 +213,5 @@ jobs:
               print('No benchmark results extracted.')
           " >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Segmented testing consolidation failed." >> $GITHUB_STEP_SUMMARY
+            echo "Segmented testing consolidation failed." >> $GITHUB_STEP_SUMMARY
           fi
