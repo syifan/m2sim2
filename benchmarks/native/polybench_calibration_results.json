@@ -1,102 +1,259 @@
 {
-  "methodology": "m2_hardware_baseline",
-  "formula": "instruction_latency_ns = (cpi * 1000) / frequency_ghz (3.5 GHz)",
+  "methodology": "linear_regression",
+  "formula": "time_ms = latency_ns * instruction_count / 1e6 + overhead_ms",
+  "source": "polybench_rep_scaling",
+  "rep_counts_cubic": [
+    10,
+    50,
+    100,
+    500,
+    1000,
+    5000
+  ],
+  "rep_counts_quadratic": [
+    100,
+    500,
+    1000,
+    5000,
+    10000,
+    50000
+  ],
   "results": [
     {
-      "benchmark": "atax",
-      "description": "PolyBench ATAX - Triangular matrix vector multiply and add",
-      "calibrated": true,
-      "instruction_latency_ns": 7632.38485714286,
-      "overhead_ms": 0.0,
-      "r_squared": 1.0,
-      "data_points": [
-        {
-          "instructions": 5000,
-          "time_ms": 38.16192479571327
-        }
-      ]
-    },
-    {
-      "benchmark": "bicg",
-      "description": "PolyBench BICG - BiCG sub-kernel of BiCGStab linear solver",
-      "calibrated": true,
-      "instruction_latency_ns": 9236.387428571428,
-      "overhead_ms": 0.0,
-      "r_squared": 1.0,
-      "data_points": [
-        {
-          "instructions": 4830,
-          "time_ms": 44.61174980970099
-        }
-      ]
-    },
-    {
       "benchmark": "gemm",
-      "description": "PolyBench GEMM - General matrix multiply",
+      "description": "General matrix multiply (GEMM) - C := alpha*A*B + beta*C",
       "calibrated": true,
-      "instruction_latency_ns": 956.6320000000001,
-      "overhead_ms": 0.0,
-      "r_squared": 1.0,
+      "instruction_latency_ns": 0.1169892604173915,
+      "overhead_ms": 1.1871343157717622,
+      "r_squared": 0.9999145280974906,
       "data_points": [
         {
-          "instructions": 37000,
-          "time_ms": 35.39538760669529
+          "instructions": 33700764,
+          "time_ms": 6.426421336881402
+        },
+        {
+          "instructions": 129328268,
+          "time_ms": 22.028444451279938
+        },
+        {
+          "instructions": 250432560,
+          "time_ms": 33.956925882699174
+        },
+        {
+          "instructions": 1209101817,
+          "time_ms": 137.45302289155208
+        },
+        {
+          "instructions": 2407789933,
+          "time_ms": 275.76893989721106
+        },
+        {
+          "instructions": 12001834436,
+          "time_ms": 1407.08284245597
         }
       ]
     },
     {
-      "benchmark": "mvt",
-      "description": "PolyBench MVT - Matrix vector product and transpose",
+      "benchmark": "atax",
+      "description": "Matrix transpose and vector multiply - y = A^T * (A * x)",
       "calibrated": true,
-      "instruction_latency_ns": 7706.2288571428574,
-      "overhead_ms": 0.0,
-      "r_squared": 1.0,
+      "instruction_latency_ns": 0.11816937113991745,
+      "overhead_ms": 3.3719661808012233,
+      "r_squared": 0.9999725580565254,
       "data_points": [
         {
-          "instructions": 5000,
-          "time_ms": 38.52971650776453
-        }
-      ]
-    },
-    {
-      "benchmark": "jacobi-1d",
-      "description": "PolyBench JACOBI-1D - 1-D Jacobi iterative method",
-      "calibrated": true,
-      "instruction_latency_ns": 7620.236571428572,
-      "overhead_ms": 0.0,
-      "r_squared": 1.0,
-      "data_points": [
+          "instructions": 18301873,
+          "time_ms": 4.813055436696029
+        },
         {
-          "instructions": 5349,
-          "time_ms": 40.76064560213126
+          "instructions": 52103854,
+          "time_ms": 10.535467674748766
+        },
+        {
+          "instructions": 94357987,
+          "time_ms": 14.683430555224833
+        },
+        {
+          "instructions": 434624809,
+          "time_ms": 55.70358345155708
+        },
+        {
+          "instructions": 859039654,
+          "time_ms": 103.24794912270994
+        },
+        {
+          "instructions": 4261571055,
+          "time_ms": 507.17702301012145
         }
       ]
     },
     {
       "benchmark": "2mm",
-      "description": "PolyBench 2MM - 2 matrix multiplications",
+      "description": "Two matrix multiplications - D = A*B; E = C*D",
       "calibrated": true,
-      "instruction_latency_ns": 608.4177142857143,
-      "overhead_ms": 0.0,
-      "r_squared": 1.0,
+      "instruction_latency_ns": 0.1118019664434671,
+      "overhead_ms": 5.059218712184399,
+      "r_squared": 0.9999995122280511,
       "data_points": [
         {
-          "instructions": 70000,
-          "time_ms": 42.58923750021495
+          "instructions": 60906756,
+          "time_ms": 10.783273235170377
+        },
+        {
+          "instructions": 265209408,
+          "time_ms": 35.72430999742614
+        },
+        {
+          "instructions": 520500740,
+          "time_ms": 63.94366645771596
+        },
+        {
+          "instructions": 2565581773,
+          "time_ms": 291.6889722109772
+        },
+        {
+          "instructions": 5120072348,
+          "time_ms": 576.9786252187462
+        },
+        {
+          "instructions": 25555404668,
+          "time_ms": 2862.3056391176456
+        }
+      ]
+    },
+    {
+      "benchmark": "mvt",
+      "description": "Matrix vector product and transpose",
+      "calibrated": true,
+      "instruction_latency_ns": 0.117643337141782,
+      "overhead_ms": 5.074837901944268,
+      "r_squared": 0.9999781344755971,
+      "data_points": [
+        {
+          "instructions": 18202614,
+          "time_ms": 5.736972004847808
+        },
+        {
+          "instructions": 52301923,
+          "time_ms": 10.906694443999893
+        },
+        {
+          "instructions": 94875067,
+          "time_ms": 17.40812487615686
+        },
+        {
+          "instructions": 435303206,
+          "time_ms": 56.959097111959835
+        },
+        {
+          "instructions": 859738895,
+          "time_ms": 106.26679178353191
+        },
+        {
+          "instructions": 4261929922,
+          "time_ms": 506.3678888901551
+        }
+      ]
+    },
+    {
+      "benchmark": "jacobi-1d",
+      "description": "1D Jacobi iterative stencil computation",
+      "calibrated": true,
+      "instruction_latency_ns": 0.12017833595423802,
+      "overhead_ms": 4.358557962293105,
+      "r_squared": 0.9998472358153783,
+      "data_points": [
+        {
+          "instructions": 14659937,
+          "time_ms": 5.263481554316564
+        },
+        {
+          "instructions": 27850630,
+          "time_ms": 7.578023334240748
+        },
+        {
+          "instructions": 46251829,
+          "time_ms": 9.353541665607029
+        },
+        {
+          "instructions": 188706719,
+          "time_ms": 29.051254658649366
+        },
+        {
+          "instructions": 365210079,
+          "time_ms": 47.90043522370979
+        },
+        {
+          "instructions": 1787830465,
+          "time_ms": 219.0992176765576
         }
       ]
     },
     {
       "benchmark": "3mm",
-      "description": "PolyBench 3MM - 3 matrix multiplications",
+      "description": "Three matrix multiplications",
       "calibrated": true,
-      "instruction_latency_ns": 406.8045714285714,
-      "overhead_ms": 0.0,
-      "r_squared": 1.0,
+      "instruction_latency_ns": 0.11319950827314158,
+      "overhead_ms": 8.950162103672787,
+      "r_squared": 0.9999855142449359,
       "data_points": [
         {
-          "instructions": 105410,
-          "time_ms": 42.881274787941945
+          "instructions": 110578414,
+          "time_ms": 17.143435336442458
+        },
+        {
+          "instructions": 504846587,
+          "time_ms": 61.41974978123067
+        },
+        {
+          "instructions": 1000354867,
+          "time_ms": 119.20448587948664
+        },
+        {
+          "instructions": 4963051610,
+          "time_ms": 569.0369395435685
+        },
+        {
+          "instructions": 9920951234,
+          "time_ms": 1148.7845186558034
+        },
+        {
+          "instructions": 49541896196,
+          "time_ms": 5613.997421343811
+        }
+      ]
+    },
+    {
+      "benchmark": "bicg",
+      "description": "BiCG sub-kernel of BiCGStab linear solver",
+      "calibrated": true,
+      "instruction_latency_ns": 0.12368706663340644,
+      "overhead_ms": 4.180487519597136,
+      "r_squared": 0.9999226020420589,
+      "data_points": [
+        {
+          "instructions": 15465599,
+          "time_ms": 5.023231568177128
+        },
+        {
+          "instructions": 38950901,
+          "time_ms": 8.049819553788337
+        },
+        {
+          "instructions": 67912565,
+          "time_ms": 12.025546327802456
+        },
+        {
+          "instructions": 302869566,
+          "time_ms": 43.795815002845806
+        },
+        {
+          "instructions": 597888636,
+          "time_ms": 78.8966899854131
+        },
+        {
+          "instructions": 2944332219,
+          "time_ms": 368.0103010071131
         }
       ]
     }
