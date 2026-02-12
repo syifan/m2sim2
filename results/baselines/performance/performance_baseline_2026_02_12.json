@@ -1,0 +1,32 @@
+{
+  "baseline_metadata": {
+    "creation_date": "2026-02-12",
+    "commit_hash": "731988843fce6b99e8f9cc6d02e952a2524a433d",
+    "timing_model_version": "issue-481-phase1",
+    "measurement_environment": {
+      "platform": "darwin",
+      "go_version": "1.25.6",
+      "cpu_info": "arm",
+      "memory_gb": "unknown"
+    }
+  },
+  "benchmarks": {
+    "statemate_m2sim": {
+      "emulation": {
+        "instructions_per_sec": 5161894,
+        "memory_mb": 150.0,
+        "cpi": "N/A"
+      },
+      "timing": {
+        "instructions_per_sec": 0,
+        "memory_mb": 150.0,
+        "cpi": "N/A"
+      },
+      "fast_timing": {
+        "instructions_per_sec": 225803,
+        "memory_mb": 150.0,
+        "cpi": 1.536
+      }
+    }
+  }
+}
