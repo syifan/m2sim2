@@ -1,3 +1,13 @@
+> **HISTORICAL REPORT — DO NOT CITE**
+>
+> This report was generated before CI-verified accuracy data was available.
+> The "16.9% average error across 18 benchmarks" figure is **not supported
+> by CI-verified results**. The current source of truth is
+> `h5_accuracy_results.json`, which shows 14.22% average error across
+> 11 microbenchmarks. PolyBench error percentages in this report are not
+> directly comparable because hardware CPI was measured at LARGE dataset
+> sizes while simulation used MINI datasets.
+
 # M2Sim Project Completion Report
 
 **Date:** February 12, 2026
