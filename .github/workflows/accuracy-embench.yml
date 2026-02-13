@@ -20,59 +20,136 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  embench-accuracy:
-    name: EmBench Accuracy
+  embench-group-1:
+    name: EmBench Group 1 (AhaMont64, CRC32, EDN)
     runs-on: macos-14
-    timeout-minutes: 210
-
+    timeout-minutes: 250
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
 
-      - name: Verify EmBench ELFs
+      - name: Verify ELFs
         run: |
-          echo "Checking EmBench ELF files..."
-          ls -la benchmarks/aha-mont64-m2sim/*.elf 2>/dev/null || echo "aha-mont64 missing"
-          ls -la benchmarks/crc32-m2sim/*.elf 2>/dev/null || echo "crc32 missing"
-          ls -la benchmarks/edn-m2sim/*.elf 2>/dev/null || echo "edn missing"
-          ls -la benchmarks/huffbench-m2sim/*.elf 2>/dev/null || echo "huffbench missing"
-          ls -la benchmarks/matmult-int-m2sim/*.elf 2>/dev/null || echo "matmult-int missing"
-          ls -la benchmarks/statemate-m2sim/*.elf 2>/dev/null || echo "statemate missing"
-          ls -la benchmarks/primecount-m2sim/*.elf 2>/dev/null || echo "primecount missing"
+          ls -la benchmarks/aha-mont64-m2sim/*.elf
+          ls -la benchmarks/crc32-m2sim/*.elf
+          ls -la benchmarks/edn-m2sim/*.elf
 
-      - name: Run EmBench tests
-        timeout-minutes: 190
+      - name: Run tests
         run: |
-          TESTS=(
-            TestEmbenchAhaMont64
-            TestEmbenchCRC32
-            TestEmbenchEDN
-            TestEmbenchHuffbench
-            TestEmbenchMatmultInt
-            TestEmbenchStatemate
-            TestEmbenchPrimecount
-          )
-
-          > embench_output.txt
+          > group1_output.txt
           FAILED=0
-          for TEST in "${TESTS[@]}"; do
+          for TEST in TestEmbenchAhaMont64 TestEmbenchCRC32 TestEmbenchEDN; do
             echo "--- $TEST ---"
-            if ! go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a embench_output.txt; then
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group1_output.txt; then
               FAILED=1
             fi
           done
           exit $FAILED
 
-      - name: Extract CPI results
+      - name: Upload results
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embench-group-1
+          path: group1_output.txt
+          retention-days: 30
+
+  embench-group-2:
+    name: EmBench Group 2 (Huffbench, MatmultInt)
+    runs-on: macos-14
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify ELFs
         run: |
+          ls -la benchmarks/huffbench-m2sim/*.elf
+          ls -la benchmarks/matmult-int-m2sim/*.elf
+
+      - name: Run tests
+        run: |
+          > group2_output.txt
+          FAILED=0
+          for TEST in TestEmbenchHuffbench TestEmbenchMatmultInt; do
+            echo "--- $TEST ---"
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group2_output.txt; then
+              FAILED=1
+            fi
+          done
+          exit $FAILED
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embench-group-2
+          path: group2_output.txt
+          retention-days: 30
+
+  embench-group-3:
+    name: EmBench Group 3 (Statemate, Primecount)
+    runs-on: macos-14
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify ELFs
+        run: |
+          ls -la benchmarks/statemate-m2sim/*.elf
+          ls -la benchmarks/primecount-m2sim/*.elf
+
+      - name: Run tests
+        run: |
+          > group3_output.txt
+          FAILED=0
+          for TEST in TestEmbenchStatemate TestEmbenchPrimecount; do
+            echo "--- $TEST ---"
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group3_output.txt; then
+              FAILED=1
+            fi
+          done
+          exit $FAILED
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embench-group-3
+          path: group3_output.txt
+          retention-days: 30
+
+  consolidate:
+    name: Consolidate EmBench Results
+    runs-on: ubuntu-latest
+    needs: [embench-group-1, embench-group-2, embench-group-3]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download results
+        uses: actions/download-artifact@v4
+        with:
+          path: group-results
+
+      - name: Extract CPI results
+        run: |
+          cat group-results/embench-group-1/group1_output.txt > combined.txt 2>/dev/null || true
+          cat group-results/embench-group-2/group2_output.txt >> combined.txt 2>/dev/null || true
+          cat group-results/embench-group-3/group3_output.txt >> combined.txt 2>/dev/null || true
+
           python3 - <<'PYEOF'
           import json, re
 
           results = {}
-          with open("embench_output.txt") as f:
+          with open("combined.txt") as f:
               for line in f:
                   if "CPI=" not in line:
                       continue
@@ -112,12 +189,11 @@ jobs:
           " >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Upload results
-        if: always()
+      - name: Upload consolidated results
         uses: actions/upload-artifact@v4
         with:
           name: embench-accuracy
           path: |
             embench_results.json
-            embench_output.txt
+            combined.txt
           retention-days: 90

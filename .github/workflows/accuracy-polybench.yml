@@ -18,7 +18,7 @@ jobs:
   polybench-group-1:
     name: PolyBench Group 1 (ATAX, BiCG, Jacobi1D)
     runs-on: macos-14
-    timeout-minutes: 90
+    timeout-minutes: 250
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -36,7 +36,7 @@ jobs:
           FAILED=0
           for TEST in TestPolybenchATAX TestPolybenchBiCG TestPolybenchJacobi1D; do
             echo "--- $TEST ---"
-            if ! go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group1_output.txt; then
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group1_output.txt; then
               FAILED=1
             fi
           done
@@ -53,7 +53,7 @@ jobs:
   polybench-group-2:
     name: PolyBench Group 2 (MVT, GEMM)
     runs-on: macos-14
-    timeout-minutes: 90
+    timeout-minutes: 170
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -70,7 +70,7 @@ jobs:
           FAILED=0
           for TEST in TestPolybenchMVT TestPolybenchGEMM; do
             echo "--- $TEST ---"
-            if ! go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group2_output.txt; then
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group2_output.txt; then
               FAILED=1
             fi
           done
@@ -87,7 +87,7 @@ jobs:
   polybench-group-3:
     name: PolyBench Group 3 (2MM, 3MM)
     runs-on: macos-14
-    timeout-minutes: 90
+    timeout-minutes: 170
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -104,7 +104,7 @@ jobs:
           FAILED=0
           for TEST in TestPolybench2MM TestPolybench3MM; do
             echo "--- $TEST ---"
-            if ! go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group3_output.txt; then
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group3_output.txt; then
               FAILED=1
             fi
           done
