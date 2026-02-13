@@ -1,0 +1,204 @@
+name: Accuracy - Consolidated
+
+on:
+  workflow_dispatch:
+
+jobs:
+  consolidate:
+    name: Consolidate All Accuracy Results
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download latest accuracy-microbench artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/microbench
+          ARTIFACT_URL=$(gh api repos/${{ github.repository }}/actions/artifacts \
+            --jq '[.artifacts[] | select(.name == "accuracy-microbench" and .expired == false)] | sort_by(.created_at) | last | .archive_download_url')
+          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
+            echo "::warning::No accuracy-microbench artifact found"
+          else
+            gh api "$ARTIFACT_URL" > /tmp/microbench.zip
+            unzip -o /tmp/microbench.zip -d artifacts/microbench
+          fi
+
+      - name: Download latest polybench-consolidated artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/polybench
+          ARTIFACT_URL=$(gh api repos/${{ github.repository }}/actions/artifacts \
+            --jq '[.artifacts[] | select(.name == "polybench-consolidated" and .expired == false)] | sort_by(.created_at) | last | .archive_download_url')
+          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
+            echo "::warning::No polybench-consolidated artifact found"
+          else
+            gh api "$ARTIFACT_URL" > /tmp/polybench.zip
+            unzip -o /tmp/polybench.zip -d artifacts/polybench
+          fi
+
+      - name: Download latest embench-accuracy artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/embench
+          ARTIFACT_URL=$(gh api repos/${{ github.repository }}/actions/artifacts \
+            --jq '[.artifacts[] | select(.name == "embench-accuracy" and .expired == false)] | sort_by(.created_at) | last | .archive_download_url')
+          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
+            echo "::warning::No embench-accuracy artifact found"
+          else
+            gh api "$ARTIFACT_URL" > /tmp/embench.zip
+            unzip -o /tmp/embench.zip -d artifacts/embench
+          fi
+
+      - name: Consolidate results and compute errors
+        run: |
+          python3 - <<'PYEOF'
+          import json, os
+
+          # Hardware reference CPI from calibration_results.json
+          # hw_cpi = instruction_latency_ns * 3.5 GHz
+          hw_cpi = {
+              "arithmetic": 0.296,
+              "dependency": 1.088,
+              "branch": 1.303,
+              "memorystrided": 2.648,
+              "loadheavy": 0.429,
+              "storeheavy": 0.612,
+              "branchheavy": 0.714,
+              "vectorsum": 0.402,
+              "vectoradd": 0.329,
+              "reductiontree": 0.480,
+              "strideindirect": 0.528,
+          }
+
+          consolidated = {
+              "microbench": {"available": False, "results": {}},
+              "polybench": {"available": False, "results": {}},
+              "embench": {"available": False, "results": {}},
+              "error_metrics": {},
+          }
+
+          # Load microbench results
+          micro_path = "artifacts/microbench/microbench_results.json"
+          if os.path.exists(micro_path):
+              with open(micro_path) as f:
+                  data = json.load(f)
+              consolidated["microbench"] = {
+                  "available": True,
+                  "benchmarks_run": data.get("benchmarks_run", 0),
+                  "results": data.get("results", {}),
+              }
+
+          # Load polybench results
+          poly_path = "artifacts/polybench/polybench_results.json"
+          if os.path.exists(poly_path):
+              with open(poly_path) as f:
+                  data = json.load(f)
+              consolidated["polybench"] = {
+                  "available": True,
+                  "benchmarks_run": data.get("benchmarks_run", 0),
+                  "results": data.get("results", {}),
+              }
+
+          # Load embench results
+          embench_path = "artifacts/embench/embench_results.json"
+          if os.path.exists(embench_path):
+              with open(embench_path) as f:
+                  data = json.load(f)
+              consolidated["embench"] = {
+                  "available": True,
+                  "benchmarks_run": data.get("benchmarks_run", 0),
+                  "results": data.get("results", {}),
+              }
+
+          # Compute error metrics for microbenchmarks vs hardware reference
+          errors = {}
+          micro_results = consolidated["microbench"].get("results", {})
+          for bench_name, ref_cpi in hw_cpi.items():
+              if bench_name in micro_results:
+                  sim_cpi = micro_results[bench_name]["cpi"]
+                  error = abs(sim_cpi - ref_cpi) / min(sim_cpi, ref_cpi)
+                  errors[bench_name] = {
+                      "sim_cpi": sim_cpi,
+                      "hw_cpi": ref_cpi,
+                      "error": round(error, 4),
+                  }
+              else:
+                  errors[bench_name] = {
+                      "sim_cpi": None,
+                      "hw_cpi": ref_cpi,
+                      "error": None,
+                      "note": "infeasible - no simulation result",
+                  }
+          consolidated["error_metrics"] = errors
+
+          with open("accuracy_consolidated.json", "w") as f:
+              json.dump(consolidated, f, indent=2)
+
+          print(json.dumps(consolidated, indent=2))
+          PYEOF
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## Consolidated Accuracy Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ ! -f accuracy_consolidated.json ]; then
+            echo "No consolidated results generated." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          python3 - <<'PYEOF' >> $GITHUB_STEP_SUMMARY
+          import json
+
+          d = json.load(open("accuracy_consolidated.json"))
+
+          # Microbench summary
+          micro = d["microbench"]
+          print(f'### Microbenchmarks (available: {micro["available"]})')
+          if micro["available"] and micro.get("results"):
+              print(f'Benchmarks run: {micro["benchmarks_run"]}/11')
+              print()
+              print("| Benchmark | Sim CPI | HW CPI | Error |")
+              print("|-----------|---------|--------|-------|")
+              for name, m in sorted(d["error_metrics"].items()):
+                  sim = f'{m["sim_cpi"]:.3f}' if m["sim_cpi"] is not None else "N/A"
+                  err = f'{m["error"]:.1%}' if m["error"] is not None else "infeasible"
+                  print(f'| {name} | {sim} | {m["hw_cpi"]:.3f} | {err} |')
+          print()
+
+          # Polybench summary
+          poly = d["polybench"]
+          print(f'### PolyBench (available: {poly["available"]})')
+          if poly["available"] and poly.get("results"):
+              print(f'Benchmarks run: {poly["benchmarks_run"]}/7')
+              print()
+              print("| Benchmark | CPI |")
+              print("|-----------|-----|")
+              for name, r in sorted(poly["results"].items()):
+                  print(f'| {name} | {r["cpi"]:.3f} |')
+          print()
+
+          # EmBench summary
+          emb = d["embench"]
+          print(f'### EmBench (available: {emb["available"]})')
+          if emb["available"] and emb.get("results"):
+              print(f'Benchmarks run: {emb["benchmarks_run"]}/7')
+              print()
+              print("| Benchmark | CPI |")
+              print("|-----------|-----|")
+              for name, r in sorted(emb["results"].items()):
+                  print(f'| {name} | {r["cpi"]:.3f} |')
+          PYEOF
+
+      - name: Upload consolidated artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accuracy-consolidated
+          path: accuracy_consolidated.json
+          retention-days: 90
