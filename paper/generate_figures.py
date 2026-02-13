@@ -42,78 +42,75 @@ def load_accuracy_data():
         # Fallback data if file not found
         return {
             "summary": {
-                "total_benchmarks": 18,
-                "microbenchmarks": 11,
-                "polybench": 7,
-                "average_error": 0.16899,
-                "micro_avg_error": 0.14395,
-                "poly_avg_error": 0.20834,
-                "max_error": 0.4743
+                "total_ci_verified_benchmarks": 16,
+                "microbenchmarks_with_error": 11,
+                "polybench_sim_only": 4,
+                "embench_sim_only": 1,
+                "micro_average_error": 0.1422,
+                "micro_max_error": 0.2467
             },
             "benchmarks": [
-                {"name": "arithmetic", "error": 0.0955},
-                {"name": "dependency", "error": 0.0666},
-                {"name": "branch", "error": 0.0127},
-                {"name": "memorystrided", "error": 0.1077},
-                {"name": "loadheavy", "error": 0.0342},
-                {"name": "storeheavy", "error": 0.4743},
-                {"name": "branchheavy", "error": 0.1613},
-                {"name": "vectorsum", "error": 0.296},
-                {"name": "vectoradd", "error": 0.2429},
-                {"name": "reductiontree", "error": 0.061},
-                {"name": "strideindirect", "error": 0.0312},
-                {"name": "atax", "error": 0.3357},
-                {"name": "bicg", "error": 0.2931},
-                {"name": "gemm", "error": 0.1947},
-                {"name": "mvt", "error": 0.2259},
-                {"name": "jacobi-1d", "error": 0.1113},
-                {"name": "2mm", "error": 0.1740},
-                {"name": "3mm", "error": 0.1237}
+                {"name": "arithmetic", "category": "microbenchmark", "error": 0.0954},
+                {"name": "dependency", "category": "microbenchmark", "error": 0.0665},
+                {"name": "branch", "category": "microbenchmark", "error": 0.0127},
+                {"name": "memorystrided", "category": "microbenchmark", "error": 0.1077},
+                {"name": "loadheavy", "category": "microbenchmark", "error": 0.1896},
+                {"name": "storeheavy", "category": "microbenchmark", "error": 0.2467},
+                {"name": "branchheavy", "category": "microbenchmark", "error": 0.1611},
+                {"name": "vectorsum", "category": "microbenchmark", "error": 0.2444},
+                {"name": "vectoradd", "category": "microbenchmark", "error": 0.2201},
+                {"name": "reductiontree", "category": "microbenchmark", "error": 0.0608},
+                {"name": "strideindirect", "category": "microbenchmark", "error": 0.1588},
+                {"name": "atax", "category": "polybench", "error": null},
+                {"name": "bicg", "category": "polybench", "error": null},
+                {"name": "mvt", "category": "polybench", "error": null},
+                {"name": "jacobi-1d", "category": "polybench", "error": null},
+                {"name": "aha_mont64", "category": "embench", "error": null}
             ]
         }
 
 def create_accuracy_overview_figure(data):
     """Figure 1: Accuracy overview by benchmark category"""
-    # Prepare data
+    # Prepare data - only include benchmarks with error data
     benchmarks = data['benchmarks']
-    micro_benchmarks = benchmarks[:11]  # First 11 are microbenchmarks
-    poly_benchmarks = benchmarks[11:]   # Last 7 are PolyBench
+    micro_benchmarks = [b for b in benchmarks if b.get('category') == 'microbenchmark' and b.get('error') is not None]
+    # PolyBench/EmBench have no comparable error data (different dataset scales)
 
     # Create figure
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 2.5))
 
-    # Panel A: Error distribution
+    # Panel A: Error distribution (microbenchmarks only - only category with error data)
     micro_errors = [b['error'] * 100 for b in micro_benchmarks]
-    poly_errors = [b['error'] * 100 for b in poly_benchmarks]
 
     # Box plot
-    box_data = [micro_errors, poly_errors]
-    bp = ax1.boxplot(box_data, labels=['Microbenchmarks\n(n=11)', 'PolyBench\n(n=7)'],
+    bp = ax1.boxplot([micro_errors], labels=[f'Microbenchmarks\n(n={len(micro_benchmarks)})'],
                      patch_artist=True, notch=True, whis=[5, 95])
 
     # Color the boxes
-    colors = ['lightblue', 'lightcoral']
-    for patch, color in zip(bp['boxes'], colors):
-        patch.set_facecolor(color)
+    for patch in bp['boxes']:
+        patch.set_facecolor('lightblue')
         patch.set_alpha(0.7)
 
     ax1.set_ylabel('Timing Error (%)')
-    ax1.set_title('(a) Error Distribution by Category')
+    ax1.set_title('(a) Error Distribution (Microbenchmarks)')
     ax1.grid(True, alpha=0.3)
     ax1.axhline(y=20, color='red', linestyle='--', alpha=0.7, label='Target (20%)')
     ax1.legend()
 
-    # Panel B: Individual benchmark errors
-    all_names = [b['name'] for b in benchmarks]
-    all_errors = [b['error'] * 100 for b in benchmarks]
+    # Panel B: Individual benchmark errors (microbenchmarks only)
+    all_names = [b['name'] for b in micro_benchmarks]
+    all_errors = [b['error'] * 100 for b in micro_benchmarks]
 
     # Color by category
-    colors = ['lightblue'] * 11 + ['lightcoral'] * 7
+    colors = ['lightblue'] * len(micro_benchmarks)
     bars = ax2.bar(range(len(all_names)), all_errors, color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
+
+    # Compute average dynamically
+    avg_error = sum(all_errors) / len(all_errors)
 
     # Highlight target line
     ax2.axhline(y=20, color='red', linestyle='--', alpha=0.7, label='Target (20%)')
-    ax2.axhline(y=data['summary']['average_error'] * 100, color='green', linestyle='-', alpha=0.8, label='Average (16.9%)')
+    ax2.axhline(y=avg_error, color='green', linestyle='-', alpha=0.8, label=f'Average ({avg_error:.1f}%)')
 
     ax2.set_ylabel('Timing Error (%)')
     ax2.set_xlabel('Benchmark')
@@ -137,9 +134,9 @@ def create_performance_characteristics_figure(data):
                      'Memory Patterns', 'SIMD Operations', 'Store Buffer'],
         'Representative Benchmark': ['branch', 'memorystrided', 'dependency',
                                    'loadheavy', 'vectorsum', 'storeheavy'],
-        'Error (%)': [1.3, 10.8, 6.7, 3.4, 29.6, 47.4],
+        'Error (%)': [1.27, 10.77, 6.65, 18.96, 24.44, 24.67],
         'Insight': ['Excellent prediction', 'Efficient hierarchy', 'Good modeling',
-                   'High bandwidth', 'Complex pipeline', 'Modeling gap']
+                   'Moderate gap', 'Complex pipeline', 'Modeling gap']
     }
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 2.5))
@@ -258,8 +255,8 @@ def create_simulation_architecture_figure():
     ax1.grid(True, alpha=0.3, axis='x')
 
     # Panel B: Cache hierarchy
-    cache_levels = ['L1I\n32KB', 'L1D\n32KB', 'L2\n256KB', 'DRAM']
-    latencies = [1, 1, 10, 200]
+    cache_levels = ['L1I\n192KB', 'L1D\n128KB', 'L2\n24MB', 'DRAM']
+    latencies = [1, 4, 12, 150]
     colors = ['lightgreen', 'lightgreen', 'orange', 'red']
 
     bars = ax2.bar(cache_levels, latencies, alpha=0.7, color=colors, edgecolor='black', linewidth=0.5)
