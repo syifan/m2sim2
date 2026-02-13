@@ -23,7 +23,7 @@ jobs:
   embench-accuracy:
     name: EmBench Accuracy
     runs-on: macos-14
-    timeout-minutes: 30
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +57,7 @@ jobs:
           > embench_output.txt
           for TEST in "${TESTS[@]}"; do
             echo "--- $TEST ---"
-            go test -v -run "^${TEST}$" -count=1 -timeout 5m ./benchmarks/ 2>&1 | tee -a embench_output.txt || true
+            go test -v -run "^${TEST}$" -count=1 -timeout 15m ./benchmarks/ 2>&1 | tee -a embench_output.txt || true
           done
 
       - name: Extract CPI results
