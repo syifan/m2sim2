@@ -1,86 +1,208 @@
 {
   "summary": {
-    "total_benchmarks": 18,
-    "microbenchmarks": 11,
-    "polybench": 7,
-    "average_error": 0.16898917740643793,
-    "micro_avg_error": 0.14394545454545454,
-    "poly_avg_error": 0.20834359904512614,
-    "max_error": 0.4743,
-    "h5_target_met": true
+    "total_ci_verified_benchmarks": 16,
+    "microbenchmarks_with_error": 11,
+    "polybench_sim_only": 4,
+    "embench_sim_only": 1,
+    "infeasible_benchmarks": 9,
+    "micro_average_error": 0.1422,
+    "micro_max_error": 0.2467,
+    "h5_target_met": true,
+    "note": "PolyBench/EmBench hardware CPI measured on LARGE datasets; simulated CPI on MINI dataset. Not directly comparable."
   },
   "benchmarks": [
     {
       "name": "arithmetic",
-      "error": 0.0955
+      "category": "microbenchmark",
+      "simulated_cpi": 0.27,
+      "hardware_cpi": 0.296,
+      "error": 0.0954,
+      "ci_verified": true
     },
     {
       "name": "dependency",
-      "error": 0.0666
+      "category": "microbenchmark",
+      "simulated_cpi": 1.02,
+      "hardware_cpi": 1.088,
+      "error": 0.0665,
+      "ci_verified": true
     },
     {
       "name": "branch",
-      "error": 0.0127
+      "category": "microbenchmark",
+      "simulated_cpi": 1.32,
+      "hardware_cpi": 1.303,
+      "error": 0.0127,
+      "ci_verified": true
     },
     {
       "name": "memorystrided",
-      "error": 0.1077
+      "category": "microbenchmark",
+      "simulated_cpi": 2.933,
+      "hardware_cpi": 2.648,
+      "error": 0.1077,
+      "ci_verified": true
     },
     {
       "name": "loadheavy",
-      "error": 0.0342
+      "category": "microbenchmark",
+      "simulated_cpi": 0.361,
+      "hardware_cpi": 0.429,
+      "error": 0.1896,
+      "ci_verified": true
     },
     {
       "name": "storeheavy",
-      "error": 0.4743
+      "category": "microbenchmark",
+      "simulated_cpi": 0.491,
+      "hardware_cpi": 0.612,
+      "error": 0.2467,
+      "ci_verified": true
     },
     {
       "name": "branchheavy",
-      "error": 0.1613
+      "category": "microbenchmark",
+      "simulated_cpi": 0.829,
+      "hardware_cpi": 0.714,
+      "error": 0.1611,
+      "ci_verified": true
     },
     {
       "name": "vectorsum",
-      "error": 0.296
+      "category": "microbenchmark",
+      "simulated_cpi": 0.5,
+      "hardware_cpi": 0.402,
+      "error": 0.2444,
+      "ci_verified": true
     },
     {
       "name": "vectoradd",
-      "error": 0.2429
+      "category": "microbenchmark",
+      "simulated_cpi": 0.401,
+      "hardware_cpi": 0.329,
+      "error": 0.2201,
+      "ci_verified": true
     },
     {
       "name": "reductiontree",
-      "error": 0.061
+      "category": "microbenchmark",
+      "simulated_cpi": 0.452,
+      "hardware_cpi": 0.479,
+      "error": 0.0608,
+      "ci_verified": true
     },
     {
       "name": "strideindirect",
-      "error": 0.0312
+      "category": "microbenchmark",
+      "simulated_cpi": 0.612,
+      "hardware_cpi": 0.528,
+      "error": 0.1588,
+      "ci_verified": true
     },
     {
       "name": "atax",
-      "error": 0.3356673500000001
+      "category": "polybench",
+      "simulated_cpi": 0.521,
+      "hardware_cpi": "not_comparable_different_scale",
+      "error": null,
+      "ci_verified": true
     },
     {
       "name": "bicg",
-      "error": 0.29309419999999997
-    },
-    {
-      "name": "gemm",
-      "error": 0.19466748222633454
+      "category": "polybench",
+      "simulated_cpi": 0.502,
+      "hardware_cpi": "not_comparable_different_scale",
+      "error": null,
+      "ci_verified": true
     },
     {
       "name": "mvt",
-      "error": 0.22594549999999997
+      "category": "polybench",
+      "simulated_cpi": 0.535,
+      "hardware_cpi": "not_comparable_different_scale",
+      "error": null,
+      "ci_verified": true
     },
     {
       "name": "jacobi-1d",
-      "error": 0.11128450000000005
+      "category": "polybench",
+      "simulated_cpi": 0.574,
+      "hardware_cpi": "not_comparable_different_scale",
+      "error": null,
+      "ci_verified": true
+    },
+    {
+      "name": "aha_mont64",
+      "category": "embench",
+      "simulated_cpi": 0.347,
+      "hardware_cpi": "not_comparable_different_scale",
+      "error": null,
+      "ci_verified": true
+    }
+  ],
+  "infeasible": [
+    {
+      "name": "gemm",
+      "category": "polybench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
     },
     {
       "name": "2mm",
-      "error": 0.1740054530205282
+      "category": "polybench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
     },
     {
       "name": "3mm",
-      "error": 0.12374070806902013
+      "category": "polybench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
+    },
+    {
+      "name": "crc32",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
+    },
+    {
+      "name": "edn",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
+    },
+    {
+      "name": "statemate",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
+    },
+    {
+      "name": "primecount",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
+    },
+    {
+      "name": "huffbench",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
+    },
+    {
+      "name": "matmult-int",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "did not complete in CI within timeout",
+      "ci_verified": false
     }
   ]
 }
