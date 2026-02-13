@@ -72,12 +72,15 @@ jobs:
               for line in f:
                   if "CPI=" not in line:
                       continue
-                  # Try to extract benchmark name and CPI
-                  match = re.search(r'(\w+):\s+.*CPI=([\d.]+)', line)
+                  # Match embench_ prefixed name to avoid capturing line numbers
+                  match = re.search(r'(embench_\w+):\s+cycles=(\d+),\s+insts=(\d+),\s+CPI=([\d.]+)', line)
                   if match:
                       name = match.group(1)
-                      cpi = float(match.group(2))
-                      results[name] = {"cpi": cpi}
+                      results[name] = {
+                          "cycles": int(match.group(2)),
+                          "instructions": int(match.group(3)),
+                          "cpi": float(match.group(4)),
+                      }
 
           output = {"benchmarks_run": len(results), "results": results}
           with open("embench_results.json", "w") as f:
@@ -96,10 +99,12 @@ jobs:
           print(f'**Benchmarks measured:** {d[\"benchmarks_run\"]}/7')
           if d['results']:
               print()
-              print('| Benchmark | CPI |')
-              print('|-----------|-----|')
+              print('| Benchmark | Cycles | Instructions | CPI |')
+              print('|-----------|--------|--------------|-----|')
               for name, r in sorted(d['results'].items()):
-                  print(f'| {name} | {r[\"cpi\"]:.3f} |')
+                  cycles = f'{r[\"cycles\"]:,}' if 'cycles' in r else 'N/A'
+                  insts = f'{r[\"instructions\"]:,}' if 'instructions' in r else 'N/A'
+                  print(f'| {name} | {cycles} | {insts} | {r[\"cpi\"]:.3f} |')
           " >> $GITHUB_STEP_SUMMARY
           fi
 
