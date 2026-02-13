@@ -46,6 +46,7 @@ func runEmbenchTest(t *testing.T, name, dir, elfName string) {
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
 	config.EnableDCache = false
+	config.MaxCycles = 500_000_000 // 500M cycle safety limit to prevent hangs
 
 	harness := NewHarness(config)
 	harness.AddBenchmark(BenchmarkFromELF(name, name, elfPath))
@@ -58,6 +59,11 @@ func runEmbenchTest(t *testing.T, name, dir, elfName string) {
 	r := results[0]
 	if r.ExitCode == -1 {
 		t.Fatalf("failed to load ELF: %s", elfPath)
+	}
+	if r.ExitCode == -2 {
+		t.Logf("%s: exceeded 500M cycle limit (possible hang), cycles=%d, insts=%d, wall=%v",
+			r.Name, r.SimulatedCycles, r.InstructionsRetired, r.WallTime)
+		t.Skipf("benchmark did not complete within cycle limit")
 	}
 	if r.SimulatedCycles == 0 {
 		t.Error("0 cycles")

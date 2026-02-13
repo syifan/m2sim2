@@ -127,6 +127,12 @@ type HarnessConfig struct {
 	// If nil, uses cache.DefaultL1DConfig().
 	DCacheConfig *cache.Config
 
+	// MaxCycles limits the number of simulated cycles per benchmark.
+	// If > 0, the simulation stops after this many cycles even if the program
+	// has not exited. This prevents hangs from infinite loops or very long runs.
+	// A value of 0 means no limit (uses pipe.Run()).
+	MaxCycles uint64
+
 	// Output is where to write results (default: os.Stdout)
 	Output io.Writer
 
@@ -260,7 +266,17 @@ func (h *Harness) runBenchmark(bench Benchmark) BenchmarkResult {
 
 	// Run simulation and measure time
 	start := time.Now()
-	exitCode := pipe.Run()
+	var exitCode int64
+	if h.config.MaxCycles > 0 {
+		stillRunning := pipe.RunCycles(h.config.MaxCycles)
+		if stillRunning {
+			exitCode = -2 // exceeded cycle limit
+		} else {
+			exitCode = pipe.ExitCode()
+		}
+	} else {
+		exitCode = pipe.Run()
+	}
 	wallTime := time.Since(start)
 
 	// Collect statistics
