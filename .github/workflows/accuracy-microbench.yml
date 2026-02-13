@@ -28,17 +28,6 @@ jobs:
         with:
           go-version: '1.25'
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Python dependencies
-        run: pip install matplotlib numpy scipy
-
-      - name: Warm up Matplotlib font cache
-        run: python3 -c "import matplotlib.pyplot as plt"
-
       - name: Run microbenchmark CPI tests
         run: |
           cd benchmarks
@@ -50,23 +39,84 @@ jobs:
           # With D-cache (memory-latency benchmarks)
           go test -v -run TestAccuracyCPI_WithDCache -count=1 -timeout 5m ./ 2>&1 | tee micro_dcache.txt
 
-      - name: Generate accuracy report
+      - name: Extract CPI results
+        if: always()
         run: |
-          python3 benchmarks/native/accuracy_report.py --suite microbench 2>&1 || true
-          # If the script doesn't support --suite yet, run it and it will
-          # naturally process microbenchmarks from test output
+          python3 - <<'PYEOF'
+          import json, re
+
+          # Map test output benchmark names to short names
+          name_mapping = {
+              'arithmetic_sequential': 'arithmetic',
+              'dependency_chain': 'dependency',
+              'branch_taken_conditional': 'branch',
+              'memory_strided': 'memorystrided',
+              'load_heavy': 'loadheavy',
+              'store_heavy': 'storeheavy',
+              'branch_heavy': 'branchheavy',
+              'vector_sum': 'vectorsum',
+              'vector_add': 'vectoradd',
+              'reduction_tree': 'reductiontree',
+              'stride_indirect': 'strideindirect',
+          }
+
+          # D-cache benchmarks use dcache output; all others use no-cache output
+          dcache_benchmarks = {'memory_strided'}
+
+          def parse_cpis(filename):
+              cpis = {}
+              try:
+                  with open(filename) as f:
+                      for line in f:
+                          if 'CPI=' not in line:
+                              continue
+                          line = line.strip()
+                          for full_name, short_name in name_mapping.items():
+                              if full_name + ':' in line:
+                                  try:
+                                      cpi_str = line.split('CPI=')[1].split()[0].rstrip(',')
+                                      cpis[full_name] = float(cpi_str)
+                                  except (IndexError, ValueError):
+                                      pass
+              except FileNotFoundError:
+                  print(f"Warning: {filename} not found")
+              return cpis
+
+          no_cache = parse_cpis("benchmarks/micro_no_cache.txt")
+          dcache = parse_cpis("benchmarks/micro_dcache.txt")
+
+          # Merge: use dcache CPI for dcache benchmarks, no-cache for the rest
+          results = {}
+          for full_name, short_name in name_mapping.items():
+              if full_name in dcache_benchmarks and full_name in dcache:
+                  results[short_name] = {"cpi": dcache[full_name]}
+              elif full_name in no_cache:
+                  results[short_name] = {"cpi": no_cache[full_name]}
+              elif full_name in dcache:
+                  results[short_name] = {"cpi": dcache[full_name]}
+
+          output = {"benchmarks_run": len(results), "results": results}
+          with open("microbench_results.json", "w") as f:
+              json.dump(output, f, indent=2)
+          print(json.dumps(output, indent=2))
+          PYEOF
 
       - name: Post summary
         if: always()
         run: |
           echo "## Microbenchmark Accuracy Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f benchmarks/native/accuracy_results.json ]; then
+          if [ -f microbench_results.json ]; then
             python3 -c "
           import json
-          d = json.load(open('benchmarks/native/accuracy_results.json'))
-          print(f\"**Average Error:** {d['summary']['average_error']*100:.1f}%\")
-          print(f\"**Benchmarks:** {d['summary']['benchmark_count']}\")
+          d = json.load(open('microbench_results.json'))
+          print(f'**Benchmarks measured:** {d[\"benchmarks_run\"]}/11')
+          if d['results']:
+              print()
+              print('| Benchmark | CPI |')
+              print('|-----------|-----|')
+              for name, r in sorted(d['results'].items()):
+                  print(f'| {name} | {r[\"cpi\"]:.3f} |')
           " >> $GITHUB_STEP_SUMMARY
           else
             echo "No results generated." >> $GITHUB_STEP_SUMMARY
@@ -78,8 +128,7 @@ jobs:
         with:
           name: accuracy-microbench
           path: |
-            benchmarks/native/accuracy_report.md
-            benchmarks/native/accuracy_results.json
-            benchmarks/native/accuracy_figure.png
-            benchmarks/native/accuracy_normalized.pdf
+            microbench_results.json
+            benchmarks/micro_no_cache.txt
+            benchmarks/micro_dcache.txt
           retention-days: 90
