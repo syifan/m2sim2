@@ -9,6 +9,10 @@ import (
 )
 
 func TestSimplePipeline(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	regFile := &emu.RegFile{}
 	regFile.WriteReg(8, 93) // Set exit syscall number (pre-initialize)
 	memory := emu.NewMemory()
@@ -28,6 +32,10 @@ func TestSimplePipeline(t *testing.T) {
 }
 
 func TestBenchmarkEncoding(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	// Test the encoding functions
 	program := BuildProgram(
 		EncodeADDImm(8, 31, 93, false), // X8 = 93
@@ -58,6 +66,10 @@ func TestBenchmarkEncoding(t *testing.T) {
 }
 
 func TestCountdownLoop(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	// t.Skip("Skipped: timing pipeline doesn't update PSTATE flags, causing infinite loop")
 	// Simple countdown: X0 = 5, loop decrement until 0
 	program := BuildProgram(

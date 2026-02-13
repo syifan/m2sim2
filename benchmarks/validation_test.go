@@ -11,6 +11,10 @@ import (
 
 // TestValidationBaseline runs all validation test programs and verifies expected results.
 func TestValidationBaseline(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	tests := []struct {
 		name           string
 		setup          func(*emu.Emulator)
@@ -289,6 +293,10 @@ func encodeLDR64(rt, rn uint8, imm12 uint16) uint32 {
 
 // TestEdgeCases tests boundary conditions and edge cases.
 func TestEdgeCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	tests := []struct {
 		name         string
 		setup        func(*emu.Emulator)
@@ -414,6 +422,10 @@ func TestEdgeCases(t *testing.T) {
 
 // TestNegativeCases tests error handling for invalid inputs.
 func TestNegativeCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	t.Run("unknown_opcode", func(t *testing.T) {
 		e := emu.NewEmulator(
 			emu.WithMaxInstructions(100),
@@ -470,6 +482,10 @@ func TestNegativeCases(t *testing.T) {
 
 // TestIntermediateStateVerification demonstrates mid-execution state checking.
 func TestIntermediateStateVerification(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	t.Run("register_state_after_each_step", func(t *testing.T) {
 		e := emu.NewEmulator(
 			emu.WithMaxInstructions(1000),

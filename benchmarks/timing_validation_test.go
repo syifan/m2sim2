@@ -12,6 +12,10 @@ import (
 // independent operations. The pipeline should detect and track data hazards
 // that are resolved via forwarding.
 func TestTimingPredictions_DependencyVsIndependent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -77,6 +81,10 @@ func TestTimingPredictions_DependencyVsIndependent(t *testing.T) {
 // TestTimingPredictions_MemoryLatency validates that memory operations
 // behave correctly with and without D-cache.
 func TestTimingPredictions_MemoryLatency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	// Without D-cache: memory accesses are direct array lookups (no stalls).
 	// The non-cached path has no stall model — memory latency comes from
 	// cache simulation only.
@@ -143,6 +151,10 @@ func TestTimingPredictions_MemoryLatency(t *testing.T) {
 // TestTimingPredictions_BranchOverhead validates that branches cause
 // pipeline flushes.
 func TestTimingPredictions_BranchOverhead(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -184,6 +196,10 @@ func TestTimingPredictions_BranchOverhead(t *testing.T) {
 // TestTimingPredictions_FunctionCallOverhead validates that function calls
 // incur appropriate overhead.
 func TestTimingPredictions_FunctionCallOverhead(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -215,6 +231,10 @@ func TestTimingPredictions_FunctionCallOverhead(t *testing.T) {
 // TestTimingPredictions_CPIBounds validates that CPI is within reasonable bounds
 // for all benchmarks.
 func TestTimingPredictions_CPIBounds(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -247,6 +267,10 @@ func TestTimingPredictions_CPIBounds(t *testing.T) {
 // TestTimingPredictions_Consistency validates that running the same benchmark
 // multiple times produces consistent results.
 func TestTimingPredictions_Consistency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -283,6 +307,10 @@ func TestTimingPredictions_Consistency(t *testing.T) {
 // TestTimingPredictions_CacheEffect validates that enabling caches
 // affects timing results.
 func TestTimingPredictions_CacheEffect(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	// Run without caches
 	configNoCache := DefaultConfig()
 	configNoCache.Output = &bytes.Buffer{}
@@ -325,6 +353,10 @@ func TestTimingPredictions_CacheEffect(t *testing.T) {
 // TestTimingPredictions_StallAccounting validates that total stalls
 // equal the sum of stall types.
 func TestTimingPredictions_StallAccounting(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -355,6 +387,10 @@ func TestTimingPredictions_StallAccounting(t *testing.T) {
 // With 8-wide superscalar, we can retire up to 8 instructions per cycle,
 // so Cycles >= Instructions/8 (theoretically).
 func TestTimingPredictions_CycleEquation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -383,6 +419,10 @@ func TestTimingPredictions_CycleEquation(t *testing.T) {
 // TestTimingPredictions_MixedWorkload validates that the mixed operations
 // benchmark exhibits characteristics of all operation types.
 func TestTimingPredictions_MixedWorkload(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	// Without D-cache: memory accesses are instant, so no MemStalls expected.
 	// We still expect pipeline flushes from function calls.
 	t.Run("without_dcache", func(t *testing.T) {

@@ -8,6 +8,10 @@ import (
 )
 
 func TestHarnessRunsAllBenchmarks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.Verbose = false
@@ -38,6 +42,10 @@ func TestHarnessRunsAllBenchmarks(t *testing.T) {
 }
 
 func TestArithmeticSequential(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -62,6 +70,10 @@ func TestArithmeticSequential(t *testing.T) {
 }
 
 func TestDependencyChain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -86,6 +98,10 @@ func TestDependencyChain(t *testing.T) {
 }
 
 func TestMemorySequential(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -113,6 +129,10 @@ func TestMemorySequential(t *testing.T) {
 }
 
 func TestFunctionCalls(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -137,6 +157,10 @@ func TestFunctionCalls(t *testing.T) {
 }
 
 func TestBranchTaken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -161,6 +185,10 @@ func TestBranchTaken(t *testing.T) {
 }
 
 func TestMixedOperations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -188,6 +216,10 @@ func TestMixedOperations(t *testing.T) {
 }
 
 func TestMemoryStrided(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -212,6 +244,10 @@ func TestMemoryStrided(t *testing.T) {
 }
 
 func TestLoadHeavy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -236,6 +272,10 @@ func TestLoadHeavy(t *testing.T) {
 }
 
 func TestStoreHeavy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -260,6 +300,10 @@ func TestStoreHeavy(t *testing.T) {
 }
 
 func TestBranchHeavy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -284,6 +328,10 @@ func TestBranchHeavy(t *testing.T) {
 }
 
 func TestPrintResults(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	buf := &bytes.Buffer{}
 	config := DefaultConfig()
 	config.Output = buf
@@ -306,6 +354,10 @@ func TestPrintResults(t *testing.T) {
 }
 
 func TestPrintCSV(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	buf := &bytes.Buffer{}
 	config := DefaultConfig()
 	config.Output = buf
@@ -335,6 +387,10 @@ func TestPrintCSV(t *testing.T) {
 }
 
 func TestPrintJSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	buf := &bytes.Buffer{}
 	config := DefaultConfig()
 	config.Output = buf
@@ -372,6 +428,10 @@ func TestPrintJSON(t *testing.T) {
 }
 
 func TestGetCoreBenchmarks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	benchmarks := GetCoreBenchmarks()
 
 	if len(benchmarks) != 3 {
@@ -396,6 +456,10 @@ func TestGetCoreBenchmarks(t *testing.T) {
 }
 
 func TestWithoutCaches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false

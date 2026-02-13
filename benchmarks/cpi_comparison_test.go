@@ -52,6 +52,10 @@ func runFastTimingBenchmark(bench Benchmark) (cycles uint64, instructions uint64
 // that fast timing CPI approximations are reasonable relative to the detailed
 // pipeline model.
 func TestCPIComparison_FastVsFullPipeline(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
@@ -137,6 +141,10 @@ func TestCPIComparison_FastVsFullPipeline(t *testing.T) {
 // TestCPIComparison_ThreeWay extends the comparison to include M2 hardware
 // baselines, providing a three-way view: hardware vs full pipeline vs fast timing.
 func TestCPIComparison_ThreeWay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	// M2 hardware CPI baselines (from calibration_results.json, at 3.5 GHz)
 	// CPI = latency_ns * frequency_GHz
 	m2Baselines := map[string]float64{

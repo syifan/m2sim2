@@ -100,6 +100,10 @@ func loadAndRunSPEC(
 // TestSPECExchange2Emulation validates that 548.exchange2_r can execute
 // in M2Sim's emulator. Skips if SPEC is not installed.
 func TestSPECExchange2Emulation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	root := specRoot()
 	if root == "" {
 		t.Skip("SPEC CPU 2017 not available (set SPEC_ROOT or symlink benchmarks/spec)")
@@ -165,6 +169,10 @@ func TestSPECExchange2Emulation(t *testing.T) {
 // SPEC benchmarks. Reports which ones are available and whether they hit
 // unsupported instructions early.
 func TestSPECAllBenchmarksProbe(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	root := specRoot()
 	if root == "" {
 		t.Skip("SPEC CPU 2017 not available (set SPEC_ROOT or symlink benchmarks/spec)")

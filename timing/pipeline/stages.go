@@ -26,9 +26,12 @@ func (s *FetchStage) Fetch(pc uint64) (uint32, bool) {
 type DecodeStage struct {
 	regFile *emu.RegFile
 	decoder *insts.Decoder
-	// Pool of pre-allocated instructions to avoid heap allocations during decode
-	// Supports up to 8 concurrent decode operations (for 8-wide superscalar pipelines)
-	instPool  [8]insts.Instruction
+	// Pool of pre-allocated instructions to avoid heap allocations during decode.
+	// Must be large enough that no pool slot is reused while a previous instruction
+	// decoded into that slot is still referenced by pipeline registers (IDEX/EXMEM).
+	// With up to 9 decodes per cycle (8-wide + fusion) and 2-cycle reference lifetime,
+	// 32 slots provide sufficient margin.
+	instPool  [32]insts.Instruction
 	poolIndex int
 }
 

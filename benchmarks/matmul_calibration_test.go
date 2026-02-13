@@ -192,6 +192,10 @@ type MatmulCalibrationResult struct {
 // TestMatmulCalibration runs a 4x4 matrix multiply through the fast timing
 // engine and reports CPI for calibration per issue #359.
 func TestMatmulCalibration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	bench := buildMatmul4x4()
 
 	// Run through fast timing

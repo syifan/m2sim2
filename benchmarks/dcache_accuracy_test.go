@@ -11,6 +11,10 @@ import (
 // Output format: "    benchmark_name: CPI=X.XXX" matching the parser in
 // accuracy_report.py.
 func TestAccuracyCPI_WithDCache(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode")
+	}
+
 	config := DefaultConfig()
 	config.Output = &bytes.Buffer{}
 	config.EnableICache = false
