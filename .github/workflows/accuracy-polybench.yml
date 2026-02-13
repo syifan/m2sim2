@@ -33,10 +33,14 @@ jobs:
 
       - name: Run tests
         run: |
+          FAILED=0
           for TEST in TestPolybenchATAX TestPolybenchBiCG TestPolybenchJacobi1D; do
             echo "--- $TEST ---"
-            go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group1_output.txt || true
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group1_output.txt; then
+              FAILED=1
+            fi
           done
+          exit $FAILED
 
       - name: Upload results
         if: always()
@@ -63,10 +67,14 @@ jobs:
 
       - name: Run tests
         run: |
+          FAILED=0
           for TEST in TestPolybenchMVT TestPolybenchGEMM; do
             echo "--- $TEST ---"
-            go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group2_output.txt || true
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group2_output.txt; then
+              FAILED=1
+            fi
           done
+          exit $FAILED
 
       - name: Upload results
         if: always()
@@ -93,10 +101,14 @@ jobs:
 
       - name: Run tests
         run: |
+          FAILED=0
           for TEST in TestPolybench2MM TestPolybench3MM; do
             echo "--- $TEST ---"
-            go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group3_output.txt || true
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 25m ./benchmarks/ 2>&1 | tee -a group3_output.txt; then
+              FAILED=1
+            fi
           done
+          exit $FAILED
 
       - name: Upload results
         if: always()
