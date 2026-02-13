@@ -32,9 +32,10 @@ type PSTATE struct {
 }
 
 // ReadReg reads a register value. Register 31 returns 0 (XZR).
+// Registers >= 32 (e.g., 0xFF sentinel for immediate-mode operands) return 0.
 func (r *RegFile) ReadReg(reg uint8) uint64 {
-	if reg == 31 {
-		return 0 // XZR
+	if reg >= 31 {
+		return 0 // XZR or invalid/sentinel register
 	}
 	return r.X[reg]
 }
@@ -58,10 +59,10 @@ func (r *RegFile) WriteRegOrSP(reg uint8, value uint64) {
 	r.X[reg] = value
 }
 
-// WriteReg writes a value to a register. Writes to register 31 are ignored.
+// WriteReg writes a value to a register. Writes to register 31+ are ignored.
 func (r *RegFile) WriteReg(reg uint8, value uint64) {
-	if reg == 31 {
-		return // XZR is read-only
+	if reg >= 31 {
+		return // XZR or invalid/sentinel register
 	}
 	r.X[reg] = value
 }
