@@ -17,10 +17,14 @@ CFLAGS="-O2 -ffreestanding -nostdlib -mcpu=apple-m2"
 CFLAGS+=" -I$SCRIPT_DIR"  # Our support.h and minimal libc headers FIRST
 CFLAGS+=" -I$SRC_DIR"     # Embench source
 
+# Reduce LOCAL_SCALE_FACTOR for timing simulation feasibility
+sed 's/^#define LOCAL_SCALE_FACTOR.*/#define LOCAL_SCALE_FACTOR 1/' \
+    $SRC_DIR/mont64.c > $SCRIPT_DIR/mont64.c
+
 # Build
 echo "Building aha-mont64 for M2Sim..."
 
-$CC $CFLAGS -c $SRC_DIR/mont64.c -o $SCRIPT_DIR/mont64.o
+$CC $CFLAGS -c $SCRIPT_DIR/mont64.c -o $SCRIPT_DIR/mont64.o
 $CC $CFLAGS -c $SCRIPT_DIR/startup.S -o $SCRIPT_DIR/startup.o
 
 $CC $CFLAGS -T $SCRIPT_DIR/linker.ld \

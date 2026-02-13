@@ -1,3 +1,5 @@
 # Build artifacts (ELFs are committed for CI)
 *.o
 *.dis
+# Generated source with reduced scale factor (created by build.sh from embench-iot)
+libedn.c

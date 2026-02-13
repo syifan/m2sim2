@@ -14,9 +14,13 @@ CFLAGS="-O2 -ffreestanding -nostdlib -mcpu=apple-m2"
 CFLAGS+=" -I$SCRIPT_DIR"
 CFLAGS+=" -I$SRC_DIR"
 
+# Reduce LOCAL_SCALE_FACTOR for timing simulation feasibility
+sed 's/^#define LOCAL_SCALE_FACTOR.*/#define LOCAL_SCALE_FACTOR 1/' \
+    $SRC_DIR/matmult-int.c > $SCRIPT_DIR/matmult-int.c
+
 echo "Building matmult-int for M2Sim..."
 
-$CC $CFLAGS -c $SRC_DIR/matmult-int.c -o $SCRIPT_DIR/matmult-int.o
+$CC $CFLAGS -c $SCRIPT_DIR/matmult-int.c -o $SCRIPT_DIR/matmult-int.o
 $CC $CFLAGS -c $SCRIPT_DIR/startup.S -o $SCRIPT_DIR/startup.o
 $CC $CFLAGS -c $SCRIPT_DIR/string.c -o $SCRIPT_DIR/string.o
 

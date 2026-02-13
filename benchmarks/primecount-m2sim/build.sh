@@ -17,10 +17,16 @@ CFLAGS="-O2 -ffreestanding -nostdlib -mcpu=apple-m2"
 CFLAGS+=" -I$SCRIPT_DIR"  # Our support.h and minimal libc headers FIRST
 CFLAGS+=" -I$SRC_DIR"     # Embench source
 
+# Reduce workload for timing simulation feasibility:
+# SZ=3 -> sieve primes [2,3,5], counts primes up to 25 -> NPRIMES=9
+sed -e 's/^#define SZ .*/#define SZ 3/' \
+    -e 's/^#define NPRIMES .*/#define NPRIMES 9/' \
+    $SRC_DIR/primecount.c > $SCRIPT_DIR/primecount.c
+
 # Build
 echo "Building primecount for M2Sim..."
 
-$CC $CFLAGS -c $SRC_DIR/primecount.c -o $SCRIPT_DIR/primecount.o
+$CC $CFLAGS -c $SCRIPT_DIR/primecount.c -o $SCRIPT_DIR/primecount.o
 $CC $CFLAGS -c $SCRIPT_DIR/startup.S -o $SCRIPT_DIR/startup.o
 
 $CC $CFLAGS -T $SCRIPT_DIR/linker.ld \

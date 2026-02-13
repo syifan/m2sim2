@@ -14,9 +14,13 @@ CFLAGS="-O2 -ffreestanding -nostdlib -mcpu=apple-m2"
 CFLAGS+=" -I$SCRIPT_DIR"
 CFLAGS+=" -I$SRC_DIR"
 
+# Reduce LOCAL_SCALE_FACTOR for timing simulation feasibility
+sed 's/^#define LOCAL_SCALE_FACTOR.*/#define LOCAL_SCALE_FACTOR 1/' \
+    $SRC_DIR/crc_32.c > $SCRIPT_DIR/crc_32.c
+
 echo "Building crc32 for M2Sim..."
 
-$CC $CFLAGS -c $SRC_DIR/crc_32.c -o $SCRIPT_DIR/crc_32.o
+$CC $CFLAGS -c $SCRIPT_DIR/crc_32.c -o $SCRIPT_DIR/crc_32.o
 $CC $CFLAGS -c $SCRIPT_DIR/startup.S -o $SCRIPT_DIR/startup.o
 
 $CC $CFLAGS -T $SCRIPT_DIR/linker.ld \

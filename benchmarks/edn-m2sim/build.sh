@@ -17,10 +17,14 @@ CFLAGS="-O2 -ffreestanding -nostdlib -mcpu=apple-m2 -mgeneral-regs-only"
 CFLAGS+=" -I$SCRIPT_DIR"  # Our support.h and minimal libc headers FIRST
 CFLAGS+=" -I$SRC_DIR"     # Embench source
 
+# Reduce LOCAL_SCALE_FACTOR for timing simulation feasibility
+sed 's/^#define LOCAL_SCALE_FACTOR.*/#define LOCAL_SCALE_FACTOR 1/' \
+    $SRC_DIR/libedn.c > $SCRIPT_DIR/libedn.c
+
 # Build
 echo "Building edn for M2Sim..."
 
-$CC $CFLAGS -c $SRC_DIR/libedn.c -o $SCRIPT_DIR/edn.o
+$CC $CFLAGS -c $SCRIPT_DIR/libedn.c -o $SCRIPT_DIR/edn.o
 $CC $CFLAGS -c $SCRIPT_DIR/startup.S -o $SCRIPT_DIR/startup.o
 $CC $CFLAGS -c $SCRIPT_DIR/memlib.c -o $SCRIPT_DIR/memlib.o
 

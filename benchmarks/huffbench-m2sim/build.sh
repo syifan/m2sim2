@@ -20,8 +20,12 @@ echo "Building huffbench for M2Sim..."
 # Compile the beebs support library (provides heap functions)
 $CC $CFLAGS -c $SCRIPT_DIR/beebsc.c -o $SCRIPT_DIR/beebsc.o
 
-# Compile the huffbench source
-$CC $CFLAGS -c $SRC_DIR/libhuffbench.c -o $SCRIPT_DIR/huffbench.o
+# Reduce LOCAL_SCALE_FACTOR for timing simulation feasibility
+sed 's/^#define LOCAL_SCALE_FACTOR.*/#define LOCAL_SCALE_FACTOR 1/' \
+    $SRC_DIR/libhuffbench.c > $SCRIPT_DIR/libhuffbench.c
+
+# Compile the huffbench source (local copy with reduced scale)
+$CC $CFLAGS -c $SCRIPT_DIR/libhuffbench.c -o $SCRIPT_DIR/huffbench.o
 
 # Compile startup
 $CC $CFLAGS -c $SCRIPT_DIR/startup.S -o $SCRIPT_DIR/startup.o
