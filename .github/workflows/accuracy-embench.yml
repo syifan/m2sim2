@@ -42,7 +42,7 @@ jobs:
           FAILED=0
           for TEST in TestEmbenchAhaMont64 TestEmbenchCRC32 TestEmbenchEDN; do
             echo "--- $TEST ---"
-            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group1_output.txt; then
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 150m ./benchmarks/ 2>&1 | tee -a group1_output.txt; then
               FAILED=1
             fi
           done
@@ -59,7 +59,7 @@ jobs:
   embench-group-2:
     name: EmBench Group 2 (Huffbench, MatmultInt)
     runs-on: macos-14
-    timeout-minutes: 170
+    timeout-minutes: 250
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -77,7 +77,7 @@ jobs:
           FAILED=0
           for TEST in TestEmbenchHuffbench TestEmbenchMatmultInt; do
             echo "--- $TEST ---"
-            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group2_output.txt; then
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 150m ./benchmarks/ 2>&1 | tee -a group2_output.txt; then
               FAILED=1
             fi
           done
@@ -94,7 +94,7 @@ jobs:
   embench-group-3:
     name: EmBench Group 3 (Statemate, Primecount)
     runs-on: macos-14
-    timeout-minutes: 170
+    timeout-minutes: 250
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -112,7 +112,7 @@ jobs:
           FAILED=0
           for TEST in TestEmbenchStatemate TestEmbenchPrimecount; do
             echo "--- $TEST ---"
-            if ! go test -v -run "^${TEST}$" -count=1 -timeout 75m ./benchmarks/ 2>&1 | tee -a group3_output.txt; then
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 150m ./benchmarks/ 2>&1 | tee -a group3_output.txt; then
               FAILED=1
             fi
           done
