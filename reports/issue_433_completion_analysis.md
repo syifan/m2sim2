@@ -1,8 +1,18 @@
+> **HISTORICAL REPORT — DO NOT CITE**
+>
+> This analysis was written before CI-verified accuracy data was available.
+> The "18 benchmarks with 16.9% average error" claim is **not supported
+> by CI-verified results**. The current source of truth is
+> `h5_accuracy_results.json`, which shows 14.22% average error across
+> 11 microbenchmarks. PolyBench error percentages cited here are invalid
+> because hardware CPI was measured at LARGE dataset sizes while
+> simulation used MINI datasets.
+
 # Issue #433 Completion Analysis
 
 **Date:** February 12, 2026
 **Analyst:** Alex (Data Analysis & Calibration Specialist)
-**Status:** COMPLETED ✅
+**Status:** COMPLETED
 
 ## Executive Summary
 
