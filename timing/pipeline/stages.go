@@ -311,6 +311,23 @@ func (s *ExecuteStage) ExecuteWithFlags(idex *IDEXRegister, rnValue, rmValue uin
 			} else {
 				s.regFile.WriteReg(inst.Rn, newAddr)
 			}
+		case insts.IndexRegBase:
+			// Register offset: base + (extended Rm << shift)
+			var offset uint64
+			switch inst.ShiftType {
+			case 0b010: // UXTW
+				offset = uint64(uint32(rmValue))
+			case 0b011: // LSL/UXTX
+				offset = rmValue
+			case 0b110: // SXTW
+				offset = uint64(int64(int32(rmValue)))
+			case 0b111: // SXTX
+				offset = rmValue
+			default:
+				offset = rmValue
+			}
+			offset <<= inst.ShiftAmount
+			result.ALUResult = baseAddr + offset
 		default:
 			// Unsigned offset or signed offset for LDP/STP
 			if inst.Format == insts.FormatLoadStorePair {
@@ -319,7 +336,11 @@ func (s *ExecuteStage) ExecuteWithFlags(idex *IDEXRegister, rnValue, rmValue uin
 				result.ALUResult = baseAddr + inst.Imm
 			}
 		}
-		result.StoreValue = rmValue // For STR, the value to store
+		if inst.IndexMode == insts.IndexRegBase {
+			result.StoreValue = s.regFile.ReadReg(inst.Rd)
+		} else {
+			result.StoreValue = rmValue // For STR, the value to store
+		}
 	case insts.OpB:
 		// Unconditional branch
 		result.BranchTaken = true
@@ -734,6 +755,22 @@ func (s *ExecuteStage) ExecuteWithFlags(idex *IDEXRegister, rnValue, rmValue uin
 			result.ALUResult = uint64(int64(baseAddr) + inst.SignedImm)
 		case insts.IndexPost:
 			result.ALUResult = baseAddr
+		case insts.IndexRegBase:
+			var offset uint64
+			switch inst.ShiftType {
+			case 0b010: // UXTW
+				offset = uint64(uint32(rmValue))
+			case 0b011: // LSL/UXTX
+				offset = rmValue
+			case 0b110: // SXTW
+				offset = uint64(int64(int32(rmValue)))
+			case 0b111: // SXTX
+				offset = rmValue
+			default:
+				offset = rmValue
+			}
+			offset <<= inst.ShiftAmount
+			result.ALUResult = baseAddr + offset
 		default:
 			result.ALUResult = baseAddr + inst.Imm
 		}
