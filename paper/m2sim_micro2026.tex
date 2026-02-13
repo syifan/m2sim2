@@ -12,7 +12,7 @@
 \setlength{\baselineskip}{11pt}
 
 \title{\fontsize{12}{14}\selectfont M2Sim: Cycle-Accurate Apple M2 CPU Simulation with \\
-16.9\% Average Timing Error}
+14.2\% Average Timing Error}
 
 \author{
 \fontsize{9}{11}\selectfont
@@ -29,7 +29,7 @@
 
 \begin{abstract}
 \fontsize{9}{11}\selectfont
-We present M2Sim, a cycle-accurate simulator for the Apple M2 CPU that achieves 16.9\% average timing error across 18 benchmarks. Built on the Akita simulation framework, M2Sim features a strict separation between functional emulation and timing simulation, enabling both rapid functional validation and detailed performance analysis. Our simulator models an 8-wide superscalar pipeline with a three-level cache hierarchy (L1I/L1D/L2) and supports over 200 ARM64 instructions including SIMD operations. Through systematic calibration using hardware baselines from real M2 hardware, we demonstrate sub-20\% timing accuracy on microbenchmarks (14.4\% average) and intermediate-complexity PolyBench kernels (20.8\% average). The simulator successfully validates critical M2 microarchitectural characteristics including excellent branch prediction accuracy, high memory bandwidth utilization, and efficient SIMD execution. M2Sim provides the computer architecture research community with the first publicly available cycle-accurate simulation infrastructure for Apple Silicon analysis.
+We present M2Sim, a cycle-accurate simulator for the Apple M2 CPU that achieves 14.22\% average timing error across 11 microbenchmarks with hardware CPI comparison. Built on the Akita simulation framework, M2Sim features a strict separation between functional emulation and timing simulation, enabling both rapid functional validation and detailed performance analysis. Our simulator models an 8-wide superscalar pipeline with a three-level cache hierarchy: L1I (192KB), L1D (128KB), and L2 (24MB), and supports over 200 ARM64 instructions including SIMD operations. Through systematic calibration using hardware baselines from real M2 hardware, we demonstrate sub-20\% timing accuracy on microbenchmarks (14.22\% average). An additional 4 PolyBench kernels and 1 EmBench benchmark run successfully in simulation but lack comparable hardware CPI data due to different dataset scales. The simulator successfully validates critical M2 microarchitectural characteristics including excellent branch prediction accuracy, high memory bandwidth utilization, and efficient SIMD execution. M2Sim provides the computer architecture research community with the first publicly available cycle-accurate simulation infrastructure for Apple Silicon analysis.
 \end{abstract}
 
 \section{Introduction}
@@ -40,7 +40,7 @@ The Apple M-series processors have revolutionized the mobile computing landscape
 We address this gap with M2Sim, a cycle-accurate simulator for the Apple M2 CPU that achieves production-level timing accuracy. Our contributions include:
 
 \begin{itemize}
-\item A complete cycle-accurate M2 simulator with 16.9\% average timing error across 18 benchmarks
+\item A complete cycle-accurate M2 simulator with 14.22\% average timing error across 11 microbenchmarks with hardware CPI comparison
 \item Systematic hardware baseline methodology using multi-scale linear regression for accurate calibration
 \item Detailed microarchitectural insights into M2 performance characteristics
 \item Open-source simulation infrastructure enabling reproducible M2 research
@@ -64,7 +64,7 @@ M2Sim follows a strict separation between functional emulation and timing simula
 
 \textbf{Timing Model:} Models an 8-wide superscalar pipeline with five stages: Fetch, Decode, Execute, Memory, and Writeback. The pipeline includes comprehensive hazard detection, data forwarding, and branch prediction using a two-level adaptive predictor.
 
-\textbf{Memory Subsystem:} Implements a three-level cache hierarchy with L1 instruction and data caches (32KB each), shared L2 cache (256KB), and main memory with realistic latencies. Cache timing models include hit/miss latencies, replacement policies, and write-back behavior.
+\textbf{Memory Subsystem:} Implements a three-level cache hierarchy with L1I (192KB, 6-way), L1D (128KB, 8-way), shared L2 (24MB, 16-way), and main memory with realistic latencies. Cache timing models include hit/miss latencies, replacement policies, and write-back behavior.
 
 \subsection{Hardware Baseline Methodology}
 
@@ -82,7 +82,7 @@ Our validation uses a hierarchical benchmark strategy to systematically assess a
 
 \textbf{Microbenchmarks (11 total):} Target specific microarchitectural features including arithmetic throughput, dependency chains, branch prediction, memory patterns, and SIMD operations. These benchmarks stress individual components to validate core timing models.
 
-\textbf{PolyBench Suite (7 kernels):} Intermediate-complexity linear algebra kernels including matrix multiplication (GEMM), matrix-vector operations (MVT, ATAX), and stencil computations (Jacobi-1D). These benchmarks validate interaction between pipeline stages and memory hierarchy.
+\textbf{PolyBench Suite (4 kernels):} Intermediate-complexity linear algebra kernels including matrix-vector operations (MVT, ATAX, BiCG) and stencil computations (Jacobi-1D). These benchmarks run successfully in simulation but use different dataset scales than hardware measurements, so direct error comparison is not possible.
 
 \textbf{Error Calculation:} We use relative error: |t\_sim - t\_real| / min(t\_sim, t\_real), providing symmetric error measurement that handles both over- and under-prediction equally.
 
@@ -90,7 +90,7 @@ Our validation uses a hierarchical benchmark strategy to systematically assess a
 
 \subsection{Overall Accuracy}
 
-M2Sim achieves 16.9\% average timing error across 18 benchmarks, meeting our sub-20\% accuracy target. Figure~\ref{fig:accuracy} shows the error distribution across benchmark categories.
+M2Sim achieves 14.22\% average timing error across 11 microbenchmarks with hardware CPI comparison, meeting our sub-20\% accuracy target. Figure~\ref{fig:accuracy} shows the error distribution across benchmark categories.
 
 \begin{table}[ht]
 \centering
@@ -100,10 +100,11 @@ M2Sim achieves 16.9\% average timing error across 18 benchmarks, meeting our sub
 \toprule
 \textbf{Category} & \textbf{Count} & \textbf{Avg Error} & \textbf{Range} \\
 \midrule
-Microbenchmarks & 11 & 14.4\% & 1.3\% - 47.4\% \\
-PolyBench & 7 & 20.8\% & 11.1\% - 33.6\% \\
+Microbenchmarks & 11 & 14.22\% & 1.27\% - 24.67\% \\
+PolyBench & 4 & \multicolumn{2}{c}{sim-only, no error comparison} \\
+EmBench & 1 & \multicolumn{2}{c}{sim-only, no error comparison} \\
 \midrule
-\textbf{Total} & \textbf{18} & \textbf{16.9\%} & \textbf{1.3\% - 47.4\%} \\
+\textbf{Total with error} & \textbf{11} & \textbf{14.22\%} & \textbf{1.27\% - 24.67\%} \\
 \bottomrule
 \end{tabular}
 \label{tab:accuracy}
@@ -113,25 +114,25 @@ PolyBench & 7 & 20.8\% & 11.1\% - 33.6\% \\
 
 Our systematic calibration reveals several key M2 performance characteristics:
 
-\textbf{Excellent Branch Prediction:} The branch prediction benchmark achieves 1.3\% error, indicating M2's branch predictor is exceptionally accurate. Our two-level adaptive predictor with 12-cycle misprediction penalty closely matches hardware behavior.
+\textbf{Excellent Branch Prediction:} The branch prediction benchmark achieves 1.27\% error, indicating M2's branch predictor is exceptionally accurate. Our two-level adaptive predictor with 12-cycle misprediction penalty closely matches hardware behavior.
 
-\textbf{Memory Subsystem Efficiency:} Cache-sensitive benchmarks (memorystrided: 10.8\%, strideindirect: 3.1\%) demonstrate M2's efficient memory hierarchy. The high bandwidth and low latency characteristics require careful modeling of cache replacement and prefetching behavior.
+\textbf{Memory Subsystem Efficiency:} Cache-sensitive benchmarks (memorystrided: 10.77\%, strideindirect: 15.88\%) demonstrate M2's efficient memory hierarchy. The high bandwidth and low latency characteristics require careful modeling of cache replacement and prefetching behavior.
 
 \textbf{Superscalar Execution:} The 8-wide issue width is confirmed through scaling behavior on parallel workloads. However, in-order execution limits arithmetic throughput due to WAW hazard blocking, representing a fundamental accuracy trade-off.
 
-\textbf{SIMD Performance:} Vector operations show higher error rates (vectorsum: 29.6\%, vectoradd: 24.3\%), indicating M2's vector units have complex timing behavior not captured by our simplified SIMD model.
+\textbf{SIMD Performance:} Vector operations show higher error rates (vectorsum: 24.44\%, vectoradd: 22.01\%), indicating M2's vector units have complex timing behavior not captured by our simplified SIMD model.
 
 \subsection{Accuracy Analysis}
 
 Error sources fall into three categories:
 
-\textbf{Excellent Accuracy (<10\%):} Six benchmarks achieve sub-10\% error, primarily dependency chains, branch prediction, and simple memory patterns. These represent well-modeled microarchitectural features.
+\textbf{Excellent Accuracy (<10\%):} Four benchmarks achieve sub-10\% error: branch (1.27\%), reductiontree (6.08\%), dependency (6.65\%), and arithmetic (9.54\%). These represent well-modeled microarchitectural features.
 
-\textbf{Good Accuracy (10-20\%):} Six benchmarks fall in this range, including matrix operations and cache-intensive workloads. This accuracy level is sufficient for architectural insights while indicating areas for refinement.
+\textbf{Good Accuracy (10-20\%):} Four benchmarks fall in this range: memorystrided (10.77\%), strideindirect (15.88\%), branchheavy (16.11\%), and loadheavy (18.96\%). This accuracy level is sufficient for architectural insights while indicating areas for refinement.
 
-\textbf{Modeling Limitations (>20\%):} Six benchmarks exceed 20\% error, primarily SIMD operations and store-intensive workloads. These represent specific modeling gaps rather than fundamental limitations.
+\textbf{Modeling Limitations (>20\%):} Three benchmarks exceed 20\% error: vectoradd (22.01\%), vectorsum (24.44\%), and storeheavy (24.67\%). These represent specific modeling gaps in SIMD and store buffer behavior rather than fundamental limitations.
 
-The single outlier (storeheavy: 47.4\%) identifies store buffer modeling as a critical gap. This workload exercises store-to-load forwarding and write coalescing behavior not modeled in our current implementation.
+The highest-error benchmark (storeheavy: 24.67\%) identifies store buffer modeling as an area for improvement. This workload exercises store-to-load forwarding and write coalescing behavior that benefits from more detailed modeling.
 
 \section{Discussion}
 
@@ -139,7 +140,7 @@ The single outlier (storeheavy: 47.4\%) identifies store buffer modeling as a cr
 
 Our simulation validates several hypotheses about M2 microarchitecture:
 
-\textbf{Branch Prediction Excellence:} M2 achieves <1.5\% misprediction rates on typical code, confirming reports of advanced prediction mechanisms. Our model captures this through careful tuning of prediction accuracy and penalty cycles.
+\textbf{Branch Prediction Excellence:} M2 achieves <1.3\% misprediction rates on typical code, confirming reports of advanced prediction mechanisms. Our model captures this through careful tuning of prediction accuracy and penalty cycles.
 
 \textbf{Memory Bandwidth:} High bandwidth enables concurrent memory operations, validated by our multi-port memory model. Cache hit latencies of ~1 cycle for L1 and ~10 cycles for L2 match simulation predictions.
 
@@ -179,7 +180,7 @@ M2Sim provides a foundation for several research directions:
 
 \section{Conclusion}
 
-M2Sim provides the first cycle-accurate simulation infrastructure for Apple M2 CPU research, achieving 16.9\% average timing error across 18 benchmarks. Through systematic hardware baseline methodology and careful microarchitectural modeling, we demonstrate production-level timing accuracy on both microbenchmarks and intermediate-complexity workloads.
+M2Sim provides the first cycle-accurate simulation infrastructure for Apple M2 CPU research, achieving 14.22\% average timing error across 11 microbenchmarks with hardware CPI comparison. Through systematic hardware baseline methodology and careful microarchitectural modeling, we demonstrate production-level timing accuracy on microbenchmarks, with additional PolyBench and EmBench workloads validated for simulation correctness.
 
 The simulator reveals detailed insights into M2 performance characteristics, including excellent branch prediction, efficient memory hierarchy, and 8-wide superscalar execution. These findings enable research opportunities previously unavailable due to proprietary hardware limitations.
 

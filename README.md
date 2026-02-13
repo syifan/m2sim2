@@ -4,18 +4,18 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/sarchlab/m2sim)](https://goreportcard.com/report/github.com/sarchlab/m2sim)
 [![License](https://img.shields.io/github/license/sarchlab/m2sim.svg)](LICENSE)
 
-**M2Sim** is a cycle-accurate simulator for the Apple M2 CPU that achieves **16.9% average timing error** across 18 benchmarks. Built on the [Akita simulation framework](https://github.com/sarchlab/akita), M2Sim enables detailed performance analysis of ARM64 workloads on Apple Silicon architectures.
+**M2Sim** is a cycle-accurate simulator for the Apple M2 CPU that achieves **14.22% average timing error** across 11 microbenchmarks with hardware CPI comparison. Built on the [Akita simulation framework](https://github.com/sarchlab/akita), M2Sim enables detailed performance analysis of ARM64 workloads on Apple Silicon architectures.
 
-## 🎯 Project Status: **COMPLETED** ✅
+## Project Status: In Development
 
-**Final Achievement:** 16.9% average timing accuracy across 18 benchmarks, meeting all success criteria.
+**Current Achievement:** 14.22% average timing error across 11 microbenchmarks with hardware CPI comparison.
 
 | Success Criterion | Target | Achieved | Status |
 |------------------|---------|----------|--------|
-| **Functional Emulation** | ARM64 user-space execution | ✅ Complete | ✅ |
-| **Timing Accuracy** | <20% average error | 16.9% achieved | ✅ |
-| **Modular Design** | Separate functional/timing | ✅ Implemented | ✅ |
-| **Benchmark Coverage** | μs to ms range | 18 benchmarks validated | ✅ |
+| **Functional Emulation** | ARM64 user-space execution | Complete | Done |
+| **Timing Accuracy** | <20% average error | 14.22% (11 microbenchmarks) | Done |
+| **Modular Design** | Separate functional/timing | Implemented | Done |
+| **Benchmark Coverage** | μs to ms range | 11 micro + 4 PolyBench + 1 EmBench | Done |
 
 ## 🚀 Quick Start
 
@@ -59,9 +59,12 @@ go build -o m2sim ./cmd/m2sim
 
 | **Benchmark Category** | **Count** | **Average Error** | **Range** |
 |----------------------|-----------|------------------|-----------|
-| **Microbenchmarks** | 11 | 14.4% | 1.3% - 47.4% |
-| **PolyBench** | 7 | 20.8% | 11.1% - 33.6% |
-| **Overall** | **18** | **16.9%** | **1.3% - 47.4%** |
+| **Microbenchmarks** | 11 | 14.22% | 1.27% - 24.67% |
+| **PolyBench** | 4 | sim-only | no hardware CPI comparison |
+| **EmBench** | 1 | sim-only | no hardware CPI comparison |
+| **Total with error** | **11** | **14.22%** | **1.27% - 24.67%** |
+
+> **Note:** PolyBench and EmBench benchmarks run successfully in simulation but use different dataset scales than hardware measurements (MINI vs LARGE), so direct error comparison is not possible.
 
 ### Key Architectural Insights
 
@@ -82,7 +85,7 @@ M2Sim Architecture
 │   └── Syscall Interface          # Linux syscall emulation
 ├── Timing Model (timing/)         # Cycle-accurate performance
 │   ├── Pipeline                   # 8-wide superscalar, 5-stage
-│   ├── Cache Hierarchy            # L1I/L1D (32KB), L2 (256KB)
+│   ├── Cache Hierarchy            # L1I (192KB), L1D (128KB), L2 (24MB)
 │   └── Branch Prediction          # Two-level adaptive predictor
 └── Integration Layer              # ELF loading, measurement framework
 ```
@@ -91,7 +94,7 @@ M2Sim Architecture
 - **Architecture:** 8-wide superscalar, in-order execution
 - **Stages:** Fetch → Decode → Execute → Memory → Writeback
 - **Branch Predictor:** Two-level adaptive with 12-cycle misprediction penalty
-- **Cache Hierarchy:** L1I/L1D (32KB each, 1-cycle), L2 (256KB, 10-cycle)
+- **Cache Hierarchy:** L1I (192KB, 6-way, 1-cycle), L1D (128KB, 8-way, 4-cycle), L2 (24MB, 16-way, 12-cycle)
 
 ## 📁 Project Structure
 
@@ -188,17 +191,17 @@ m2sim/
 ## 🏆 Achievements
 
 ### Technical Milestones
-- ✅ **H1:** Core simulator with pipeline timing and cache hierarchy
-- ✅ **H2:** SPEC benchmark enablement with syscall coverage
-- ✅ **H3:** Microbenchmark calibration achieving 14.1% accuracy
-- ✅ **H4:** Multi-core analysis framework (statistical foundation complete)
-- ✅ **H5:** 15+ intermediate benchmarks with 16.9% average accuracy
+- **H1:** Core simulator with pipeline timing and cache hierarchy
+- **H2:** SPEC benchmark enablement with syscall coverage
+- **H3:** Microbenchmark calibration achieving 14.22% accuracy
+- **H4:** Multi-core analysis framework (statistical foundation complete)
+- **H5:** 16 CI-verified benchmarks with 14.22% average accuracy (11 microbenchmarks with hardware CPI)
 
 ### Research Contributions
 1. **First Open-Source M2 Simulator:** Enables reproducible Apple Silicon research
 2. **Validated Methodology:** Multi-scale regression baseline collection
 3. **Architectural Insights:** Quantified M2 performance characteristics
-4. **Production Accuracy:** 16.9% error suitable for research conclusions
+4. **Production Accuracy:** 14.22% error on 11 microbenchmarks suitable for research conclusions
 
 ## 🔧 Development
 
@@ -241,4 +244,4 @@ This project is developed by the [SARCH Lab](https://github.com/sarchlab) at [Un
 
 **M2Sim** - Enabling Apple Silicon research through cycle-accurate simulation.
 
-*Generated: February 12, 2026 | Status: Project Complete ✅*
+*Generated: February 13, 2026 | Status: In Development*
