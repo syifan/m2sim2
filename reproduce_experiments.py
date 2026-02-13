@@ -280,7 +280,7 @@ def run_benchmark_timing(name: str, elf_path: Path, hardware_cpi: Optional[float
 
             error = None
             if hardware_cpi is not None:
-                error = abs(simulated_cpi - hardware_cpi) / hardware_cpi
+                error = abs(simulated_cpi - hardware_cpi) / min(simulated_cpi, hardware_cpi)
 
             return {
                 "name": name,

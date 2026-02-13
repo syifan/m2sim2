@@ -1,3 +1,14 @@
+> **HISTORICAL REPORT — DO NOT CITE**
+>
+> This report was generated before CI-verified accuracy data was available.
+> The '19.67% average PolyBench error' and all CPI values in this report are
+> **not supported by CI-verified results**. The PolyBench CPI values shown
+> (e.g., gemm sim CPI=2800.0) are fabricated round numbers, not from actual
+> simulation. The current source of truth is `h5_accuracy_results.json`,
+> which shows 14.22% average error across 11 microbenchmarks. PolyBench
+> benchmarks lack comparable hardware CPI data because hardware measurements
+> used LARGE datasets while simulation used MINI datasets.
+
 # H5 Milestone Completion Report - February 11, 2026
 
 ## Executive Summary
