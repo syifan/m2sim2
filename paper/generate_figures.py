@@ -36,36 +36,37 @@ def load_accuracy_data():
     """Load H5 accuracy results from JSON file"""
     try:
         with open('../h5_accuracy_results.json', 'r') as f:
-            data = json.load(f)
-        return data
+            raw = json.load(f)
+        # Filter to only microbenchmarks with comparable error values
+        benchmarks = [b for b in raw['benchmarks'] if b.get('error') is not None]
+        return {
+            "summary": {
+                "total_benchmarks": len(benchmarks),
+                "average_error": raw['summary']['micro_average_error'],
+                "max_error": raw['summary']['micro_max_error']
+            },
+            "benchmarks": [{"name": b['name'], "error": b['error']} for b in benchmarks]
+        }
     except FileNotFoundError:
         # Fallback data if file not found
         return {
             "summary": {
-                "total_ci_verified_benchmarks": 16,
-                "microbenchmarks_with_error": 11,
-                "polybench_sim_only": 4,
-                "embench_sim_only": 1,
-                "micro_average_error": 0.1422,
-                "micro_max_error": 0.2467
+                "total_benchmarks": 11,
+                "average_error": 0.1422,
+                "max_error": 0.2467
             },
             "benchmarks": [
-                {"name": "arithmetic", "category": "microbenchmark", "error": 0.0954},
-                {"name": "dependency", "category": "microbenchmark", "error": 0.0665},
-                {"name": "branch", "category": "microbenchmark", "error": 0.0127},
-                {"name": "memorystrided", "category": "microbenchmark", "error": 0.1077},
-                {"name": "loadheavy", "category": "microbenchmark", "error": 0.1896},
-                {"name": "storeheavy", "category": "microbenchmark", "error": 0.2467},
-                {"name": "branchheavy", "category": "microbenchmark", "error": 0.1611},
-                {"name": "vectorsum", "category": "microbenchmark", "error": 0.2444},
-                {"name": "vectoradd", "category": "microbenchmark", "error": 0.2201},
-                {"name": "reductiontree", "category": "microbenchmark", "error": 0.0608},
-                {"name": "strideindirect", "category": "microbenchmark", "error": 0.1588},
-                {"name": "atax", "category": "polybench", "error": null},
-                {"name": "bicg", "category": "polybench", "error": null},
-                {"name": "mvt", "category": "polybench", "error": null},
-                {"name": "jacobi-1d", "category": "polybench", "error": null},
-                {"name": "aha_mont64", "category": "embench", "error": null}
+                {"name": "arithmetic", "error": 0.0954},
+                {"name": "dependency", "error": 0.0665},
+                {"name": "branch", "error": 0.0127},
+                {"name": "memorystrided", "error": 0.1077},
+                {"name": "loadheavy", "error": 0.1896},
+                {"name": "storeheavy", "error": 0.2467},
+                {"name": "branchheavy", "error": 0.1611},
+                {"name": "vectorsum", "error": 0.2444},
+                {"name": "vectoradd", "error": 0.2201},
+                {"name": "reductiontree", "error": 0.0608},
+                {"name": "strideindirect", "error": 0.1588}
             ]
         }
 
@@ -73,36 +74,32 @@ def create_accuracy_overview_figure(data):
     """Figure 1: Accuracy overview by benchmark category"""
     # Prepare data - only include benchmarks with error data
     benchmarks = data['benchmarks']
-    micro_benchmarks = [b for b in benchmarks if b.get('category') == 'microbenchmark' and b.get('error') is not None]
-    # PolyBench/EmBench have no comparable error data (different dataset scales)
 
     # Create figure
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 2.5))
 
-    # Panel A: Error distribution (microbenchmarks only - only category with error data)
-    micro_errors = [b['error'] * 100 for b in micro_benchmarks]
+    # Panel A: Error distribution
+    micro_errors = [b['error'] * 100 for b in benchmarks]
 
     # Box plot
-    bp = ax1.boxplot([micro_errors], labels=[f'Microbenchmarks\n(n={len(micro_benchmarks)})'],
+    bp = ax1.boxplot([micro_errors], labels=[f'Microbenchmarks\n(n={len(benchmarks)})'],
                      patch_artist=True, notch=True, whis=[5, 95])
 
-    # Color the boxes
-    for patch in bp['boxes']:
-        patch.set_facecolor('lightblue')
-        patch.set_alpha(0.7)
+    # Color the box
+    bp['boxes'][0].set_facecolor('lightblue')
+    bp['boxes'][0].set_alpha(0.7)
 
     ax1.set_ylabel('Timing Error (%)')
-    ax1.set_title('(a) Error Distribution (Microbenchmarks)')
+    ax1.set_title('(a) Error Distribution')
     ax1.grid(True, alpha=0.3)
     ax1.axhline(y=20, color='red', linestyle='--', alpha=0.7, label='Target (20%)')
     ax1.legend()
 
-    # Panel B: Individual benchmark errors (microbenchmarks only)
-    all_names = [b['name'] for b in micro_benchmarks]
-    all_errors = [b['error'] * 100 for b in micro_benchmarks]
+    # Panel B: Individual benchmark errors
+    all_names = [b['name'] for b in benchmarks]
+    all_errors = [b['error'] * 100 for b in benchmarks]
 
-    # Color by category
-    colors = ['lightblue'] * len(micro_benchmarks)
+    colors = ['lightblue'] * len(benchmarks)
     bars = ax2.bar(range(len(all_names)), all_errors, color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
 
     # Compute average dynamically
@@ -110,7 +107,7 @@ def create_accuracy_overview_figure(data):
 
     # Highlight target line
     ax2.axhline(y=20, color='red', linestyle='--', alpha=0.7, label='Target (20%)')
-    ax2.axhline(y=avg_error, color='green', linestyle='-', alpha=0.8, label=f'Average ({avg_error:.1f}%)')
+    ax2.axhline(y=data['summary']['average_error'] * 100, color='green', linestyle='-', alpha=0.8, label=f'Average ({data["summary"]["average_error"]*100:.1f}%)')
 
     ax2.set_ylabel('Timing Error (%)')
     ax2.set_xlabel('Benchmark')
@@ -134,7 +131,7 @@ def create_performance_characteristics_figure(data):
                      'Memory Patterns', 'SIMD Operations', 'Store Buffer'],
         'Representative Benchmark': ['branch', 'memorystrided', 'dependency',
                                    'loadheavy', 'vectorsum', 'storeheavy'],
-        'Error (%)': [1.27, 10.77, 6.65, 18.96, 24.44, 24.67],
+        'Error (%)': [1.3, 10.8, 6.7, 19.0, 24.4, 24.7],
         'Insight': ['Excellent prediction', 'Efficient hierarchy', 'Good modeling',
                    'Moderate gap', 'Complex pipeline', 'Modeling gap']
     }
