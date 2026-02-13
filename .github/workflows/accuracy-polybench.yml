@@ -35,7 +35,7 @@ jobs:
         run: |
           for TEST in TestPolybenchATAX TestPolybenchBiCG TestPolybenchJacobi1D; do
             echo "--- $TEST ---"
-            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group1_output.txt || true
+            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group1_output.txt
           done
 
       - name: Upload results
@@ -65,7 +65,7 @@ jobs:
         run: |
           for TEST in TestPolybenchMVT TestPolybenchGEMM; do
             echo "--- $TEST ---"
-            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group2_output.txt || true
+            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group2_output.txt
           done
 
       - name: Upload results
@@ -95,7 +95,7 @@ jobs:
         run: |
           for TEST in TestPolybench2MM TestPolybench3MM; do
             echo "--- $TEST ---"
-            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group3_output.txt || true
+            go test -v -run "^${TEST}$" -count=1 -timeout 8m ./benchmarks/ 2>&1 | tee -a group3_output.txt
           done
 
       - name: Upload results
@@ -124,7 +124,6 @@ jobs:
           cat group-results/polybench-group-1/group1_output.txt > combined.txt 2>/dev/null || true
           cat group-results/polybench-group-2/group2_output.txt >> combined.txt 2>/dev/null || true
           cat group-results/polybench-group-3/group3_output.txt >> combined.txt 2>/dev/null || true
-
           python3 - <<'PYEOF'
           import json, re
 
