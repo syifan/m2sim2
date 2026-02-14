@@ -6,11 +6,11 @@
     "polybench_with_error": 7,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 7,
-    "average_error": 0.5723,
+    "average_error": 0.6171,
     "micro_average_error": 0.1421,
-    "polybench_average_error": 1.2484,
+    "polybench_average_error": 1.3636,
     "h5_target_met": false,
-    "note": "18 benchmarks with error data (11 micro + 7 polybench). Both sim and HW use MINI dataset for polybench 2mm/3mm, SMALL dataset for other polybench. Overall 57.23% average error does NOT meet <20% target due to polybench (in-order vs OoO gap). 2mm/3mm sim CPI from Leo's verified local runs (PR #46); HW CPI from CI run 22023389932."
+    "note": "18 benchmarks with error data (11 micro + 7 polybench). Both sim and HW use MINI dataset for polybench 2mm/3mm, SMALL dataset for other polybench. Overall 61.71% average error does NOT meet <20% target due to polybench (in-order vs OoO gap). All sim CPI values CI-verified from accuracy-consolidated run 22024974797 (includes Leo's PR #46 fix)."
   },
   "benchmarks": [
     {
@@ -104,17 +104,17 @@
     {
       "name": "atax",
       "category": "polybench",
-      "simulated_cpi": 0.394,
+      "simulated_cpi": 0.45,
       "hardware_cpi": 0.2185,
-      "error": 0.8032,
+      "error": 1.0595,
       "ci_verified": true
     },
     {
       "name": "bicg",
       "category": "polybench",
-      "simulated_cpi": 0.467,
+      "simulated_cpi": 0.47,
       "hardware_cpi": 0.2295,
-      "error": 1.0349,
+      "error": 1.0479,
       "ci_verified": true
     },
     {
@@ -128,27 +128,26 @@
     {
       "name": "mvt",
       "category": "polybench",
-      "simulated_cpi": 0.361,
+      "simulated_cpi": 0.474,
       "hardware_cpi": 0.2156,
-      "error": 0.6744,
+      "error": 1.1985,
       "ci_verified": true
     },
     {
       "name": "jacobi-1d",
       "category": "polybench",
-      "simulated_cpi": 0.547,
+      "simulated_cpi": 0.549,
       "hardware_cpi": 0.151,
-      "error": 2.6225,
+      "error": 2.6358,
       "ci_verified": true
     },
     {
       "name": "2mm",
       "category": "polybench",
-      "simulated_cpi": 0.340,
+      "simulated_cpi": 0.34,
       "hardware_cpi": 0.1435,
       "error": 1.3693,
-      "ci_verified": false,
-      "note": "Sim CPI from Leo's verified local run (PR #46 pending merge); HW CPI from CI run 22023389932"
+      "ci_verified": true
     },
     {
       "name": "3mm",
@@ -156,8 +155,7 @@
       "simulated_cpi": 0.343,
       "hardware_cpi": 0.1453,
       "error": 1.3606,
-      "ci_verified": false,
-      "note": "Sim CPI from Leo's verified local run (PR #46 pending merge); HW CPI from CI run 22023389932"
+      "ci_verified": true
     },
     {
       "name": "aha_mont64",
@@ -165,7 +163,8 @@
       "simulated_cpi": 0.347,
       "hardware_cpi": null,
       "error": null,
-      "ci_verified": true
+      "ci_verified": true,
+      "note": "No hardware CPI workflow exists for EmBench; sim CPI only"
     }
   ],
   "infeasible": [
