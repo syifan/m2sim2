@@ -1,4 +1,4 @@
-name: Hardware CPI Collection - PolyBench SMALL
+name: Hardware CPI Collection - PolyBench
 
 on:
   workflow_dispatch:
@@ -21,14 +21,16 @@ jobs:
           python3 - <<'PYEOF'
           import subprocess, json, re, statistics, os
 
+          # 2mm and 3mm use MINI_DATASET (16x16) because SMALL exceeds CI timeout.
+          # All other benchmarks use SMALL_DATASET.
           BENCHMARKS = {
-              "atax":      {"dir": "atax",      "instructions": 130927,  "iters": 1000},
-              "bicg":      {"dir": "bicg",      "instructions": 112372,  "iters": 1000},
-              "gemm":      {"dir": "gemm",      "instructions": 2516282, "iters": 200},
-              "mvt":       {"dir": "mvt",       "instructions": 124920,  "iters": 1000},
-              "jacobi-1d": {"dir": "jacobi-1d", "instructions": 49248,   "iters": 2000},
-              "2mm":       {"dir": "2mm",       "instructions": 4555010, "iters": 100},
-              "3mm":       {"dir": "3mm",       "instructions": 8760634, "iters": 50},
+              "atax":      {"dir": "atax",      "instructions": 130927,  "iters": 1000, "dataset": "SMALL"},
+              "bicg":      {"dir": "bicg",      "instructions": 112372,  "iters": 1000, "dataset": "SMALL"},
+              "gemm":      {"dir": "gemm",      "instructions": 2516282, "iters": 200,  "dataset": "SMALL"},
+              "mvt":       {"dir": "mvt",       "instructions": 124920,  "iters": 1000, "dataset": "SMALL"},
+              "jacobi-1d": {"dir": "jacobi-1d", "instructions": 49248,   "iters": 2000, "dataset": "SMALL"},
+              "2mm":       {"dir": "2mm",       "instructions": 69563,   "iters": 2000, "dataset": "MINI"},
+              "3mm":       {"dir": "3mm",       "instructions": 105410,  "iters": 1000, "dataset": "MINI"},
           }
 
           FREQUENCY_GHZ = 3.5
@@ -37,10 +39,10 @@ jobs:
           INCLUDE_DIR = os.path.join(POLY_DIR, "common")
 
           CC = "cc"
-          CFLAGS = [
+          BASE_CFLAGS = [
               "-O2", "-mcpu=apple-m2",
               "-fno-vectorize", "-fno-slp-vectorize",
-              "-DSMALL_DATASET", "-DPOLYBENCH_USE_RESTRICT",
+              "-DPOLYBENCH_USE_RESTRICT",
               f"-I{INCLUDE_DIR}",
           ]
 
@@ -72,6 +74,10 @@ jobs:
               src_rel = os.path.join(POLY_DIR, info["dir"], f"{info['dir']}.c")
               wrapper_file = f"{name}_timed.c"
               binary = f"{name}_timed"
+              dataset = info["dataset"]
+
+              # Per-benchmark CFLAGS with appropriate dataset
+              cflags = BASE_CFLAGS + [f"-D{dataset}_DATASET"]
 
               # Generate wrapper C source
               wrapper_src = WRAPPER_TEMPLATE.format(
@@ -82,8 +88,8 @@ jobs:
                   f.write(wrapper_src)
 
               # Build wrapper
-              cmd = [CC] + CFLAGS + [wrapper_file, "-o", binary]
-              print(f"Building {name}: {' '.join(cmd)}")
+              cmd = [CC] + cflags + [wrapper_file, "-o", binary]
+              print(f"Building {name} ({dataset}_DATASET): {' '.join(cmd)}")
               subprocess.run(cmd, check=True)
 
               # Measure: run binary ROUNDS times, parse TIMING line, take median
@@ -106,6 +112,7 @@ jobs:
               cpi = cycles / info["instructions"]
 
               results[name] = {
+                  "dataset": dataset,
                   "instructions": info["instructions"],
                   "avg_time_sec": round(median_time, 12),
                   "estimated_cycles": round(cycles, 1),
@@ -119,7 +126,7 @@ jobs:
               os.remove(binary)
 
           output = {
-              "dataset": "SMALL",
+              "dataset": "SMALL (2mm/3mm: MINI)",
               "runner": "macos-14",
               "frequency_ghz": FREQUENCY_GHZ,
               "program_iterations": {n: info["iters"] for n, info in BENCHMARKS.items()},
@@ -137,7 +144,7 @@ jobs:
       - name: Post summary
         if: always()
         run: |
-          echo "## Hardware CPI Collection — PolyBench SMALL on Apple M2" >> $GITHUB_STEP_SUMMARY
+          echo "## Hardware CPI Collection — PolyBench on Apple M2" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ ! -f hardware-cpi-polybench.json ]; then
             echo "No results generated." >> $GITHUB_STEP_SUMMARY
@@ -158,11 +165,12 @@ jobs:
               iters = data["kernel_iterations"]
               print(f"- **Kernel iterations:** {', '.join(f'{k}={v}' for k,v in sorted(iters.items()))}")
           print()
-          print("| Benchmark | Instructions | Avg Time (us) | Est. Cycles | CPI |")
-          print("|-----------|-------------|---------------|-------------|-----|")
+          print("| Benchmark | Dataset | Instructions | Avg Time (us) | Est. Cycles | CPI |")
+          print("|-----------|---------|-------------|---------------|-------------|-----|")
           for name, r in sorted(data["benchmarks"].items()):
               t_us = r["avg_time_sec"] * 1e6
-              print(f"| {name} | {r['instructions']} | {t_us:.2f} | {r['estimated_cycles']:.1f} | {r['cpi']:.4f} |")
+              ds = r.get("dataset", "SMALL")
+              print(f"| {name} | {ds} | {r['instructions']} | {t_us:.2f} | {r['estimated_cycles']:.1f} | {r['cpi']:.4f} |")
           PYEOF
 
       - name: Upload artifact

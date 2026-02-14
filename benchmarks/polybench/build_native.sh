@@ -5,22 +5,29 @@
 # enabling linear regression to separate startup overhead from kernel latency.
 #
 # Usage:
-#   ./build_native.sh [benchmark] [reps]
+#   ./build_native.sh [benchmark] [reps] [dataset]
 #     benchmark: gemm, atax, etc. (default: all)
 #     reps: kernel repetition count (default: 1)
+#     dataset: MINI, SMALL (default: SMALL)
 #
 # Output: <bench>_native_r<reps> in this directory
-# Dataset size: SMALL (fixed for calibration)
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Dataset selection (default: SMALL)
+DATASET="${3:-SMALL}"
+case "$DATASET" in
+    MINI|SMALL|MEDIUM|LARGE) ;;
+    *) echo "Error: Invalid dataset '$DATASET'. Use MINI, SMALL, MEDIUM, or LARGE."; exit 1 ;;
+esac
+
 CC=cc
 CFLAGS="-O2 -mcpu=apple-m2 -fno-vectorize -fno-slp-vectorize"
 CFLAGS+=" -I$SCRIPT_DIR/common"
 CFLAGS+=" -DPOLYBENCH_USE_RESTRICT"
-CFLAGS+=" -DSMALL_DATASET"
+CFLAGS+=" -D${DATASET}_DATASET"
 
 BENCHMARKS="gemm atax 2mm mvt jacobi-1d 3mm bicg"
 
