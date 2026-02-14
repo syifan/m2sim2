@@ -143,11 +143,12 @@ func canDualIssue(first, second *IDEXRegister) bool {
 		if second.Rn == first.Rd && first.Rd != 31 {
 			hasRAW = true
 		}
-		// Only check Rm for register-format instructions.
+		// Only check Rm for register-format instructions and register-offset loads/stores.
 		// Immediate-format instructions (like ADD Xd, Xn, #imm) don't use Rm,
 		// but Rm defaults to 0, causing false RAW hazards when first.Rd == 0.
-		if second.Inst != nil && second.Inst.Format == insts.FormatDPReg {
-			if second.Rm == first.Rd && first.Rd != 31 {
+		if second.Inst != nil && second.Rm == first.Rd && first.Rd != 31 {
+			if second.Inst.Format == insts.FormatDPReg ||
+				(second.Inst.Format == insts.FormatLoadStore && second.Inst.IndexMode == insts.IndexRegBase) {
 				hasRAW = true
 			}
 		}
@@ -1056,9 +1057,10 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 			if newInst.Rn == prev.Rd {
 				hasRAW = true
 			}
-			// Only check Rm for register-format instructions
-			if newInst.Inst != nil && newInst.Inst.Format == insts.FormatDPReg {
-				if newInst.Rm == prev.Rd {
+			// Only check Rm for register-format instructions and register-offset loads/stores
+			if newInst.Inst != nil && newInst.Rm == prev.Rd && prev.Rd != 31 {
+				if newInst.Inst.Format == insts.FormatDPReg ||
+					(newInst.Inst.Format == insts.FormatLoadStore && newInst.Inst.IndexMode == insts.IndexRegBase) {
 					hasRAW = true
 				}
 			}
