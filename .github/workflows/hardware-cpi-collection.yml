@@ -1,0 +1,134 @@
+name: Hardware CPI Collection - PolyBench MINI
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'benchmarks/polybench/**'
+
+jobs:
+  collect-cpi:
+    name: Collect Hardware CPI on Apple M2
+    runs-on: macos-14
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and measure all benchmarks
+        run: |
+          python3 - <<'PYEOF'
+          import subprocess, json, time, statistics, os
+
+          BENCHMARKS = {
+              "atax":      {"dir": "atax",      "instructions": 5000},
+              "bicg":      {"dir": "bicg",      "instructions": 4830},
+              "gemm":      {"dir": "gemm",      "instructions": 37000},
+              "mvt":       {"dir": "mvt",       "instructions": 5000},
+              "jacobi-1d": {"dir": "jacobi-1d", "instructions": 5349},
+              "2mm":       {"dir": "2mm",       "instructions": 70000},
+              "3mm":       {"dir": "3mm",       "instructions": 105410},
+          }
+
+          FREQUENCY_GHZ = 3.5
+          ITERATIONS = 1000
+          ROUNDS = 5
+          POLY_DIR = "benchmarks/polybench"
+          INCLUDE_DIR = os.path.join(POLY_DIR, "common")
+
+          CC = "cc"
+          CFLAGS = [
+              "-O2", "-mcpu=apple-m2",
+              "-fno-vectorize", "-fno-slp-vectorize",
+              "-DMINI_DATASET", "-DPOLYBENCH_USE_RESTRICT",
+              f"-I{INCLUDE_DIR}",
+          ]
+
+          results = {}
+
+          for name, info in BENCHMARKS.items():
+              src = os.path.join(POLY_DIR, info["dir"], f"{info['dir']}.c")
+              binary = f"{name}_native"
+
+              # Build
+              cmd = [CC] + CFLAGS + [src, "-o", binary]
+              print(f"Building {name}: {' '.join(cmd)}")
+              subprocess.run(cmd, check=True)
+
+              # Measure: run ITERATIONS times per round, take median across ROUNDS
+              round_avgs = []
+              for r in range(ROUNDS):
+                  start = time.perf_counter()
+                  for _ in range(ITERATIONS):
+                      subprocess.run([f"./{binary}"], capture_output=True)
+                  elapsed = time.perf_counter() - start
+                  avg = elapsed / ITERATIONS
+                  round_avgs.append(avg)
+                  print(f"  Round {r+1}/{ROUNDS}: {elapsed:.4f}s total, {avg*1e6:.2f}us avg")
+
+              median_time = statistics.median(round_avgs)
+              cycles = median_time * FREQUENCY_GHZ * 1e9
+              cpi = cycles / info["instructions"]
+
+              results[name] = {
+                  "instructions": info["instructions"],
+                  "avg_time_sec": round(median_time, 9),
+                  "estimated_cycles": round(cycles, 1),
+                  "cpi": round(cpi, 4),
+                  "all_round_times_sec": [round(t, 9) for t in round_avgs],
+              }
+              print(f"  -> median_time={median_time*1e6:.2f}us, cycles={cycles:.1f}, CPI={cpi:.4f}")
+
+              # Clean up binary
+              os.remove(binary)
+
+          output = {
+              "dataset": "MINI",
+              "runner": "macos-14",
+              "frequency_ghz": FREQUENCY_GHZ,
+              "iterations_per_round": ITERATIONS,
+              "rounds": ROUNDS,
+              "benchmarks": results,
+          }
+
+          with open("hardware-cpi-polybench.json", "w") as f:
+              json.dump(output, f, indent=2)
+
+          print("\n=== Final Results ===")
+          print(json.dumps(output, indent=2))
+          PYEOF
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## Hardware CPI Collection — PolyBench MINI on Apple M2" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ ! -f hardware-cpi-polybench.json ]; then
+            echo "No results generated." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          python3 - <<'PYEOF' >> $GITHUB_STEP_SUMMARY
+          import json
+
+          data = json.load(open("hardware-cpi-polybench.json"))
+          print(f"- **Dataset:** {data['dataset']}")
+          print(f"- **Runner:** {data['runner']}")
+          print(f"- **Frequency:** {data['frequency_ghz']} GHz")
+          print(f"- **Iterations per round:** {data['iterations_per_round']}")
+          print(f"- **Rounds:** {data['rounds']}")
+          print()
+          print("| Benchmark | Instructions | Avg Time (us) | Est. Cycles | CPI |")
+          print("|-----------|-------------|---------------|-------------|-----|")
+          for name, r in sorted(data["benchmarks"].items()):
+              t_us = r["avg_time_sec"] * 1e6
+              print(f"| {name} | {r['instructions']} | {t_us:.2f} | {r['estimated_cycles']:.1f} | {r['cpi']:.4f} |")
+          PYEOF
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hardware-cpi-polybench
+          path: hardware-cpi-polybench.json
+          retention-days: 90
