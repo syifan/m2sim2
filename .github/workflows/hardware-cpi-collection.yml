@@ -19,20 +19,19 @@ jobs:
       - name: Build and measure all benchmarks
         run: |
           python3 - <<'PYEOF'
-          import subprocess, json, time, statistics, os
+          import subprocess, json, re, statistics, os
 
           BENCHMARKS = {
-              "atax":      {"dir": "atax",      "instructions": 5000},
-              "bicg":      {"dir": "bicg",      "instructions": 4830},
-              "gemm":      {"dir": "gemm",      "instructions": 37000},
-              "mvt":       {"dir": "mvt",       "instructions": 5000},
-              "jacobi-1d": {"dir": "jacobi-1d", "instructions": 5349},
-              "2mm":       {"dir": "2mm",       "instructions": 70000},
-              "3mm":       {"dir": "3mm",       "instructions": 105410},
+              "atax":      {"dir": "atax",      "instructions": 5000,   "kernel": "kernel_atax",      "iters": 100000},
+              "bicg":      {"dir": "bicg",      "instructions": 4830,   "kernel": "kernel_bicg",      "iters": 100000},
+              "gemm":      {"dir": "gemm",      "instructions": 37000,  "kernel": "kernel_gemm",      "iters": 100000},
+              "mvt":       {"dir": "mvt",       "instructions": 5000,   "kernel": "kernel_mvt",       "iters": 100000},
+              "jacobi-1d": {"dir": "jacobi-1d", "instructions": 5349,   "kernel": "kernel_jacobi_1d", "iters": 100000},
+              "2mm":       {"dir": "2mm",       "instructions": 70000,  "kernel": "kernel_2mm",       "iters": 50000},
+              "3mm":       {"dir": "3mm",       "instructions": 105410, "kernel": "kernel_3mm",       "iters": 10000},
           }
 
           FREQUENCY_GHZ = 3.5
-          ITERATIONS = 1000
           ROUNDS = 5
           POLY_DIR = "benchmarks/polybench"
           INCLUDE_DIR = os.path.join(POLY_DIR, "common")
@@ -45,49 +44,87 @@ jobs:
               f"-I{INCLUDE_DIR}",
           ]
 
+          WRAPPER_TEMPLATE = """\
+          #define main _original_main
+          #include "{src_path}"
+          #undef main
+
+          #include <time.h>
+          #include <stdio.h>
+
+          int main(void) {{
+              init_array();
+              struct timespec start, end;
+              clock_gettime(CLOCK_MONOTONIC, &start);
+              for (int iter = 0; iter < {iters}; iter++) {{
+                  {kernel}();
+              }}
+              clock_gettime(CLOCK_MONOTONIC, &end);
+              double elapsed = (end.tv_sec - start.tv_sec)
+                             + (end.tv_nsec - start.tv_nsec) / 1e9;
+              printf("TIMING: %.9f %d\\n", elapsed, {iters});
+              return 0;
+          }}
+          """
+
           results = {}
 
           for name, info in BENCHMARKS.items():
-              src = os.path.join(POLY_DIR, info["dir"], f"{info['dir']}.c")
-              binary = f"{name}_native"
+              src_rel = os.path.join(POLY_DIR, info["dir"], f"{info['dir']}.c")
+              wrapper_file = f"{name}_timed.c"
+              binary = f"{name}_timed"
 
-              # Build
-              cmd = [CC] + CFLAGS + [src, "-o", binary]
+              # Generate wrapper C source
+              wrapper_src = WRAPPER_TEMPLATE.format(
+                  src_path=src_rel,
+                  kernel=info["kernel"],
+                  iters=info["iters"],
+              )
+              with open(wrapper_file, "w") as f:
+                  f.write(wrapper_src)
+
+              # Build wrapper
+              cmd = [CC] + CFLAGS + [wrapper_file, "-o", binary]
               print(f"Building {name}: {' '.join(cmd)}")
               subprocess.run(cmd, check=True)
 
-              # Measure: run ITERATIONS times per round, take median across ROUNDS
-              round_avgs = []
+              # Measure: run binary ROUNDS times, parse TIMING line, take median
+              round_times = []
               for r in range(ROUNDS):
-                  start = time.perf_counter()
-                  for _ in range(ITERATIONS):
-                      subprocess.run([f"./{binary}"], capture_output=True)
-                  elapsed = time.perf_counter() - start
-                  avg = elapsed / ITERATIONS
-                  round_avgs.append(avg)
-                  print(f"  Round {r+1}/{ROUNDS}: {elapsed:.4f}s total, {avg*1e6:.2f}us avg")
+                  result = subprocess.run(
+                      [f"./{binary}"], capture_output=True, text=True, check=True,
+                  )
+                  m = re.search(r"TIMING:\s+([\d.]+)\s+(\d+)", result.stdout)
+                  if not m:
+                      raise RuntimeError(f"{name} round {r+1}: no TIMING line in output")
+                  elapsed = float(m.group(1))
+                  iters = int(m.group(2))
+                  time_per_kernel = elapsed / iters
+                  round_times.append(time_per_kernel)
+                  print(f"  Round {r+1}/{ROUNDS}: {elapsed:.6f}s / {iters} iters = {time_per_kernel*1e6:.4f}us per kernel")
 
-              median_time = statistics.median(round_avgs)
+              median_time = statistics.median(round_times)
               cycles = median_time * FREQUENCY_GHZ * 1e9
               cpi = cycles / info["instructions"]
 
               results[name] = {
                   "instructions": info["instructions"],
-                  "avg_time_sec": round(median_time, 9),
+                  "avg_time_sec": round(median_time, 12),
                   "estimated_cycles": round(cycles, 1),
                   "cpi": round(cpi, 4),
-                  "all_round_times_sec": [round(t, 9) for t in round_avgs],
+                  "all_round_times_sec": [round(t, 12) for t in round_times],
               }
-              print(f"  -> median_time={median_time*1e6:.2f}us, cycles={cycles:.1f}, CPI={cpi:.4f}")
+              print(f"  -> median_time={median_time*1e9:.2f}ns, cycles={cycles:.1f}, CPI={cpi:.4f}")
 
-              # Clean up binary
+              # Clean up
+              os.remove(wrapper_file)
               os.remove(binary)
 
           output = {
               "dataset": "MINI",
               "runner": "macos-14",
               "frequency_ghz": FREQUENCY_GHZ,
-              "iterations_per_round": ITERATIONS,
+              "kernel_iterations": {n: info["iters"] for n, info in BENCHMARKS.items()},
               "rounds": ROUNDS,
               "benchmarks": results,
           }
@@ -115,8 +152,10 @@ jobs:
           print(f"- **Dataset:** {data['dataset']}")
           print(f"- **Runner:** {data['runner']}")
           print(f"- **Frequency:** {data['frequency_ghz']} GHz")
-          print(f"- **Iterations per round:** {data['iterations_per_round']}")
           print(f"- **Rounds:** {data['rounds']}")
+          if "kernel_iterations" in data:
+              iters = data["kernel_iterations"]
+              print(f"- **Kernel iterations:** {', '.join(f'{k}={v}' for k,v in sorted(iters.items()))}")
           print()
           print("| Benchmark | Instructions | Avg Time (us) | Est. Cycles | CPI |")
           print("|-----------|-------------|---------------|-------------|-----|")
