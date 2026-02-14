@@ -2,6 +2,12 @@ name: Accuracy - Consolidated
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Accuracy - Microbenchmarks"
+      - "Accuracy - PolyBench"
+    types:
+      - completed
 
 jobs:
   consolidate:
@@ -143,6 +149,65 @@ jobs:
           print(json.dumps(consolidated, indent=2))
           PYEOF
 
+      - name: Generate h5_accuracy_results.json
+        run: |
+          python3 - <<'PYEOF'
+          import json, os
+
+          if not os.path.exists("accuracy_consolidated.json"):
+              print("No consolidated results, skipping h5 generation")
+              exit(0)
+
+          with open("accuracy_consolidated.json") as f:
+              data = json.load(f)
+
+          errors = data.get("error_metrics", {})
+
+          # Collect all benchmarks with valid error measurements
+          valid_errors = {}
+          for name, m in errors.items():
+              if m.get("error") is not None:
+                  valid_errors[name] = m["error"]
+
+          # Count total benchmarks across all suites
+          total_benchmarks = 0
+          for suite in ["microbench", "polybench", "embench"]:
+              suite_data = data.get(suite, {})
+              if suite_data.get("available") and suite_data.get("results"):
+                  total_benchmarks += len(suite_data["results"])
+
+          avg_error = sum(valid_errors.values()) / len(valid_errors) if valid_errors else None
+
+          h5 = {
+              "total_benchmarks_run": total_benchmarks,
+              "benchmarks_with_error_data": len(valid_errors),
+              "average_error": round(avg_error, 4) if avg_error is not None else None,
+              "max_error": round(max(valid_errors.values()), 4) if valid_errors else None,
+              "min_error": round(min(valid_errors.values()), 4) if valid_errors else None,
+              "max_error_benchmark": max(valid_errors, key=valid_errors.get) if valid_errors else None,
+              "min_error_benchmark": min(valid_errors, key=valid_errors.get) if valid_errors else None,
+              "per_benchmark_errors": {k: round(v, 4) for k, v in sorted(valid_errors.items())},
+              "suites": {
+                  "microbench": {"available": data["microbench"].get("available", False),
+                                 "count": len(data["microbench"].get("results", {}))},
+                  "polybench": {"available": data["polybench"].get("available", False),
+                                "count": len(data["polybench"].get("results", {}))},
+                  "embench": {"available": data["embench"].get("available", False),
+                              "count": len(data["embench"].get("results", {}))},
+              },
+          }
+
+          with open("h5_accuracy_results.json", "w") as f:
+              json.dump(h5, f, indent=2)
+
+          print("=== h5_accuracy_results.json ===")
+          print(json.dumps(h5, indent=2))
+
+          if avg_error is not None:
+              print(f"\nOverall average error: {avg_error:.2%} across {len(valid_errors)} benchmarks")
+              print(f"Total benchmarks run: {total_benchmarks}")
+          PYEOF
+
       - name: Post summary
         if: always()
         run: |
@@ -153,7 +218,7 @@ jobs:
             exit 0
           fi
           python3 - <<'PYEOF' >> $GITHUB_STEP_SUMMARY
-          import json
+          import json, os
 
           d = json.load(open("accuracy_consolidated.json"))
 
@@ -193,6 +258,19 @@ jobs:
               print("|-----------|-----|")
               for name, r in sorted(emb["results"].items()):
                   print(f'| {name} | {r["cpi"]:.3f} |')
+
+          # H5 overall summary
+          if os.path.exists("h5_accuracy_results.json"):
+              h5 = json.load(open("h5_accuracy_results.json"))
+              print()
+              print("### Overall H5 Summary")
+              if h5.get("average_error") is not None:
+                  print(f'- **Average error:** {h5["average_error"]:.2%} ({h5["benchmarks_with_error_data"]} benchmarks with error data)')
+                  print(f'- **Total benchmarks run:** {h5["total_benchmarks_run"]}')
+                  print(f'- **Max error:** {h5["max_error"]:.2%} ({h5["max_error_benchmark"]})')
+                  print(f'- **Min error:** {h5["min_error"]:.2%} ({h5["min_error_benchmark"]})')
+              else:
+                  print("No error data available yet.")
           PYEOF
 
       - name: Upload consolidated artifact
@@ -200,5 +278,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: accuracy-consolidated
-          path: accuracy_consolidated.json
+          path: |
+            accuracy_consolidated.json
+            h5_accuracy_results.json
           retention-days: 90
