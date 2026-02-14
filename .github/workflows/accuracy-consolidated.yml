@@ -6,7 +6,7 @@ on:
     workflows:
       - "Accuracy - Microbenchmarks"
       - "Accuracy - PolyBench"
-      - "Hardware CPI Collection - PolyBench SMALL"
+      - "Hardware CPI Collection - PolyBench"
     types:
       - completed
 
