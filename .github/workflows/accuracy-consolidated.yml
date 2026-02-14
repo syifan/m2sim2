@@ -24,8 +24,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p artifacts/microbench
-          ARTIFACT_URL=$(gh api repos/${{ github.repository }}/actions/artifacts \
-            --jq '[.artifacts[] | select(.name == "accuracy-microbench" and .expired == false)] | sort_by(.created_at) | last | .archive_download_url')
+          ARTIFACT_URL=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=accuracy-microbench" \
+            --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | last | .archive_download_url')
           if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
             echo "::warning::No accuracy-microbench artifact found"
           else
@@ -38,8 +38,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p artifacts/polybench
-          ARTIFACT_URL=$(gh api repos/${{ github.repository }}/actions/artifacts \
-            --jq '[.artifacts[] | select(.name == "polybench-consolidated" and .expired == false)] | sort_by(.created_at) | last | .archive_download_url')
+          ARTIFACT_URL=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=polybench-consolidated" \
+            --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | last | .archive_download_url')
           if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
             echo "::warning::No polybench-consolidated artifact found"
           else
@@ -52,8 +52,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p artifacts/embench
-          ARTIFACT_URL=$(gh api repos/${{ github.repository }}/actions/artifacts \
-            --jq '[.artifacts[] | select(.name == "embench-accuracy" and .expired == false)] | sort_by(.created_at) | last | .archive_download_url')
+          ARTIFACT_URL=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=embench-accuracy" \
+            --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | last | .archive_download_url')
           if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
             echo "::warning::No embench-accuracy artifact found"
           else
