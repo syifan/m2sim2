@@ -22,13 +22,13 @@ jobs:
           import subprocess, json, re, statistics, os
 
           BENCHMARKS = {
-              "atax":      {"dir": "atax",      "instructions": 130927,  "kernel": "kernel_atax",      "iters": 5000},
-              "bicg":      {"dir": "bicg",      "instructions": 112372,  "kernel": "kernel_bicg",      "iters": 5000},
-              "gemm":      {"dir": "gemm",      "instructions": 2516282, "kernel": "kernel_gemm",      "iters": 1000},
-              "mvt":       {"dir": "mvt",       "instructions": 124920,  "kernel": "kernel_mvt",       "iters": 5000},
-              "jacobi-1d": {"dir": "jacobi-1d", "instructions": 49248,   "kernel": "kernel_jacobi_1d", "iters": 10000},
-              "2mm":       {"dir": "2mm",       "instructions": 4555010, "kernel": "kernel_2mm",       "iters": 500},
-              "3mm":       {"dir": "3mm",       "instructions": 8760634, "kernel": "kernel_3mm",       "iters": 250},
+              "atax":      {"dir": "atax",      "instructions": 130927,  "iters": 1000},
+              "bicg":      {"dir": "bicg",      "instructions": 112372,  "iters": 1000},
+              "gemm":      {"dir": "gemm",      "instructions": 2516282, "iters": 200},
+              "mvt":       {"dir": "mvt",       "instructions": 124920,  "iters": 1000},
+              "jacobi-1d": {"dir": "jacobi-1d", "instructions": 49248,   "iters": 2000},
+              "2mm":       {"dir": "2mm",       "instructions": 4555010, "iters": 100},
+              "3mm":       {"dir": "3mm",       "instructions": 8760634, "iters": 50},
           }
 
           FREQUENCY_GHZ = 3.5
@@ -53,11 +53,10 @@ jobs:
           #include <stdio.h>
 
           int main(void) {{
-              init_array();
               struct timespec start, end;
               clock_gettime(CLOCK_MONOTONIC, &start);
               for (int iter = 0; iter < {iters}; iter++) {{
-                  {kernel}();
+                  _original_main();
               }}
               clock_gettime(CLOCK_MONOTONIC, &end);
               double elapsed = (end.tv_sec - start.tv_sec)
@@ -77,7 +76,6 @@ jobs:
               # Generate wrapper C source
               wrapper_src = WRAPPER_TEMPLATE.format(
                   src_path=src_rel,
-                  kernel=info["kernel"],
                   iters=info["iters"],
               )
               with open(wrapper_file, "w") as f:
@@ -99,9 +97,9 @@ jobs:
                       raise RuntimeError(f"{name} round {r+1}: no TIMING line in output")
                   elapsed = float(m.group(1))
                   iters = int(m.group(2))
-                  time_per_kernel = elapsed / iters
-                  round_times.append(time_per_kernel)
-                  print(f"  Round {r+1}/{ROUNDS}: {elapsed:.6f}s / {iters} iters = {time_per_kernel*1e6:.4f}us per kernel")
+                  time_per_run = elapsed / iters
+                  round_times.append(time_per_run)
+                  print(f"  Round {r+1}/{ROUNDS}: {elapsed:.6f}s / {iters} iters = {time_per_run*1e6:.4f}us per run")
 
               median_time = statistics.median(round_times)
               cycles = median_time * FREQUENCY_GHZ * 1e9
@@ -124,7 +122,7 @@ jobs:
               "dataset": "SMALL",
               "runner": "macos-14",
               "frequency_ghz": FREQUENCY_GHZ,
-              "kernel_iterations": {n: info["iters"] for n, info in BENCHMARKS.items()},
+              "program_iterations": {n: info["iters"] for n, info in BENCHMARKS.items()},
               "rounds": ROUNDS,
               "benchmarks": results,
           }
@@ -153,7 +151,10 @@ jobs:
           print(f"- **Runner:** {data['runner']}")
           print(f"- **Frequency:** {data['frequency_ghz']} GHz")
           print(f"- **Rounds:** {data['rounds']}")
-          if "kernel_iterations" in data:
+          if "program_iterations" in data:
+              iters = data["program_iterations"]
+              print(f"- **Program iterations:** {', '.join(f'{k}={v}' for k,v in sorted(iters.items()))}")
+          elif "kernel_iterations" in data:
               iters = data["kernel_iterations"]
               print(f"- **Kernel iterations:** {', '.join(f'{k}={v}' for k,v in sorted(iters.items()))}")
           print()
