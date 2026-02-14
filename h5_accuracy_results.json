@@ -5,7 +5,7 @@
     "microbenchmarks_with_error": 11,
     "polybench_with_error": 7,
     "embench_sim_only": 1,
-    "infeasible_benchmarks": 7,
+    "infeasible_benchmarks": 6,
     "average_error": 0.6171,
     "micro_average_error": 0.1421,
     "polybench_average_error": 1.3636,
