@@ -35,7 +35,7 @@ var _ = Describe("Latency", func() {
 
 		It("should have correct load latency", func() {
 			config := table.Config()
-			Expect(config.LoadLatency).To(Equal(uint64(4)))
+			Expect(config.LoadLatency).To(Equal(uint64(3)))
 		})
 
 		It("should have correct store latency", func() {
@@ -136,10 +136,10 @@ var _ = Describe("Latency", func() {
 	})
 
 	Describe("Memory Instruction Latencies", func() {
-		It("should return 4 cycles for LDR (L1 hit)", func() {
+		It("should return 3 cycles for LDR (L1 hit)", func() {
 			// LDR X0, [X1, #8] -> 0xF9400420
 			inst := decoder.Decode(0xF9400420)
-			Expect(table.GetLatency(inst)).To(Equal(uint64(4)))
+			Expect(table.GetLatency(inst)).To(Equal(uint64(3)))
 		})
 
 		It("should return 1 cycle for STR", func() {
@@ -152,7 +152,7 @@ var _ = Describe("Latency", func() {
 			// LDRSW X0, [X1] -> 0xB9800020
 			inst := decoder.Decode(0xB9800020)
 			Expect(inst.Op).To(Equal(insts.OpLDRSW))
-			Expect(table.GetLatency(inst)).To(Equal(uint64(4)))
+			Expect(table.GetLatency(inst)).To(Equal(uint64(3)))
 		})
 	})
 

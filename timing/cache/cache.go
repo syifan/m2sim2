@@ -43,7 +43,7 @@ func DefaultL1DConfig() Config {
 		Size:          128 * 1024, // 128KB
 		Associativity: 8,          // 8-way
 		BlockSize:     64,         // 64B cache line
-		HitLatency:    4,          // 4-cycle load-to-use latency (M2)
+		HitLatency:    3,          // 3-cycle load-to-use latency (M2)
 		MissLatency:   12,         // ~12 cycles to L2
 	}
 }

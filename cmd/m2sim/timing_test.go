@@ -203,7 +203,7 @@ var _ = Describe("Timing Model Documentation", func() {
 		config := latency.DefaultTimingConfig()
 		Expect(config.ALULatency).To(Equal(uint64(1)))
 		Expect(config.BranchLatency).To(Equal(uint64(1)))
-		Expect(config.LoadLatency).To(Equal(uint64(4)))
+		Expect(config.LoadLatency).To(Equal(uint64(3)))
 		Expect(config.StoreLatency).To(Equal(uint64(1)))
 		Expect(config.SyscallLatency).To(Equal(uint64(1)))
 		Expect(config.BranchMispredictPenalty).To(Equal(uint64(12)))

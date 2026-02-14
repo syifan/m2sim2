@@ -22,7 +22,7 @@ type TimingConfig struct {
 	BranchMispredictPenalty uint64 `json:"branch_mispredict_penalty"`
 
 	// LoadLatency is the latency for load operations assuming L1 cache hit.
-	// Default: 4 cycles.
+	// Default: 3 cycles.
 	LoadLatency uint64 `json:"load_latency"`
 
 	// StoreLatency is the latency for store operations (fire-and-forget to LSQ).
@@ -72,7 +72,7 @@ func DefaultTimingConfig() *TimingConfig {
 		ALULatency:              1,
 		BranchLatency:           1,
 		BranchMispredictPenalty: 12,
-		LoadLatency:             4,
+		LoadLatency:             3,
 		StoreLatency:            1,
 		MultiplyLatency:         3,
 		DivideLatencyMin:        10,
