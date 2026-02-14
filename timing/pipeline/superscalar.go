@@ -1076,8 +1076,50 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 			}
 		}
 
+		// Pre/post-indexed load/store instructions write to Rn (base register)
+		// in addition to any normal Rd write. This hidden write has no
+		// forwarding path, so block co-issue with any instruction that
+		// reads the same register.
+		if prev.Inst != nil && prev.Rn != 31 &&
+			(prev.MemRead || prev.MemWrite) &&
+			(prev.Inst.IndexMode == insts.IndexPre || prev.Inst.IndexMode == insts.IndexPost) {
+			if newInst.Rn == prev.Rn || newInst.Rm == prev.Rn {
+				return false
+			}
+			// Store value register may also read the base register
+			if newInst.MemWrite && newInst.Inst != nil && newInst.Inst.Rd == prev.Rn {
+				return false
+			}
+		}
+
 		// Check for WAW hazard: both write to same register
 		if prev.RegWrite && newInst.RegWrite && prev.Rd == newInst.Rd && prev.Rd != 31 {
+			return false
+		}
+
+		// WAW hazard for pre/post-indexed Rn writes
+		if prev.Inst != nil && prev.Rn != 31 &&
+			(prev.MemRead || prev.MemWrite) &&
+			(prev.Inst.IndexMode == insts.IndexPre || prev.Inst.IndexMode == insts.IndexPost) {
+			if newInst.Inst != nil {
+				// New instruction also writes to the same Rn via pre/post-index
+				if (newInst.MemRead || newInst.MemWrite) &&
+					(newInst.Inst.IndexMode == insts.IndexPre || newInst.Inst.IndexMode == insts.IndexPost) &&
+					newInst.Rn == prev.Rn {
+					return false
+				}
+			}
+			// New instruction writes to Rn via normal Rd
+			if newInst.RegWrite && newInst.Rd == prev.Rn {
+				return false
+			}
+		}
+
+		// WAW hazard: prev writes Rd, new writes same register via pre/post-index Rn
+		if prev.RegWrite && prev.Rd != 31 && newInst.Inst != nil &&
+			(newInst.MemRead || newInst.MemWrite) &&
+			(newInst.Inst.IndexMode == insts.IndexPre || newInst.Inst.IndexMode == insts.IndexPost) &&
+			newInst.Rn == prev.Rd {
 			return false
 		}
 	}
