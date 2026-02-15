@@ -108,9 +108,9 @@ var _ = Describe("Superscalar Pipeline", func() {
 		})
 
 		It("should handle WAW dependency correctly", func() {
-			// Both write to X0 - cannot dual issue
+			// Both write to X0 - WAW relaxed (register renaming)
 			// ADD X0, XZR, #10  ; X0 = 10
-			// ADD X0, XZR, #20  ; X0 = 20 (WAW)
+			// ADD X0, XZR, #20  ; X0 = 20 (WAW, can dual-issue)
 			memory.Write32(0x1000, 0x910029E0) // ADD X0, XZR, #10
 			memory.Write32(0x1004, 0x910053E0) // ADD X0, XZR, #20
 			memory.Write32(0x1008, 0xD4000001) // SVC #0
@@ -118,7 +118,7 @@ var _ = Describe("Superscalar Pipeline", func() {
 			pipe.SetPC(0x1000)
 			pipe.Run()
 
-			// Second instruction should execute last
+			// In-order writeback ensures second instruction's value wins
 			Expect(regFile.ReadReg(0)).To(Equal(uint64(20)))
 		})
 
