@@ -943,15 +943,15 @@ const maxLoadPorts = 3
 const maxStorePorts = 2
 
 // maxMemPorts is the total AGU bandwidth (load + store combined).
-const maxMemPorts = 3
+// M2 Avalanche has 3 load + 2 store = 5 total AGU ports; 4 approximates this.
+const maxMemPorts = 4
 
 // maxWritePorts is the maximum number of register file write-back ports per
 // cycle. This limits how many register-writing instructions can be issued in
 // the same cycle due to register-file write-back bandwidth, independent of
-// execution unit count. Calibrated against M2 hardware: arithmetic benchmark
-// (5-register ALU cycling) shows CPI=0.296, consistent with 4 write ports
-// limiting sustained throughput.
-const maxWritePorts = 4
+// execution unit count. M2 has 6 ALU execution units, each with a write port.
+// The arithmetic benchmark is limited by register count (5 unique), not write ports.
+const maxWritePorts = 6
 
 // isALUOp returns true if the instruction uses an integer ALU execution port.
 func isALUOp(inst *IDEXRegister) bool {
