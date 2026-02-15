@@ -179,6 +179,7 @@ type SecondaryIFIDRegister struct {
 	PredictedTaken  bool
 	PredictedTarget uint64
 	EarlyResolved   bool
+	AfterBranch     bool
 }
 
 // SecondaryIDEXRegister holds the second decoded instruction for dual-issue.
@@ -330,6 +331,7 @@ type TertiaryIFIDRegister struct {
 	PredictedTaken  bool
 	PredictedTarget uint64
 	EarlyResolved   bool
+	AfterBranch     bool
 }
 
 // TertiaryIDEXRegister holds the third decoded instruction for 4-wide issue.
@@ -483,6 +485,7 @@ type QuaternaryIFIDRegister struct {
 	PredictedTaken  bool
 	PredictedTarget uint64
 	EarlyResolved   bool
+	AfterBranch     bool
 }
 
 // QuaternaryIDEXRegister holds the fourth decoded instruction for 4-wide issue.
@@ -636,6 +639,7 @@ type QuinaryIFIDRegister struct {
 	PredictedTaken  bool
 	PredictedTarget uint64
 	EarlyResolved   bool
+	AfterBranch     bool
 }
 
 // QuinaryIDEXRegister holds the decoded instruction for wide issue.
@@ -787,6 +791,7 @@ type SenaryIFIDRegister struct {
 	PredictedTaken  bool
 	PredictedTarget uint64
 	EarlyResolved   bool
+	AfterBranch     bool
 }
 
 // SenaryIDEXRegister holds the decoded instruction for wide issue.
@@ -1047,13 +1052,17 @@ func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCo
 			continue
 		}
 
-		// Block ALL instructions after a branch in the same issue group.
-		// Without a reorder buffer, speculative instructions that execute
-		// and write back will corrupt architectural state on misprediction.
-		// For example, an ALU increment from the next iteration would
-		// corrupt a loop counter register, causing infinite loops.
+		// With register checkpointing, we can allow non-store instructions
+		// after predicted-taken branches. On misprediction, the checkpoint
+		// restores all register state. Stores are still blocked because
+		// memory writes cannot be rolled back.
 		if prev.IsBranch {
-			return false, false
+			if !prev.PredictedTaken {
+				return false, false
+			}
+			if newInst.MemWrite {
+				return false, false
+			}
 		}
 
 		// Store-to-load forwarding: M2's 56-entry store buffer handles
@@ -1318,6 +1327,7 @@ type SeptenaryIFIDRegister struct {
 	PredictedTaken  bool
 	PredictedTarget uint64
 	EarlyResolved   bool
+	AfterBranch     bool
 }
 
 // SeptenaryIDEXRegister holds the decoded instruction for wide issue.
@@ -1492,6 +1502,7 @@ type OctonaryIFIDRegister struct {
 	PredictedTaken  bool
 	PredictedTarget uint64
 	EarlyResolved   bool
+	AfterBranch     bool
 }
 
 // OctonaryIDEXRegister holds the decoded instruction for wide issue.

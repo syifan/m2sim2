@@ -22,6 +22,9 @@ type IFIDRegister struct {
 
 	// EarlyResolved indicates if this was an unconditional branch resolved at fetch time.
 	EarlyResolved bool
+
+	// AfterBranch indicates this instruction was fetched after a predicted-taken branch.
+	AfterBranch bool
 }
 
 // Clear resets the IF/ID register to empty state.

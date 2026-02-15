@@ -28,6 +28,7 @@ type instrWindowEntry struct {
 	PredictedTaken  bool
 	PredictedTarget uint64
 	EarlyResolved   bool
+	AfterBranch     bool // instruction was fetched after a predicted-taken branch
 }
 
 // isUnconditionalBranch checks if an instruction word is an unconditional branch (B or BL).
@@ -268,6 +269,16 @@ func WithBranchPredictorConfig(config BranchPredictorConfig) PipelineOption {
 	}
 }
 
+// RegisterCheckpoint saves architectural register state before a branch
+// executes, allowing rollback on misprediction. This enables speculative
+// execution of non-store instructions after predicted-taken branches.
+type RegisterCheckpoint struct {
+	Valid  bool
+	Regs   [31]uint64
+	SP     uint64
+	PSTATE emu.PSTATE
+}
+
 // Pipeline implements a 5-stage pipelined CPU model.
 // Stages: Fetch (IF) -> Decode (ID) -> Execute (EX) -> Memory (MEM) -> Writeback (WB)
 // Supports optional superscalar (dual-issue) execution for independent instructions.
@@ -385,6 +396,9 @@ type Pipeline struct {
 	// ones from different loop iterations.
 	instrWindow    [instrWindowSize]instrWindowEntry
 	instrWindowLen int
+
+	// Register checkpoint for branch misprediction rollback
+	branchCheckpoint RegisterCheckpoint
 
 	// Statistics
 	stats Statistics
@@ -4166,6 +4180,17 @@ func (p *Pipeline) tickOctupleIssue() {
 				}
 			}
 
+			// Save register checkpoint before branch execution so we can
+			// roll back speculative writes on misprediction.
+			if p.idex.IsBranch {
+				p.branchCheckpoint.Valid = true
+				for i := uint8(0); i < 31; i++ {
+					p.branchCheckpoint.Regs[i] = p.regFile.ReadReg(i)
+				}
+				p.branchCheckpoint.SP = p.regFile.SP
+				p.branchCheckpoint.PSTATE = p.regFile.PSTATE
+			}
+
 			execResult := p.executeStage.ExecuteWithFlags(&p.idex, rnValue, rmValue,
 				forwardFlags, fwdN, fwdZ, fwdC, fwdV)
 
@@ -4237,6 +4262,16 @@ func (p *Pipeline) tickOctupleIssue() {
 					p.flushAllIDEX()
 					p.stats.Flushes++
 
+					// Restore register checkpoint to undo speculative writes
+					if p.branchCheckpoint.Valid {
+						for i := uint8(0); i < 31; i++ {
+							p.regFile.WriteReg(i, p.branchCheckpoint.Regs[i])
+						}
+						p.regFile.SP = p.branchCheckpoint.SP
+						p.regFile.PSTATE = p.branchCheckpoint.PSTATE
+						p.branchCheckpoint.Valid = false
+					}
+
 					// Latch results and return early
 					if !memStall {
 						p.memwb = nextMEMWB
@@ -4258,6 +4293,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.branchCheckpoint.Valid = false
 				p.stats.BranchCorrect++
 			}
 		}
@@ -5456,7 +5492,10 @@ func (p *Pipeline) tickOctupleIssue() {
 			if !fusedCMPBcond {
 				// During load-use hazard, skip the dependent instruction (slot 0).
 				// It will be re-queued to IFID for the next cycle via consumed tracking.
-				if !loadUseHazard {
+				// Also block speculative stores in slot 0: instructions fetched after
+				// a predicted-taken branch that write to memory cannot issue because
+				// memory writes are not rolled back on misprediction.
+				if !loadUseHazard && !(p.ifid.AfterBranch && decResult.MemWrite) {
 					nextIDEX = IDEXRegister{
 						Valid:           true,
 						PC:              p.ifid.PC,
@@ -5787,6 +5826,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 		// Step 2: Fetch new instructions into the window buffer.
 		fetchPC := p.pc
+		fetchedAfterBranch := false
 		for p.instrWindowLen < instrWindowSize {
 			var word uint32
 			var ok bool
@@ -5817,6 +5857,7 @@ func (p *Pipeline) tickOctupleIssue() {
 				Valid:           true,
 				PC:              fetchPC,
 				InstructionWord: word,
+				AfterBranch:     fetchedAfterBranch,
 			}
 			p.instrWindowLen++
 
@@ -5837,6 +5878,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 			if pred.Taken && pred.TargetKnown {
 				fetchPC = pred.Target
+				fetchedAfterBranch = true
 			} else {
 				fetchPC += 4
 			}
@@ -5990,16 +6032,17 @@ func (p *Pipeline) pushUnconsumedToWindow(consumed []bool) {
 		predictedTaken  bool
 		predictedTarget uint64
 		earlyResolved   bool
+		afterBranch     bool
 	}
 	slots := [8]ifidSlot{
-		{p.ifid.Valid, p.ifid.PC, p.ifid.InstructionWord, p.ifid.PredictedTaken, p.ifid.PredictedTarget, p.ifid.EarlyResolved},
-		{p.ifid2.Valid, p.ifid2.PC, p.ifid2.InstructionWord, p.ifid2.PredictedTaken, p.ifid2.PredictedTarget, p.ifid2.EarlyResolved},
-		{p.ifid3.Valid, p.ifid3.PC, p.ifid3.InstructionWord, p.ifid3.PredictedTaken, p.ifid3.PredictedTarget, p.ifid3.EarlyResolved},
-		{p.ifid4.Valid, p.ifid4.PC, p.ifid4.InstructionWord, p.ifid4.PredictedTaken, p.ifid4.PredictedTarget, p.ifid4.EarlyResolved},
-		{p.ifid5.Valid, p.ifid5.PC, p.ifid5.InstructionWord, p.ifid5.PredictedTaken, p.ifid5.PredictedTarget, p.ifid5.EarlyResolved},
-		{p.ifid6.Valid, p.ifid6.PC, p.ifid6.InstructionWord, p.ifid6.PredictedTaken, p.ifid6.PredictedTarget, p.ifid6.EarlyResolved},
-		{p.ifid7.Valid, p.ifid7.PC, p.ifid7.InstructionWord, p.ifid7.PredictedTaken, p.ifid7.PredictedTarget, p.ifid7.EarlyResolved},
-		{p.ifid8.Valid, p.ifid8.PC, p.ifid8.InstructionWord, p.ifid8.PredictedTaken, p.ifid8.PredictedTarget, p.ifid8.EarlyResolved},
+		{p.ifid.Valid, p.ifid.PC, p.ifid.InstructionWord, p.ifid.PredictedTaken, p.ifid.PredictedTarget, p.ifid.EarlyResolved, p.ifid.AfterBranch},
+		{p.ifid2.Valid, p.ifid2.PC, p.ifid2.InstructionWord, p.ifid2.PredictedTaken, p.ifid2.PredictedTarget, p.ifid2.EarlyResolved, p.ifid2.AfterBranch},
+		{p.ifid3.Valid, p.ifid3.PC, p.ifid3.InstructionWord, p.ifid3.PredictedTaken, p.ifid3.PredictedTarget, p.ifid3.EarlyResolved, p.ifid3.AfterBranch},
+		{p.ifid4.Valid, p.ifid4.PC, p.ifid4.InstructionWord, p.ifid4.PredictedTaken, p.ifid4.PredictedTarget, p.ifid4.EarlyResolved, p.ifid4.AfterBranch},
+		{p.ifid5.Valid, p.ifid5.PC, p.ifid5.InstructionWord, p.ifid5.PredictedTaken, p.ifid5.PredictedTarget, p.ifid5.EarlyResolved, p.ifid5.AfterBranch},
+		{p.ifid6.Valid, p.ifid6.PC, p.ifid6.InstructionWord, p.ifid6.PredictedTaken, p.ifid6.PredictedTarget, p.ifid6.EarlyResolved, p.ifid6.AfterBranch},
+		{p.ifid7.Valid, p.ifid7.PC, p.ifid7.InstructionWord, p.ifid7.PredictedTaken, p.ifid7.PredictedTarget, p.ifid7.EarlyResolved, p.ifid7.AfterBranch},
+		{p.ifid8.Valid, p.ifid8.PC, p.ifid8.InstructionWord, p.ifid8.PredictedTaken, p.ifid8.PredictedTarget, p.ifid8.EarlyResolved, p.ifid8.AfterBranch},
 	}
 
 	// Collect un-consumed entries
@@ -6014,6 +6057,7 @@ func (p *Pipeline) pushUnconsumedToWindow(consumed []bool) {
 				PredictedTaken:  slots[i].predictedTaken,
 				PredictedTarget: slots[i].predictedTarget,
 				EarlyResolved:   slots[i].earlyResolved,
+				AfterBranch:     slots[i].afterBranch,
 			}
 			pendingCount++
 		}
@@ -6071,49 +6115,49 @@ func (p *Pipeline) popWindowToIFID(
 			*ifid1 = IFIDRegister{
 				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
 				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
-				EarlyResolved: e.EarlyResolved,
+				EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch,
 			}
 		case 1:
 			*ifid2 = SecondaryIFIDRegister{
 				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
 				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
-				EarlyResolved: e.EarlyResolved,
+				EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch,
 			}
 		case 2:
 			*ifid3 = TertiaryIFIDRegister{
 				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
 				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
-				EarlyResolved: e.EarlyResolved,
+				EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch,
 			}
 		case 3:
 			*ifid4 = QuaternaryIFIDRegister{
 				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
 				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
-				EarlyResolved: e.EarlyResolved,
+				EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch,
 			}
 		case 4:
 			*ifid5 = QuinaryIFIDRegister{
 				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
 				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
-				EarlyResolved: e.EarlyResolved,
+				EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch,
 			}
 		case 5:
 			*ifid6 = SenaryIFIDRegister{
 				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
 				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
-				EarlyResolved: e.EarlyResolved,
+				EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch,
 			}
 		case 6:
 			*ifid7 = SeptenaryIFIDRegister{
 				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
 				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
-				EarlyResolved: e.EarlyResolved,
+				EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch,
 			}
 		case 7:
 			*ifid8 = OctonaryIFIDRegister{
 				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
 				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
-				EarlyResolved: e.EarlyResolved,
+				EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch,
 			}
 		}
 	}
