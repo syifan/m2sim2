@@ -3737,47 +3737,6 @@ func (p *Pipeline) tickSextupleIssue() {
 	p.ifid6 = nextIFID6
 }
 
-// collectPendingFetchInstructions6 returns unissued instructions for 6-wide.
-// Uses a fixed-size array to avoid heap allocation per tick.
-func (p *Pipeline) collectPendingFetchInstructions6(issueCount int) ([8]pendingFetchInst, int) {
-	var allFetched [8]pendingFetchInst
-	count := 0
-
-	if p.ifid.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord}
-		count++
-	}
-	if p.ifid2.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord}
-		count++
-	}
-	if p.ifid3.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord}
-		count++
-	}
-	if p.ifid4.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord}
-		count++
-	}
-	if p.ifid5.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid5.PC, Word: p.ifid5.InstructionWord}
-		count++
-	}
-	if p.ifid6.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid6.PC, Word: p.ifid6.InstructionWord}
-		count++
-	}
-
-	pendingCount := 0
-	if issueCount < count {
-		pendingCount = count - issueCount
-		for i := 0; i < pendingCount; i++ {
-			allFetched[i] = allFetched[i+issueCount]
-		}
-	}
-
-	return allFetched, pendingCount
-}
 
 // Reset clears all pipeline state.
 func (p *Pipeline) Reset() {
@@ -5668,7 +5627,6 @@ func (p *Pipeline) tickOctupleIssue() {
 				nextIDEX8.fromIDEX(&tempIDEX8)
 			}
 			issuedInsts[issuedCount] = &tempIDEX8
-			issuedCount++
 		}
 	} else if (stallResult.StallID || memStall) && !stallResult.FlushID {
 		nextIDEX = p.idex
@@ -6017,52 +5975,3 @@ func (p *Pipeline) collectPendingFetchInstructionsSelective(consumed []bool) ([8
 	return result, count
 }
 
-// collectPendingFetchInstructions8 returns unissued instructions for 8-wide.
-// Uses a fixed-size array to avoid heap allocation per tick.
-func (p *Pipeline) collectPendingFetchInstructions8(issueCount int) ([8]pendingFetchInst, int) {
-	var allFetched [8]pendingFetchInst
-	count := 0
-
-	if p.ifid.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid.PC, Word: p.ifid.InstructionWord}
-		count++
-	}
-	if p.ifid2.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid2.PC, Word: p.ifid2.InstructionWord}
-		count++
-	}
-	if p.ifid3.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid3.PC, Word: p.ifid3.InstructionWord}
-		count++
-	}
-	if p.ifid4.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid4.PC, Word: p.ifid4.InstructionWord}
-		count++
-	}
-	if p.ifid5.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid5.PC, Word: p.ifid5.InstructionWord}
-		count++
-	}
-	if p.ifid6.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid6.PC, Word: p.ifid6.InstructionWord}
-		count++
-	}
-	if p.ifid7.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid7.PC, Word: p.ifid7.InstructionWord}
-		count++
-	}
-	if p.ifid8.Valid {
-		allFetched[count] = pendingFetchInst{PC: p.ifid8.PC, Word: p.ifid8.InstructionWord}
-		count++
-	}
-
-	pendingCount := 0
-	if issueCount < count {
-		pendingCount = count - issueCount
-		for i := 0; i < pendingCount; i++ {
-			allFetched[i] = allFetched[i+issueCount]
-		}
-	}
-
-	return allFetched, pendingCount
-}
