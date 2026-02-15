@@ -4298,7 +4298,7 @@ func (p *Pipeline) tickOctupleIssue() {
 	}
 
 	// Execute secondary slot
-	if p.idex2.Valid && !memStall && !execStall {
+	if p.idex2.Valid && !memStall {
 		if p.latencyTable != nil && p.exLatency2 == 0 {
 			p.exLatency2 = p.latencyTable.GetLatency(p.idex2.Inst)
 		}
@@ -4425,7 +4425,7 @@ func (p *Pipeline) tickOctupleIssue() {
 	}
 
 	// Execute tertiary slot
-	if p.idex3.Valid && !memStall && !execStall {
+	if p.idex3.Valid && !memStall {
 		if p.latencyTable != nil && p.exLatency3 == 0 {
 			p.exLatency3 = p.latencyTable.GetLatency(p.idex3.Inst)
 		}
@@ -4566,7 +4566,7 @@ func (p *Pipeline) tickOctupleIssue() {
 	}
 
 	// Execute quaternary slot
-	if p.idex4.Valid && !memStall && !execStall {
+	if p.idex4.Valid && !memStall {
 		if p.latencyTable != nil && p.exLatency4 == 0 {
 			p.exLatency4 = p.latencyTable.GetLatency(p.idex4.Inst)
 		}
@@ -4712,7 +4712,7 @@ func (p *Pipeline) tickOctupleIssue() {
 	}
 
 	// Execute quinary slot
-	if p.idex5.Valid && !memStall && !execStall {
+	if p.idex5.Valid && !memStall {
 		if p.latencyTable != nil && p.exLatency5 == 0 {
 			p.exLatency5 = p.latencyTable.GetLatency(p.idex5.Inst)
 		}
@@ -4865,7 +4865,7 @@ func (p *Pipeline) tickOctupleIssue() {
 	}
 
 	// Execute senary slot
-	if p.idex6.Valid && !memStall && !execStall {
+	if p.idex6.Valid && !memStall {
 		if p.latencyTable != nil && p.exLatency6 == 0 {
 			p.exLatency6 = p.latencyTable.GetLatency(p.idex6.Inst)
 		}
@@ -5029,7 +5029,7 @@ func (p *Pipeline) tickOctupleIssue() {
 	}
 
 	// Execute septenary slot
-	if p.idex7.Valid && !memStall && !execStall {
+	if p.idex7.Valid && !memStall {
 		if p.latencyTable != nil && p.exLatency7 == 0 {
 			p.exLatency7 = p.latencyTable.GetLatency(p.idex7.Inst)
 		}
@@ -5204,7 +5204,7 @@ func (p *Pipeline) tickOctupleIssue() {
 	}
 
 	// Execute octonary slot
-	if p.idex8.Valid && !memStall && !execStall {
+	if p.idex8.Valid && !memStall {
 		if p.latencyTable != nil && p.exLatency8 == 0 {
 			p.exLatency8 = p.latencyTable.GetLatency(p.idex8.Inst)
 		}
@@ -5409,7 +5409,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		}
 	}
 
-	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard || execStall || memStall, false)
+	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard || memStall, false)
 
 	// Stage 2: Decode (all 8 slots)
 	var nextIDEX IDEXRegister
@@ -5693,7 +5693,7 @@ func (p *Pipeline) tickOctupleIssue() {
 				nextIDEX8.fromIDEX(&tempIDEX8)
 			}
 		}
-	} else if (stallResult.StallID || execStall || memStall) && !stallResult.FlushID {
+	} else if (stallResult.StallID || memStall) && !stallResult.FlushID {
 		nextIDEX = p.idex
 		nextIDEX2 = p.idex2
 		nextIDEX3 = p.idex3
@@ -5702,6 +5702,9 @@ func (p *Pipeline) tickOctupleIssue() {
 		nextIDEX6 = p.idex6
 		nextIDEX7 = p.idex7
 		nextIDEX8 = p.idex8
+	}
+	if execStall {
+		nextIDEX = p.idex
 	}
 
 	// Count how many instructions were issued this cycle for fetch advancement
@@ -5984,7 +5987,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		p.memwb7.Clear()
 		p.memwb8.Clear()
 	}
-	if !execStall && !memStall {
+	if !memStall {
 		p.exmem = nextEXMEM
 		p.exmem2 = nextEXMEM2
 		p.exmem3 = nextEXMEM3
@@ -5994,7 +5997,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		p.exmem7 = nextEXMEM7
 		p.exmem8 = nextEXMEM8
 	}
-	if stallResult.InsertBubbleEX && !execStall && !memStall {
+	if stallResult.InsertBubbleEX && !memStall {
 		p.idex.Clear()
 		p.idex2.Clear()
 		p.idex3.Clear()
