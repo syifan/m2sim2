@@ -159,7 +159,7 @@ func canDualIssue(first, second *IDEXRegister) bool {
 			return false
 		}
 
-		if hasRAW && first.MemRead {
+		if hasRAW {
 			return false
 		}
 	}
@@ -1068,7 +1068,7 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 				return false
 			}
 
-			if hasRAW && prev.MemRead {
+			if hasRAW {
 				return false
 			}
 		}
