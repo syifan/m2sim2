@@ -975,7 +975,7 @@ func isALUOp(inst *IDEXRegister) bool {
 
 // canIssueWith checks if a new instruction can be issued with a set of previously issued instructions.
 // Uses a fixed-size array to avoid heap allocation per tick cycle.
-func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int) bool {
+func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int, issued *[8]bool) bool {
 	if newInst == nil || !newInst.Valid {
 		return false
 	}
@@ -990,10 +990,18 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 		return false
 	}
 
+	// Count actually-issued instructions for slot position check.
+	actualIssuedCount := 0
+	for i := 0; i < earlierCount; i++ {
+		if issued != nil && issued[i] {
+			actualIssuedCount++
+		}
+	}
+
 	// Memory operations can only execute in slots with memory ports (first maxMemPorts slots).
-	// The new instruction would go into slot earlierCount, so reject memory ops in slots >= maxMemPorts.
+	// Use actualIssuedCount (not earlierCount) since non-issued instructions don't occupy ports.
 	newAccessesMem := newInst.MemRead || newInst.MemWrite
-	if newAccessesMem && earlierCount >= maxMemPorts {
+	if newAccessesMem && actualIssuedCount >= maxMemPorts {
 		return false
 	}
 
@@ -1034,19 +1042,23 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 		// Store-to-load forwarding: M2's 56-entry store buffer handles
 		// forwarding transparently. No blanket blocking needed.
 
-		if prev.MemRead {
-			loadCount++
-		}
-		if prev.MemWrite {
-			storeCount++
-		}
+		// Only count port usage for actually-issued instructions.
+		isIssued := issued != nil && issued[i]
+		if isIssued {
+			if prev.MemRead {
+				loadCount++
+			}
+			if prev.MemWrite {
+				storeCount++
+			}
 
-		if isALUOp(prev) {
-			aluOpCount++
-		}
+			if isALUOp(prev) {
+				aluOpCount++
+			}
 
-		if prev.RegWrite {
-			writePortCount++
+			if prev.RegWrite {
+				writePortCount++
+			}
 		}
 
 		// Check for RAW hazard: new reads register that prev writes.

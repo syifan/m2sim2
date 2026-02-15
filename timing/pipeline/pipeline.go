@@ -2107,7 +2107,9 @@ func (p *Pipeline) tickQuadIssue() {
 		// Try to issue instructions 2, 3, 4 if they can issue with earlier instructions.
 		// Uses fixed-size array to avoid heap allocation per tick.
 		var issuedInsts [8]*IDEXRegister
+		var issued [8]bool
 		issuedInsts[0] = &nextIDEX
+		issued[0] = true
 		issuedCount := 1
 
 		// Decode slot 2
@@ -2132,8 +2134,9 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX2
 			issuedCount++
@@ -2161,8 +2164,9 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX3
 			issuedCount++
@@ -2190,7 +2194,7 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
 			}
 		}
@@ -3332,7 +3336,9 @@ func (p *Pipeline) tickSextupleIssue() {
 		// Try to issue instructions 2-6 if they can issue with earlier instructions.
 		// Uses fixed-size array to avoid heap allocation per tick.
 		var issuedInsts [8]*IDEXRegister
+		var issued [8]bool
 		issuedInsts[0] = &nextIDEX
+		issued[0] = true
 		issuedCount := 1
 
 		// Track if IFID2 was consumed by fusion (skip its decode)
@@ -3359,8 +3365,9 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid2.PredictedTarget,
 				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX2
 			issuedCount++
@@ -3387,8 +3394,9 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid3.PredictedTarget,
 				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX3
 			issuedCount++
@@ -3415,8 +3423,9 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid4.PredictedTarget,
 				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX4
 			issuedCount++
@@ -3443,8 +3452,9 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid5.PredictedTarget,
 				EarlyResolved:   p.ifid5.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
 				nextIDEX5.fromIDEX(&tempIDEX5)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX5
 			issuedCount++
@@ -3471,7 +3481,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid6.PredictedTarget,
 				EarlyResolved:   p.ifid6.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
 				nextIDEX6.fromIDEX(&tempIDEX6)
 			}
 		}
@@ -5427,7 +5437,9 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Try to issue instructions 2-8 if they can issue with earlier instructions.
 		// Uses fixed-size array to avoid heap allocation per tick.
 		var issuedInsts [8]*IDEXRegister
+		var issued [8]bool
 		issuedInsts[0] = &nextIDEX
+		issued[0] = true
 		issuedCount := 1
 
 		// Track if IFID2 was consumed by fusion (skip its decode)
@@ -5454,8 +5466,9 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid2.PredictedTarget,
 				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX2
 			issuedCount++
@@ -5482,8 +5495,9 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid3.PredictedTarget,
 				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX3
 			issuedCount++
@@ -5510,8 +5524,9 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid4.PredictedTarget,
 				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX4
 			issuedCount++
@@ -5538,8 +5553,9 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid5.PredictedTarget,
 				EarlyResolved:   p.ifid5.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
 				nextIDEX5.fromIDEX(&tempIDEX5)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX5
 			issuedCount++
@@ -5566,8 +5582,9 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid6.PredictedTarget,
 				EarlyResolved:   p.ifid6.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
 				nextIDEX6.fromIDEX(&tempIDEX6)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX6
 			issuedCount++
@@ -5594,8 +5611,9 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid7.PredictedTarget,
 				EarlyResolved:   p.ifid7.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX7, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX7, &issuedInsts, issuedCount, &issued) {
 				nextIDEX7.fromIDEX(&tempIDEX7)
+				issued[issuedCount] = true
 			}
 			issuedInsts[issuedCount] = &tempIDEX7
 			issuedCount++
@@ -5622,7 +5640,7 @@ func (p *Pipeline) tickOctupleIssue() {
 				PredictedTarget: p.ifid8.PredictedTarget,
 				EarlyResolved:   p.ifid8.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX8, &issuedInsts, issuedCount) {
+			if canIssueWith(&tempIDEX8, &issuedInsts, issuedCount, &issued) {
 				nextIDEX8.fromIDEX(&tempIDEX8)
 			}
 			issuedInsts[issuedCount] = &tempIDEX8
