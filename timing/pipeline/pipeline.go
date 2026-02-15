@@ -15,9 +15,9 @@ const (
 	minCacheLoadLatency = 1
 
 	// instrWindowSize is the capacity of the instruction window buffer.
-	// A 16-entry window allows the issue logic to look across ~2 loop
+	// A 32-entry window allows the issue logic to look across ~3-5 loop
 	// iterations, finding independent instructions for OoO-style dispatch.
-	instrWindowSize = 16
+	instrWindowSize = 32
 )
 
 // instrWindowEntry holds a pre-fetched instruction in the instruction window.
