@@ -164,10 +164,9 @@ func canDualIssue(first, second *IDEXRegister) bool {
 		}
 	}
 
-	// Check for WAW hazard: both write to same register
-	if first.RegWrite && second.RegWrite && first.Rd == second.Rd && first.Rd != 31 {
-		return false
-	}
+	// WAW hazard relaxed: M2 has register renaming so pure WAW (both write
+	// same Rd) is not a real hazard. The in-order writeback ensures the
+	// later instruction's result wins.
 
 	return true
 }
@@ -1092,10 +1091,9 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 			}
 		}
 
-		// Check for WAW hazard: both write to same register
-		if prev.RegWrite && newInst.RegWrite && prev.Rd == newInst.Rd && prev.Rd != 31 {
-			return false
-		}
+		// WAW hazard relaxed: M2 has register renaming so pure WAW (both
+		// write same Rd) is not a real hazard. The in-order writeback
+		// ensures the later instruction's result wins.
 
 		// WAW hazard for pre/post-indexed Rn writes
 		if prev.Inst != nil && prev.Rn != 31 &&
