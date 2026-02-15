@@ -29,7 +29,7 @@
 
 \begin{abstract}
 \fontsize{9}{11}\selectfont
-We present M2Sim, a cycle-accurate simulator for the Apple M2 CPU that achieves 14.2\% average timing error across 11 microbenchmarks with hardware CPI comparison. Built on the Akita simulation framework, M2Sim features a strict separation between functional emulation and timing simulation, enabling both rapid functional validation and detailed performance analysis. Our simulator models an 8-wide superscalar pipeline with a three-level cache hierarchy: L1I (192KB), L1D (128KB), and L2 (24MB), and supports over 200 ARM64 instructions including SIMD operations. Through systematic calibration using hardware baselines from real M2 hardware, we demonstrate sub-20\% timing accuracy on microbenchmarks (14.2\% average). We additionally evaluate 5 PolyBench kernels with comparable SMALL-dataset hardware CPI, revealing 120\% average error due to the fundamental in-order vs.\ out-of-order architectural gap --- the real M2 is OoO while M2Sim models an in-order pipeline. The simulator successfully validates critical M2 microarchitectural characteristics including excellent branch prediction accuracy, high memory bandwidth utilization, and efficient SIMD execution. M2Sim provides the computer architecture research community with the first publicly available cycle-accurate simulation infrastructure for Apple Silicon analysis.
+We present M2Sim, a cycle-accurate simulator for the Apple M2 CPU that achieves 14.2\% average timing error across 11 microbenchmarks with hardware CPI comparison. Built on the Akita simulation framework, M2Sim features a strict separation between functional emulation and timing simulation, enabling both rapid functional validation and detailed performance analysis. Our simulator models an 8-wide superscalar pipeline with a three-level cache hierarchy: L1I (192KB), L1D (128KB), and L2 (24MB), and supports over 200 ARM64 instructions including SIMD operations. Through systematic calibration using hardware baselines from real M2 hardware, we demonstrate sub-20\% timing accuracy on microbenchmarks (14.2\% average). We additionally evaluate 7 PolyBench kernels (2MM and 3MM use MINI dataset, others use SMALL dataset) with comparable hardware CPI, revealing 136.36\% average error due to the fundamental in-order vs.\ out-of-order architectural gap --- the real M2 is OoO while M2Sim models an in-order pipeline. The simulator successfully validates critical M2 microarchitectural characteristics including excellent branch prediction accuracy, high memory bandwidth utilization, and efficient SIMD execution. M2Sim provides the computer architecture research community with the first publicly available cycle-accurate simulation infrastructure for Apple Silicon analysis.
 \end{abstract}
 
 \section{Introduction}
@@ -41,7 +41,7 @@ We address this gap with M2Sim, a cycle-accurate simulator for the Apple M2 CPU 
 
 \begin{itemize}
 \item A complete cycle-accurate M2 simulator with 14.2\% average timing error across 11 microbenchmarks with hardware CPI comparison
-\item Evaluation of 5 PolyBench kernels revealing the in-order vs.\ OoO accuracy gap (120\% average error on intermediate benchmarks)
+\item Evaluation of 7 PolyBench kernels revealing the in-order vs.\ OoO accuracy gap (136.36\% average error on intermediate benchmarks)
 \item Systematic hardware baseline methodology using multi-scale linear regression for accurate calibration
 \item Detailed microarchitectural insights into M2 performance characteristics
 \item Open-source simulation infrastructure enabling reproducible M2 research
@@ -83,7 +83,7 @@ Our validation uses a hierarchical benchmark strategy to systematically assess a
 
 \textbf{Microbenchmarks (11 total):} Target specific microarchitectural features including arithmetic throughput, dependency chains, branch prediction, memory patterns, and SIMD operations. These benchmarks stress individual components to validate core timing models.
 
-\textbf{PolyBench Suite (5 kernels):} Intermediate-complexity linear algebra kernels including matrix-vector operations (MVT, ATAX, BiCG), matrix multiply (GEMM), and stencil computations (Jacobi-1D). Both simulation and hardware use the SMALL dataset, enabling direct CPI error comparison. These benchmarks reveal the in-order vs.\ OoO accuracy gap.
+\textbf{PolyBench Suite (7 kernels):} Intermediate-complexity linear algebra kernels including matrix-vector operations (MVT, ATAX, BiCG), matrix multiply (GEMM, 2MM, 3MM), and stencil computations (Jacobi-1D). Both simulation and hardware use the SMALL dataset for most kernels; 2MM and 3MM use the MINI dataset. These benchmarks reveal the in-order vs.\ OoO accuracy gap.
 
 \textbf{Error Calculation:} We use relative error: |t\_sim - t\_real| / min(t\_sim, t\_real), providing symmetric error measurement that handles both over- and under-prediction equally.
 
@@ -91,7 +91,7 @@ Our validation uses a hierarchical benchmark strategy to systematically assess a
 
 \subsection{Overall Accuracy}
 
-M2Sim achieves 14.2\% average timing error across 11 microbenchmarks, meeting our sub-20\% accuracy target. Including 5 PolyBench kernels with comparable SMALL-dataset hardware CPI, the overall average error across 16 benchmarks is 47.40\%, driven by the in-order vs.\ OoO architectural gap on intermediate benchmarks.
+M2Sim achieves 14.2\% average timing error across 11 microbenchmarks, meeting our sub-20\% accuracy target. Including 7 PolyBench kernels with comparable hardware CPI, the overall average error across 18 benchmarks with error data is 61.71\%, driven by the in-order vs.\ OoO architectural gap on intermediate benchmarks.
 
 \begin{table}[ht]
 \centering
@@ -102,9 +102,9 @@ M2Sim achieves 14.2\% average timing error across 11 microbenchmarks, meeting ou
 \textbf{Category} & \textbf{Count} & \textbf{Avg Error} & \textbf{Range} \\
 \midrule
 Microbenchmarks & 11 & 14.2\% & 1.3\% - 24.6\% \\
-PolyBench & 5 & 120.4\% & 66.4\% - 261.8\% \\
+PolyBench & 7 & 136.4\% & 87.4\% - 263.6\% \\
 \midrule
-\textbf{Overall (16 benchmarks)} & \textbf{16} & \textbf{47.40\%} & \textbf{1.3\% - 261.8\%} \\
+\textbf{Overall (18 benchmarks)} & \textbf{18} & \textbf{61.71\%} & \textbf{1.3\% - 263.6\%} \\
 \bottomrule
 \end{tabular}
 \label{tab:accuracy}
@@ -150,7 +150,7 @@ Our simulation validates several hypotheses about M2 microarchitecture:
 
 Our design makes explicit trade-offs between accuracy, complexity, and simulation speed:
 
-\textbf{In-Order vs. Out-of-Order:} We chose in-order execution for implementation simplicity. While microbenchmarks achieve 14.2\% average error, PolyBench kernels show 120\% average error (66--262\%) because the real M2 is OoO and benefits enormously from instruction-level parallelism on memory-heavy computation patterns. This confirms that the in-order model is the dominant source of error on intermediate benchmarks, not calibration or cache modeling.
+\textbf{In-Order vs. Out-of-Order:} We chose in-order execution for implementation simplicity. While microbenchmarks achieve 14.2\% average error, PolyBench kernels show 136.36\% average error (87--264\%) because the real M2 is OoO and benefits enormously from instruction-level parallelism on memory-heavy computation patterns. This confirms that the in-order model is the dominant source of error on intermediate benchmarks, not calibration or cache modeling.
 
 \textbf{Cache Model Fidelity:} Our write-through L1, write-back L2 model balances accuracy with implementation complexity. More detailed coherence modeling would improve multi-core readiness at higher development cost.
 
@@ -180,7 +180,7 @@ M2Sim provides a foundation for several research directions:
 
 \section{Conclusion}
 
-M2Sim provides the first cycle-accurate simulation infrastructure for Apple M2 CPU research, achieving 14.2\% average timing error across 11 microbenchmarks with hardware CPI comparison. Through systematic hardware baseline methodology and careful microarchitectural modeling, we demonstrate strong timing accuracy on microbenchmarks. Evaluation of 5 PolyBench kernels with comparable SMALL-dataset hardware CPI reveals 120\% average error, identifying the in-order vs.\ OoO architectural gap as the primary accuracy limitation for intermediate benchmarks.
+M2Sim provides the first cycle-accurate simulation infrastructure for Apple M2 CPU research, achieving 14.2\% average timing error across 11 microbenchmarks with hardware CPI comparison. Through systematic hardware baseline methodology and careful microarchitectural modeling, we demonstrate strong timing accuracy on microbenchmarks. Evaluation of 7 PolyBench kernels with comparable hardware CPI reveals 136.36\% average error, identifying the in-order vs.\ OoO architectural gap as the primary accuracy limitation for intermediate benchmarks.
 
 The simulator reveals detailed insights into M2 performance characteristics, including excellent branch prediction, efficient memory hierarchy, and 8-wide superscalar execution. These findings enable research opportunities previously unavailable due to proprietary hardware limitations.
 
