@@ -975,19 +975,31 @@ func isALUOp(inst *IDEXRegister) bool {
 
 // canIssueWith checks if a new instruction can be issued with a set of previously issued instructions.
 // Uses a fixed-size array to avoid heap allocation per tick cycle.
+// The forwarded parameter (optional, may be nil) tracks which earlier
+// instructions were issued via same-cycle ALU forwarding. When non-nil,
+// ALU-to-ALU RAW dependencies are allowed (same-cycle forwarding) as long
+// as the producer was not itself forwarded (max 1-hop forwarding depth).
+// Returns (canIssue, usesForwarding).
 func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int, issued *[8]bool) bool {
+	ok, _ := canIssueWithFwd(newInst, earlier, earlierCount, issued, nil)
+	return ok
+}
+
+// canIssueWithFwd is the full-featured version of canIssueWith that supports
+// ALU-to-ALU same-cycle forwarding tracking.
+func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int, issued *[8]bool, forwarded *[8]bool) (bool, bool) {
 	if newInst == nil || !newInst.Valid {
-		return false
+		return false, false
 	}
 
 	// Cannot issue branches in superscalar mode (only in slot 0)
 	if newInst.IsBranch {
-		return false
+		return false, false
 	}
 
 	// Cannot issue syscalls in secondary slots
 	if newInst.Inst != nil && newInst.Inst.Op == insts.OpSVC {
-		return false
+		return false, false
 	}
 
 	// Count actually-issued instructions for slot position check.
@@ -1002,7 +1014,7 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 	// Use actualIssuedCount (not earlierCount) since non-issued instructions don't occupy ports.
 	newAccessesMem := newInst.MemRead || newInst.MemWrite
 	if newAccessesMem && actualIssuedCount >= maxMemPorts {
-		return false
+		return false, false
 	}
 
 	// Count loads and stores separately for port limiting
@@ -1027,16 +1039,31 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 		writePortCount = 1
 	}
 
+	usesForwarding := false
+
 	for i := 0; i < earlierCount; i++ {
 		prev := earlier[i]
 		if prev == nil || !prev.Valid {
 			continue
 		}
 
-		// Block instructions after a branch: instructions following a branch
-		// in program order cannot issue until the branch resolves.
+		// Block instructions after a branch unless the branch was
+		// predicted-taken. When the branch predictor redirected fetch to
+		// the taken target, subsequent IFID slots contain instructions from
+		// the next iteration that are speculatively correct and can issue
+		// in the same cycle (OoO-style loop overlap). RAW hazard checks
+		// below still guard against data dependencies.
+		//
+		// Store instructions are always blocked after predicted-taken
+		// branches because memory writes cannot be rolled back on
+		// misprediction (no speculative store buffer).
 		if prev.IsBranch {
-			return false
+			if !prev.PredictedTaken {
+				return false, false
+			}
+			if newInst.MemWrite {
+				return false, false
+			}
 		}
 
 		// Store-to-load forwarding: M2's 56-entry store buffer handles
@@ -1083,11 +1110,23 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 			// separate path that does NOT support same-cycle forwarding.
 			// Always block co-issue for this dependency.
 			if newInst.MemWrite && newInst.Inst != nil && newInst.Inst.Rd == prev.Rd {
-				return false
+				return false, false
 			}
 
 			if hasRAW {
-				return false
+				// Same-cycle ALU forwarding: if the producer is a non-memory
+				// ALU op that was issued (not just decoded), its result is
+				// available via nextEXMEM forwarding in the EX stage.
+				// Allow co-issue with max 1-hop depth: the producer must
+				// not itself be a forwarding consumer (to prevent unrealistic
+				// deep chaining like A→B→C in one cycle).
+				producerIsALU := isIssued && !prev.MemRead && !prev.MemWrite && !prev.IsBranch
+				producerNotForwarded := forwarded == nil || !forwarded[i]
+				if forwarded != nil && producerIsALU && producerNotForwarded {
+					usesForwarding = true
+				} else {
+					return false, false
+				}
 			}
 		}
 
@@ -1099,11 +1138,11 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 			(prev.MemRead || prev.MemWrite) &&
 			(prev.Inst.IndexMode == insts.IndexPre || prev.Inst.IndexMode == insts.IndexPost) {
 			if newInst.Rn == prev.Rn || newInst.Rm == prev.Rn {
-				return false
+				return false, false
 			}
 			// Store value register may also read the base register
 			if newInst.MemWrite && newInst.Inst != nil && newInst.Inst.Rd == prev.Rn {
-				return false
+				return false, false
 			}
 		}
 
@@ -1120,12 +1159,12 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 				if (newInst.MemRead || newInst.MemWrite) &&
 					(newInst.Inst.IndexMode == insts.IndexPre || newInst.Inst.IndexMode == insts.IndexPost) &&
 					newInst.Rn == prev.Rn {
-					return false
+					return false, false
 				}
 			}
 			// New instruction writes to Rn via normal Rd
 			if newInst.RegWrite && newInst.Rd == prev.Rn {
-				return false
+				return false, false
 			}
 		}
 
@@ -1134,36 +1173,36 @@ func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount
 			(newInst.MemRead || newInst.MemWrite) &&
 			(newInst.Inst.IndexMode == insts.IndexPre || newInst.Inst.IndexMode == insts.IndexPost) &&
 			newInst.Rn == prev.Rd {
-			return false
+			return false, false
 		}
 	}
 
 	// Limit total memory operations to AGU bandwidth
 	if loadCount+storeCount > maxMemPorts {
-		return false
+		return false, false
 	}
 
 	// Limit loads to available load ports
 	if loadCount > maxLoadPorts {
-		return false
+		return false, false
 	}
 
 	// Limit stores to available store ports
 	if storeCount > maxStorePorts {
-		return false
+		return false, false
 	}
 
 	// Limit ALU operations to available execution ports
 	if aluOpCount > maxALUPorts {
-		return false
+		return false, false
 	}
 
 	// Limit register write-back ports
 	if writePortCount > maxWritePorts {
-		return false
+		return false, false
 	}
 
-	return true
+	return true, usesForwarding
 }
 
 // WritebackSlot interface implementation for SecondaryMEMWBRegister

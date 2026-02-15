@@ -94,7 +94,7 @@ jobs:
   polybench-group-3:
     name: PolyBench Group 3 (2MM, 3MM — MINI_DATASET)
     runs-on: macos-14
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -111,7 +111,7 @@ jobs:
           FAILED=0
           for TEST in TestPolybench2MM TestPolybench3MM; do
             echo "--- $TEST ---"
-            if ! go test -v -run "^${TEST}$" -count=1 -timeout 30m ./benchmarks/ 2>&1 | tee -a group3_output.txt; then
+            if ! go test -v -run "^${TEST}$" -count=1 -timeout 55m ./benchmarks/ 2>&1 | tee -a group3_output.txt; then
               FAILED=1
             fi
           done

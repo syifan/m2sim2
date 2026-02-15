@@ -13,7 +13,22 @@ const (
 	// handled by the cache in the MEM stage, so we use 1 cycle here to
 	// avoid double-counting latency.
 	minCacheLoadLatency = 1
+
+	// instrWindowSize is the capacity of the instruction window buffer.
+	// A 32-entry window allows the issue logic to look across ~3-5 loop
+	// iterations, finding independent instructions for OoO-style dispatch.
+	instrWindowSize = 32
 )
+
+// instrWindowEntry holds a pre-fetched instruction in the instruction window.
+type instrWindowEntry struct {
+	Valid           bool
+	PC              uint64
+	InstructionWord uint32
+	PredictedTaken  bool
+	PredictedTarget uint64
+	EarlyResolved   bool
+}
 
 // isUnconditionalBranch checks if an instruction word is an unconditional branch (B or BL).
 // Returns true and the target PC if it is, false otherwise.
@@ -363,6 +378,13 @@ type Pipeline struct {
 	// Pre-allocated scratch instruction for load-use hazard detection.
 	// Avoids heap allocation per cycle for the transient decode result.
 	hazardScratchInst insts.Instruction
+
+	// Instruction window for OoO-style dispatch in octuple-issue mode.
+	// Holds pre-fetched instructions that couldn't issue in previous cycles,
+	// allowing the issue logic to see 16+ instructions and find independent
+	// ones from different loop iterations.
+	instrWindow    [instrWindowSize]instrWindowEntry
+	instrWindowLen int
 
 	// Statistics
 	stats Statistics
@@ -2561,6 +2583,7 @@ func (p *Pipeline) flushAllIFID() {
 	p.ifid6.Clear()
 	p.ifid7.Clear()
 	p.ifid8.Clear()
+	p.instrWindowLen = 0 // flush instruction window on misprediction
 }
 
 // flushAllIDEX clears all ID/EX pipeline registers.
@@ -5460,6 +5483,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Uses fixed-size array to avoid heap allocation per tick.
 		var issuedInsts [8]*IDEXRegister
 		var issued [8]bool
+		var forwarded [8]bool
 
 		// During exec stall, the stalled instruction in p.idex occupies slot 0.
 		// Include it in the issued set so canIssueWith checks RAW hazards against it.
@@ -5703,8 +5727,9 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid8.PredictedTarget,
 					EarlyResolved:   p.ifid8.EarlyResolved,
 				}
-				if canIssueWith(&tempIDEX8, &issuedInsts, issuedCount, &issued) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX8, &issuedInsts, issuedCount, &issued, &forwarded); ok {
 					nextIDEX8.fromIDEX(&tempIDEX8)
+					_ = fwd
 				}
 				issuedInsts[issuedCount] = &tempIDEX8
 			}
@@ -5740,7 +5765,10 @@ func (p *Pipeline) tickOctupleIssue() {
 	consumed[6] = nextIDEX7.Valid
 	consumed[7] = nextIDEX8.Valid
 
-	// Stage 1: Fetch (all 8 slots)
+	// Stage 1: Fetch (all 8 slots) using instruction window buffer.
+	// The instruction window holds pre-fetched instructions that couldn't
+	// issue in previous cycles, allowing the pipeline to look across loop
+	// iterations and find independent instructions (OoO-style dispatch).
 	var nextIFID IFIDRegister
 	var nextIFID2 SecondaryIFIDRegister
 	var nextIFID3 TertiaryIFIDRegister
@@ -5752,81 +5780,14 @@ func (p *Pipeline) tickOctupleIssue() {
 	fetchStall := false
 
 	if !stallResult.StallIF && !stallResult.FlushIF && !memStall {
-		// Shift unissued instructions forward
-		pendingInsts, pendingCount := p.collectPendingFetchInstructionsSelective(consumed[:])
+		// Step 1: Push un-consumed IFID instructions into the window buffer.
+		// These are instructions that couldn't issue this cycle due to RAW
+		// hazards; they get another chance next cycle from the window.
+		p.pushUnconsumedToWindow(consumed[:])
 
-		// Fill slots with pending instructions first, then fetch new ones
+		// Step 2: Fetch new instructions into the window buffer.
 		fetchPC := p.pc
-		slotIdx := 0
-
-		// Place pending instructions
-		branchPredictedTaken := false
-		for pi := 0; pi < pendingCount; pi++ {
-			pending := pendingInsts[pi]
-			if branchPredictedTaken {
-				break
-			}
-			switch slotIdx {
-			case 0:
-				isUncondBranch, uncondTarget := isUnconditionalBranch(pending.Word, pending.PC)
-				pred := p.branchPredictor.Predict(pending.PC)
-				earlyResolved := false
-				if isUncondBranch {
-					pred.Taken = true
-					pred.Target = uncondTarget
-					pred.TargetKnown = true
-					earlyResolved = true
-				}
-				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
-				nextIFID = IFIDRegister{
-					Valid:           true,
-					PC:              pending.PC,
-					InstructionWord: pending.Word,
-					PredictedTaken:  pred.Taken,
-					PredictedTarget: pred.Target,
-					EarlyResolved:   earlyResolved,
-				}
-				if pred.Taken && pred.TargetKnown {
-					fetchPC = pred.Target
-					branchPredictedTaken = true
-				}
-			default:
-				isUncondBranch, uncondTarget := isUnconditionalBranch(pending.Word, pending.PC)
-				pred := p.branchPredictor.Predict(pending.PC)
-				earlyResolved := false
-				if isUncondBranch {
-					pred.Taken = true
-					pred.Target = uncondTarget
-					pred.TargetKnown = true
-					earlyResolved = true
-				}
-				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
-				switch slotIdx {
-				case 1:
-					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 2:
-					nextIFID3 = TertiaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 3:
-					nextIFID4 = QuaternaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 4:
-					nextIFID5 = QuinaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 5:
-					nextIFID6 = SenaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 6:
-					nextIFID7 = SeptenaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 7:
-					nextIFID8 = OctonaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				}
-				if pred.Taken && pred.TargetKnown {
-					fetchPC = pred.Target
-					branchPredictedTaken = true
-				}
-			}
-			slotIdx++
-		}
-
-		// Fetch new instructions to fill remaining slots
-		for slotIdx < 8 {
+		for p.instrWindowLen < instrWindowSize {
 			var word uint32
 			var ok bool
 
@@ -5844,91 +5805,47 @@ func (p *Pipeline) tickOctupleIssue() {
 				break
 			}
 
-			// Branch elimination: unconditional B (not BL) instructions are
-			// eliminated at fetch time. They never enter the pipeline.
+			// Branch elimination
 			if isEliminableBranch(word) {
 				_, uncondTarget := isUnconditionalBranch(word, fetchPC)
 				fetchPC = uncondTarget
 				p.stats.EliminatedBranches++
-				// Don't create IFID entry - branch is eliminated
-				// Continue fetching from target without advancing slotIdx
 				continue
 			}
 
-			// Zero-cycle branch folding: DISABLED
-			// Previous implementation eliminated high-confidence conditional branches at
-			// fetch time without entering the pipeline. This is unsafe because:
-			// 1. Folded branches never execute, so condition flags are never checked
-			// 2. When prediction is wrong (e.g., loop exit), there's no recovery path
-			// 3. The pipeline hangs indefinitely on loop exits
-			//
-			// The M2's zero-cycle folding likely works differently - perhaps branches
-			// still enter the pipeline but complete in zero cycles when prediction is
-			// correct. For now, all conditional branches must enter the pipeline for
-			// proper misprediction detection and recovery.
-			//
-			// TODO: Implement proper zero-cycle folding with misprediction recovery
-			if slotIdx == 0 {
-				isUncondBranch, uncondTarget := isUnconditionalBranch(word, fetchPC)
-				pred := p.branchPredictor.Predict(fetchPC)
-				earlyResolved := false
-				if isUncondBranch {
-					pred.Taken = true
-					pred.Target = uncondTarget
-					pred.TargetKnown = true
-					earlyResolved = true
-				}
-				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
-				nextIFID = IFIDRegister{
-					Valid:           true,
-					PC:              fetchPC,
-					InstructionWord: word,
-					PredictedTaken:  pred.Taken,
-					PredictedTarget: pred.Target,
-					EarlyResolved:   earlyResolved,
-				}
-				if pred.Taken && pred.TargetKnown {
-					fetchPC = pred.Target
-					slotIdx++
-					continue
-				}
-			} else {
-				isUncondBranch, uncondTarget := isUnconditionalBranch(word, fetchPC)
-				pred := p.branchPredictor.Predict(fetchPC)
-				earlyResolved := false
-				if isUncondBranch {
-					pred.Taken = true
-					pred.Target = uncondTarget
-					pred.TargetKnown = true
-					earlyResolved = true
-				}
-				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
-				switch slotIdx {
-				case 1:
-					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 2:
-					nextIFID3 = TertiaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 3:
-					nextIFID4 = QuaternaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 4:
-					nextIFID5 = QuinaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 5:
-					nextIFID6 = SenaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 6:
-					nextIFID7 = SeptenaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				case 7:
-					nextIFID8 = OctonaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
-				}
-				if pred.Taken && pred.TargetKnown {
-					fetchPC = pred.Target
-					slotIdx++
-					continue
-				}
+			p.instrWindow[p.instrWindowLen] = instrWindowEntry{
+				Valid:           true,
+				PC:              fetchPC,
+				InstructionWord: word,
 			}
-			fetchPC += 4
-			slotIdx++
+			p.instrWindowLen++
+
+			// Check for predicted-taken branch to redirect fetch
+			isUncondBranch, uncondTarget := isUnconditionalBranch(word, fetchPC)
+			pred := p.branchPredictor.Predict(fetchPC)
+			if isUncondBranch {
+				pred.Taken = true
+				pred.Target = uncondTarget
+				pred.TargetKnown = true
+			}
+			enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
+
+			// Store prediction in the window entry
+			p.instrWindow[p.instrWindowLen-1].PredictedTaken = pred.Taken
+			p.instrWindow[p.instrWindowLen-1].PredictedTarget = pred.Target
+			p.instrWindow[p.instrWindowLen-1].EarlyResolved = isUncondBranch
+
+			if pred.Taken && pred.TargetKnown {
+				fetchPC = pred.Target
+			} else {
+				fetchPC += 4
+			}
 		}
 		p.pc = fetchPC
+
+		// Step 3: Pop the first 8 entries from the window into IFID registers.
+		p.popWindowToIFID(&nextIFID, &nextIFID2, &nextIFID3, &nextIFID4,
+			&nextIFID5, &nextIFID6, &nextIFID7, &nextIFID8)
 
 		if fetchStall {
 			nextIFID = p.ifid
@@ -6060,4 +5977,155 @@ func (p *Pipeline) collectPendingFetchInstructionsSelective(consumed []bool) ([8
 	}
 
 	return result, count
+}
+
+// pushUnconsumedToWindow pushes un-consumed IFID instructions into the
+// instruction window buffer. Instructions that couldn't issue this cycle
+// are preserved for potential issue in future cycles.
+func (p *Pipeline) pushUnconsumedToWindow(consumed []bool) {
+	type ifidSlot struct {
+		valid           bool
+		pc              uint64
+		word            uint32
+		predictedTaken  bool
+		predictedTarget uint64
+		earlyResolved   bool
+	}
+	slots := [8]ifidSlot{
+		{p.ifid.Valid, p.ifid.PC, p.ifid.InstructionWord, p.ifid.PredictedTaken, p.ifid.PredictedTarget, p.ifid.EarlyResolved},
+		{p.ifid2.Valid, p.ifid2.PC, p.ifid2.InstructionWord, p.ifid2.PredictedTaken, p.ifid2.PredictedTarget, p.ifid2.EarlyResolved},
+		{p.ifid3.Valid, p.ifid3.PC, p.ifid3.InstructionWord, p.ifid3.PredictedTaken, p.ifid3.PredictedTarget, p.ifid3.EarlyResolved},
+		{p.ifid4.Valid, p.ifid4.PC, p.ifid4.InstructionWord, p.ifid4.PredictedTaken, p.ifid4.PredictedTarget, p.ifid4.EarlyResolved},
+		{p.ifid5.Valid, p.ifid5.PC, p.ifid5.InstructionWord, p.ifid5.PredictedTaken, p.ifid5.PredictedTarget, p.ifid5.EarlyResolved},
+		{p.ifid6.Valid, p.ifid6.PC, p.ifid6.InstructionWord, p.ifid6.PredictedTaken, p.ifid6.PredictedTarget, p.ifid6.EarlyResolved},
+		{p.ifid7.Valid, p.ifid7.PC, p.ifid7.InstructionWord, p.ifid7.PredictedTaken, p.ifid7.PredictedTarget, p.ifid7.EarlyResolved},
+		{p.ifid8.Valid, p.ifid8.PC, p.ifid8.InstructionWord, p.ifid8.PredictedTaken, p.ifid8.PredictedTarget, p.ifid8.EarlyResolved},
+	}
+
+	// Collect un-consumed entries
+	var pending [8]instrWindowEntry
+	pendingCount := 0
+	for i := 0; i < len(consumed); i++ {
+		if slots[i].valid && !consumed[i] {
+			pending[pendingCount] = instrWindowEntry{
+				Valid:           true,
+				PC:              slots[i].pc,
+				InstructionWord: slots[i].word,
+				PredictedTaken:  slots[i].predictedTaken,
+				PredictedTarget: slots[i].predictedTarget,
+				EarlyResolved:   slots[i].earlyResolved,
+			}
+			pendingCount++
+		}
+	}
+
+	// Shift existing window entries down to make room at the front
+	if pendingCount > 0 && p.instrWindowLen > 0 {
+		// Move existing entries to after the pending ones
+		newLen := p.instrWindowLen + pendingCount
+		if newLen > instrWindowSize {
+			newLen = instrWindowSize
+		}
+		// Shift existing entries right
+		copyCount := newLen - pendingCount
+		if copyCount > p.instrWindowLen {
+			copyCount = p.instrWindowLen
+		}
+		for i := copyCount - 1; i >= 0; i-- {
+			p.instrWindow[i+pendingCount] = p.instrWindow[i]
+		}
+		// Place pending entries at the front (they have priority as oldest)
+		for i := 0; i < pendingCount; i++ {
+			p.instrWindow[i] = pending[i]
+		}
+		p.instrWindowLen = newLen
+	} else if pendingCount > 0 {
+		for i := 0; i < pendingCount; i++ {
+			p.instrWindow[i] = pending[i]
+		}
+		p.instrWindowLen = pendingCount
+	}
+}
+
+// popWindowToIFID pops the first 8 entries from the instruction window
+// into the IFID pipeline registers for decode/issue next cycle.
+func (p *Pipeline) popWindowToIFID(
+	ifid1 *IFIDRegister,
+	ifid2 *SecondaryIFIDRegister,
+	ifid3 *TertiaryIFIDRegister,
+	ifid4 *QuaternaryIFIDRegister,
+	ifid5 *QuinaryIFIDRegister,
+	ifid6 *SenaryIFIDRegister,
+	ifid7 *SeptenaryIFIDRegister,
+	ifid8 *OctonaryIFIDRegister,
+) {
+	popCount := p.instrWindowLen
+	if popCount > 8 {
+		popCount = 8
+	}
+
+	for i := 0; i < popCount; i++ {
+		e := p.instrWindow[i]
+		switch i {
+		case 0:
+			*ifid1 = IFIDRegister{
+				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
+				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
+				EarlyResolved: e.EarlyResolved,
+			}
+		case 1:
+			*ifid2 = SecondaryIFIDRegister{
+				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
+				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
+				EarlyResolved: e.EarlyResolved,
+			}
+		case 2:
+			*ifid3 = TertiaryIFIDRegister{
+				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
+				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
+				EarlyResolved: e.EarlyResolved,
+			}
+		case 3:
+			*ifid4 = QuaternaryIFIDRegister{
+				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
+				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
+				EarlyResolved: e.EarlyResolved,
+			}
+		case 4:
+			*ifid5 = QuinaryIFIDRegister{
+				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
+				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
+				EarlyResolved: e.EarlyResolved,
+			}
+		case 5:
+			*ifid6 = SenaryIFIDRegister{
+				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
+				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
+				EarlyResolved: e.EarlyResolved,
+			}
+		case 6:
+			*ifid7 = SeptenaryIFIDRegister{
+				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
+				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
+				EarlyResolved: e.EarlyResolved,
+			}
+		case 7:
+			*ifid8 = OctonaryIFIDRegister{
+				Valid: true, PC: e.PC, InstructionWord: e.InstructionWord,
+				PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget,
+				EarlyResolved: e.EarlyResolved,
+			}
+		}
+	}
+
+	// Remove popped entries from the window by shifting
+	remaining := p.instrWindowLen - popCount
+	for i := 0; i < remaining; i++ {
+		p.instrWindow[i] = p.instrWindow[i+popCount]
+	}
+	// Clear vacated slots
+	for i := remaining; i < p.instrWindowLen; i++ {
+		p.instrWindow[i] = instrWindowEntry{}
+	}
+	p.instrWindowLen = remaining
 }
