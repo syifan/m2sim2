@@ -1170,13 +1170,7 @@ func (p *Pipeline) tickSuperscalar() {
 	}
 
 	// Execute secondary slot (if not stalled and slot is valid)
-	// Allow secondary to bypass primary exec stall if it's independent
-	secondaryBypassed := false
-	if p.idex2.Valid && !memStall && execStall &&
-		!secondaryDependsOnPrimary(p.idex, p.idex2) {
-		secondaryBypassed = true
-	}
-	if p.idex2.Valid && !memStall && (!execStall || secondaryBypassed) {
+	if p.idex2.Valid && !memStall && !execStall {
 		// Convert to IDEXRegister for hazard detection
 		idex2 := p.idex2.toIDEX()
 
@@ -1348,12 +1342,7 @@ func (p *Pipeline) tickSuperscalar() {
 		}
 	} else if (stallResult.StallID || execStall || memStall) && !stallResult.FlushID {
 		nextIDEX = p.idex
-		if secondaryBypassed && nextEXMEM2.Valid {
-			// Secondary executed independently — clear it from decode
-			nextIDEX2 = SecondaryIDEXRegister{}
-		} else {
-			nextIDEX2 = p.idex2
-		}
+		nextIDEX2 = p.idex2
 	}
 
 	// Stage 1: Fetch (both slots)
@@ -1566,9 +1555,6 @@ func (p *Pipeline) tickSuperscalar() {
 	}
 	if !execStall && !memStall {
 		p.exmem = nextEXMEM
-		p.exmem2 = nextEXMEM2
-	} else if secondaryBypassed && !memStall {
-		// Primary stalled but secondary executed independently
 		p.exmem2 = nextEXMEM2
 	}
 	if stallResult.InsertBubbleEX && !execStall && !memStall {

@@ -171,53 +171,6 @@ func canDualIssue(first, second *IDEXRegister) bool {
 	return true
 }
 
-// secondaryDependsOnPrimary checks if the secondary instruction in the
-// decode stage depends on the stalled primary instruction. Returns true
-// if secondary reads any register that primary writes (RAW dependency),
-// or if secondary is a branch.
-func secondaryDependsOnPrimary(primary IDEXRegister, secondary SecondaryIDEXRegister) bool {
-	if !primary.Valid || !secondary.Valid {
-		return true // Conservative: treat as dependent
-	}
-
-	// Branches should stall with the pipeline
-	if secondary.IsBranch {
-		return true
-	}
-
-	// Check RAW on primary's Rd
-	if primary.RegWrite && primary.Rd != 31 {
-		if secondary.Rn == primary.Rd {
-			return true
-		}
-		// Only check Rm for register-format and register-offset loads/stores
-		if secondary.Inst != nil && secondary.Rm == primary.Rd {
-			if secondary.Inst.Format == insts.FormatDPReg ||
-				(secondary.Inst.Format == insts.FormatLoadStore && secondary.Inst.IndexMode == insts.IndexRegBase) {
-				return true
-			}
-		}
-		// Store value register reads through separate path
-		if secondary.MemWrite && secondary.Inst != nil && secondary.Inst.Rd == primary.Rd {
-			return true
-		}
-	}
-
-	// Pre/post-indexed load/store primary also writes Rn (base register)
-	if primary.Inst != nil && primary.Rn != 31 &&
-		(primary.MemRead || primary.MemWrite) &&
-		(primary.Inst.IndexMode == insts.IndexPre || primary.Inst.IndexMode == insts.IndexPost) {
-		if secondary.Rn == primary.Rn || secondary.Rm == primary.Rn {
-			return true
-		}
-		if secondary.MemWrite && secondary.Inst != nil && secondary.Inst.Rd == primary.Rn {
-			return true
-		}
-	}
-
-	return false
-}
-
 // SecondaryIFIDRegister holds the second fetched instruction for dual-issue.
 type SecondaryIFIDRegister struct {
 	Valid           bool
