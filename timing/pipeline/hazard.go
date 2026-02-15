@@ -1,5 +1,7 @@
 package pipeline
 
+import "github.com/sarchlab/m2sim/insts"
+
 // ForwardSource indicates where a forwarded value should come from.
 type ForwardSource int
 
@@ -129,6 +131,30 @@ func (h *HazardUnit) DetectLoadUseHazardDecoded(
 	}
 
 	return false
+}
+
+// DetectLoadUseHazardForInst checks if a decoded instruction depends on a
+// load currently in the IDEX stage. This is used by the OoO bypass logic to
+// determine which IFID instructions can be issued during a load-use stall.
+func (h *HazardUnit) DetectLoadUseHazardForInst(
+	loadRd uint8,
+	inst *insts.Instruction,
+) bool {
+	if loadRd == 31 || inst == nil {
+		return false
+	}
+
+	usesRn := true
+	usesRm := inst.Format == insts.FormatDPReg
+	sourceRm := inst.Rm
+
+	switch inst.Op {
+	case insts.OpSTR, insts.OpSTRQ:
+		usesRm = true
+		sourceRm = inst.Rd
+	}
+
+	return h.DetectLoadUseHazardDecoded(loadRd, inst.Rn, sourceRm, usesRn, usesRm)
 }
 
 // ComputeStalls computes stall and flush signals based on hazard conditions.
