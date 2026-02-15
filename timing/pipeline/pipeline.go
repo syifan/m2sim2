@@ -268,6 +268,16 @@ func WithBranchPredictorConfig(config BranchPredictorConfig) PipelineOption {
 	}
 }
 
+// RegisterCheckpoint saves architectural register state before a branch
+// executes, allowing rollback on misprediction. This enables speculative
+// execution of non-store instructions after predicted-taken branches.
+type RegisterCheckpoint struct {
+	Valid  bool
+	Regs   [31]uint64
+	SP     uint64
+	PSTATE emu.PSTATE
+}
+
 // Pipeline implements a 5-stage pipelined CPU model.
 // Stages: Fetch (IF) -> Decode (ID) -> Execute (EX) -> Memory (MEM) -> Writeback (WB)
 // Supports optional superscalar (dual-issue) execution for independent instructions.
@@ -385,6 +395,9 @@ type Pipeline struct {
 	// ones from different loop iterations.
 	instrWindow    [instrWindowSize]instrWindowEntry
 	instrWindowLen int
+
+	// Register checkpoint for branch misprediction rollback
+	branchCheckpoint RegisterCheckpoint
 
 	// Statistics
 	stats Statistics
@@ -4166,6 +4179,17 @@ func (p *Pipeline) tickOctupleIssue() {
 				}
 			}
 
+			// Save register checkpoint before branch execution so we can
+			// roll back speculative writes on misprediction.
+			if p.idex.IsBranch {
+				p.branchCheckpoint.Valid = true
+				for i := uint8(0); i < 31; i++ {
+					p.branchCheckpoint.Regs[i] = p.regFile.ReadReg(i)
+				}
+				p.branchCheckpoint.SP = p.regFile.SP
+				p.branchCheckpoint.PSTATE = p.regFile.PSTATE
+			}
+
 			execResult := p.executeStage.ExecuteWithFlags(&p.idex, rnValue, rmValue,
 				forwardFlags, fwdN, fwdZ, fwdC, fwdV)
 
@@ -4237,6 +4261,16 @@ func (p *Pipeline) tickOctupleIssue() {
 					p.flushAllIDEX()
 					p.stats.Flushes++
 
+					// Restore register checkpoint to undo speculative writes
+					if p.branchCheckpoint.Valid {
+						for i := uint8(0); i < 31; i++ {
+							p.regFile.WriteReg(i, p.branchCheckpoint.Regs[i])
+						}
+						p.regFile.SP = p.branchCheckpoint.SP
+						p.regFile.PSTATE = p.branchCheckpoint.PSTATE
+						p.branchCheckpoint.Valid = false
+					}
+
 					// Latch results and return early
 					if !memStall {
 						p.memwb = nextMEMWB
@@ -4258,6 +4292,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.branchCheckpoint.Valid = false
 				p.stats.BranchCorrect++
 			}
 		}

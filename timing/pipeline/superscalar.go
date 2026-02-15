@@ -1047,13 +1047,17 @@ func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCo
 			continue
 		}
 
-		// Block ALL instructions after a branch in the same issue group.
-		// Without a reorder buffer, speculative instructions that execute
-		// and write back will corrupt architectural state on misprediction.
-		// For example, an ALU increment from the next iteration would
-		// corrupt a loop counter register, causing infinite loops.
+		// With register checkpointing, we can allow non-store instructions
+		// after predicted-taken branches. On misprediction, the checkpoint
+		// restores all register state. Stores are still blocked because
+		// memory writes cannot be rolled back.
 		if prev.IsBranch {
-			return false, false
+			if !prev.PredictedTaken {
+				return false, false
+			}
+			if newInst.MemWrite {
+				return false, false
+			}
 		}
 
 		// Store-to-load forwarding: M2's 56-entry store buffer handles
