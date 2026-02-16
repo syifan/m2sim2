@@ -15,9 +15,11 @@ const (
 	minCacheLoadLatency = 1
 
 	// instrWindowSize is the capacity of the instruction window buffer.
-	// A 32-entry window allows the issue logic to look across ~3-5 loop
+	// A 48-entry window allows the issue logic to look across ~4-6 loop
 	// iterations, finding independent instructions for OoO-style dispatch.
-	instrWindowSize = 32
+	// Apple M2 has a 330+ entry ROB; 48 entries is a conservative
+	// approximation that improves overlap for stencil kernels like Jacobi-1D.
+	instrWindowSize = 48
 )
 
 // instrWindowEntry holds a pre-fetched instruction in the instruction window.
@@ -5534,10 +5536,13 @@ func (p *Pipeline) tickOctupleIssue() {
 
 		// During exec stall, the stalled instruction in p.idex occupies slot 0.
 		// Include it in the issued set so canIssueWith checks RAW hazards against it.
+		// Mark as "forwarded" to prevent same-cycle ALU forwarding, since the
+		// multi-cycle instruction's result isn't available yet.
 		if execStall {
 			issuedInsts[0] = &p.idex
 			if p.idex.Valid {
 				issued[0] = true
+				forwarded[0] = true
 			}
 		} else {
 			issuedInsts[0] = &nextIDEX
