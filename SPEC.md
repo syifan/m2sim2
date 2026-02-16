@@ -41,7 +41,7 @@ While M2Sim uses Akita (like MGPUSim) and draws inspiration from MGPUSim's archi
 | H2 | SPEC benchmark enablement (syscalls, ELF loading, validation) | ✅ COMPLETE |
 | H3 | Accuracy calibration (<20% error on microbenchmarks) | ✅ COMPLETE (14.1%) |
 | H4 | Multi-core support | ⬜ NOT STARTED |
-| H5 | 15+ Intermediate Benchmarks (<20% average error) | 18 benchmarks with error data; 61.71% avg error (all CI-verified) |
+| H5 | 15+ Intermediate Benchmarks (<20% average error) | REGRESSION: 11 microbench only (41.17% avg error); all 7 PolyBench timeout. See issue #149 |
 
 ---
 
@@ -257,54 +257,55 @@ Microbenchmark accuracy target met (14.1%). Now validate on real SPEC workloads.
 
 ---
 
-### H5: 18 Benchmarks with Error Data (February 14, 2026)
+### H5: Accuracy Status (February 16, 2026) — REGRESSION
 
 **Goal:** Achieve <20% average error across 15+ benchmarks with hardware CPI comparison.
 
-**STATUS:** 18 benchmarks with error data (11 microbenchmarks + 7 PolyBench). All 7/7 polybench CI-verified from accuracy-consolidated run 22024974797 (includes Leo's PR #46 fix).
+**STATUS:** REGRESSION after PRs #66-#70 (speculative store blocking, register checkpoint, AfterBranch fix). Only 11 microbenchmarks have error data; all 7 PolyBench benchmarks now timeout at 5B cycle limit. See issue #149.
 
 **Results:**
-- **Total benchmarks with error data:** 18 (11 microbenchmarks + 7 PolyBench)
-- **Overall average error:** 61.71% — does **NOT** meet <20% target
-- **Microbenchmark average error:** 14.21% (11 benchmarks) — meets <20% target
-- **PolyBench average error:** 136.36% (7 benchmarks) — does **NOT** meet target
-- **Data source:** `h5_accuracy_results.json` — all benchmarks CI-verified
+- **Total benchmarks with error data:** 11 (microbenchmarks only)
+- **Microbenchmark average error:** 41.17% (11 benchmarks) — does **NOT** meet <20% target (was 14.21%)
+- **PolyBench:** All 7 benchmarks timeout at 5B cycle limit (regression — previously completed)
+- **Data source:** `h5_accuracy_results.json` — CI-verified from accuracy-consolidated run 22069383457
 
-#### Microbenchmark Results (14.21% average error)
+#### Microbenchmark Results (41.17% average error — REGRESSED from 14.21%)
 
-| Benchmark | Sim CPI | HW CPI | Error |
-|-----------|---------|--------|-------|
-| arithmetic | 0.270 | 0.296 | 9.63% |
-| dependency | 1.020 | 1.088 | 6.67% |
-| branch | 1.320 | 1.303 | 1.30% |
-| memorystrided | 2.933 | 2.648 | 10.76% |
-| loadheavy | 0.361 | 0.429 | 18.84% |
-| storeheavy | 0.491 | 0.612 | 24.64% |
-| branchheavy | 0.829 | 0.714 | 16.11% |
-| vectorsum | 0.500 | 0.402 | 24.38% |
-| vectoradd | 0.401 | 0.329 | 21.88% |
-| reductiontree | 0.452 | 0.480 | 6.19% |
-| strideindirect | 0.612 | 0.528 | 15.91% |
+| Benchmark | Sim CPI | HW CPI | Error | Previous Error |
+|-----------|---------|--------|-------|----------------|
+| arithmetic | 0.219 | 0.296 | 35.16% | 9.63% |
+| dependency | 1.015 | 1.088 | 7.19% | 6.67% |
+| branch | 1.311 | 1.303 | 0.61% | 1.30% |
+| memorystrided | 0.750 | 2.648 | 253.07% | 10.76% |
+| loadheavy | 0.349 | 0.429 | 22.92% | 18.84% |
+| storeheavy | 0.522 | 0.612 | 17.24% | 24.64% |
+| branchheavy | 0.941 | 0.714 | 31.79% | 16.11% |
+| vectorsum | 0.354 | 0.402 | 13.56% | 24.38% |
+| vectoradd | 0.302 | 0.329 | 8.94% | 21.88% |
+| reductiontree | 0.406 | 0.480 | 18.23% | 6.19% |
+| strideindirect | 0.761 | 0.528 | 44.13% | 15.91% |
 
-#### PolyBench Results (136.36% average error — 7/7 benchmarks, all CI-verified)
+#### PolyBench Results — ALL TIMEOUT (REGRESSION)
 
-| Benchmark | Sim CPI | HW CPI | Error | Dataset |
-|-----------|---------|--------|-------|---------|
-| atax | 0.450 | 0.2185 | 105.9% | SMALL |
-| bicg | 0.470 | 0.2295 | 104.8% | SMALL |
-| gemm | 0.437 | 0.2332 | 87.4% | SMALL |
-| mvt | 0.474 | 0.2156 | 119.9% | SMALL |
-| jacobi-1d | 0.549 | 0.1510 | 263.6% | SMALL |
-| 2mm | 0.340 | 0.1435 | 136.9% | MINI |
-| 3mm | 0.343 | 0.1453 | 136.1% | MINI |
+All 7 PolyBench benchmarks now exceed the 5B cycle limit after PRs #66-#70. They execute very few instructions before timing out, indicating a pipeline stall/livelock:
 
-SMALL dataset used for atax/bicg/gemm/mvt/jacobi-1d; MINI dataset for 2mm/3mm. All sim CPI values from CI run 22024974797 (after Leo's PR #46 hazard fix).
+| Benchmark | Insts at 5B Cycles | Previous CPI | Status |
+|-----------|-------------------:|:-------------|--------|
+| atax | 953 | 0.186 | timeout (regression) |
+| bicg | 776 | 0.392 | timeout (regression) |
+| jacobi-1d | 1,068 | N/A | timeout (regression) |
+| mvt | 459 | 0.279 | timeout (regression) |
+| gemm | 30,912 | N/A | timeout (regression) |
+| 2mm | 167 | 0.340 | timeout (regression) |
+| 3mm | 197 | 0.343 | timeout (regression) |
 
-#### Known Gap: In-Order vs Out-of-Order
+Data from PolyBench CI run 22062557956 (PR #70 branch). See issue #149 for investigation.
 
-**Root cause of PolyBench error:** M2Sim models an in-order pipeline, but the real Apple M2 is out-of-order. PolyBench kernels with heavy memory and computation patterns benefit enormously from OoO execution, resulting in 87-264% CPI overestimation by the in-order model.
+#### Known Issues
 
-The microbenchmark accuracy (14.21%) validates the core timing model for individual microarchitectural features. The PolyBench gap is an architectural limitation, not a calibration error.
+**PolyBench Timeout Regression (issue #149):** After merging PRs #66-#70 (speculative store blocking, register checkpoint, branch relaxation, AfterBranch clearing fix), all 7 PolyBench benchmarks hit the 5B cycle limit with extremely few instructions retired (167-30,912 insts). This indicates a pipeline stall or livelock, not just slow execution. Root cause investigation needed.
+
+**Microbenchmark Regression:** Several microbenchmarks regressed significantly — memorystrided went from 10.76% to 253.07% error, and overall average went from 14.21% to 41.17%. Some improved (vectorsum, vectoradd, storeheavy, branch), but net effect is negative.
 
 #### Infeasible Benchmarks — Detailed Analysis (CI Run #22019560953)
 
@@ -329,25 +330,24 @@ All 6 EmBench benchmarks below are at `LOCAL_SCALE_FACTOR=1`, `CPU_MHZ=1` (minim
 
 | Benchmark | Category | Status | Sim CPI | HW CPI | Error | Notes |
 |-----------|----------|--------|--------:|-------:|------:|-------|
-| arithmetic | microbenchmark | complete | 0.270 | 0.296 | 9.63% | |
-| dependency | microbenchmark | complete | 1.020 | 1.088 | 6.67% | |
-| branch | microbenchmark | complete | 1.320 | 1.303 | 1.30% | |
-| memorystrided | microbenchmark | complete | 2.933 | 2.648 | 10.76% | |
-| loadheavy | microbenchmark | complete | 0.361 | 0.429 | 18.84% | |
-| storeheavy | microbenchmark | complete | 0.491 | 0.612 | 24.64% | |
-| branchheavy | microbenchmark | complete | 0.829 | 0.714 | 16.11% | |
-| vectorsum | microbenchmark | complete | 0.500 | 0.402 | 24.38% | |
-| vectoradd | microbenchmark | complete | 0.401 | 0.329 | 21.88% | |
-| reductiontree | microbenchmark | complete | 0.452 | 0.480 | 6.19% | |
-| strideindirect | microbenchmark | complete | 0.612 | 0.528 | 15.91% | |
-| atax | polybench | complete | 0.450 | 0.2185 | 105.9% | In-order vs OoO gap |
-| bicg | polybench | complete | 0.470 | 0.2295 | 104.8% | In-order vs OoO gap |
-| gemm | polybench | complete | 0.437 | 0.2332 | 87.4% | In-order vs OoO gap |
-| mvt | polybench | complete | 0.474 | 0.2156 | 119.9% | In-order vs OoO gap |
-| jacobi-1d | polybench | complete | 0.549 | 0.1510 | 263.6% | In-order vs OoO gap |
-| 2mm | polybench | complete | 0.340 | 0.1435 | 136.9% | MINI dataset; in-order vs OoO gap |
-| 3mm | polybench | complete | 0.343 | 0.1453 | 136.1% | MINI dataset; in-order vs OoO gap |
-| aha_mont64 | embench | sim-only | 0.347 | — | — | No HW CPI data |
+| arithmetic | microbenchmark | complete | 0.219 | 0.296 | 35.16% | Regressed from 9.63% |
+| dependency | microbenchmark | complete | 1.015 | 1.088 | 7.19% | Slightly worse (was 6.67%) |
+| branch | microbenchmark | complete | 1.311 | 1.303 | 0.61% | Improved from 1.30% |
+| memorystrided | microbenchmark | complete | 0.750 | 2.648 | 253.07% | Severe regression (was 10.76%) |
+| loadheavy | microbenchmark | complete | 0.349 | 0.429 | 22.92% | Slightly worse (was 18.84%) |
+| storeheavy | microbenchmark | complete | 0.522 | 0.612 | 17.24% | Improved from 24.64% |
+| branchheavy | microbenchmark | complete | 0.941 | 0.714 | 31.79% | Regressed from 16.11% |
+| vectorsum | microbenchmark | complete | 0.354 | 0.402 | 13.56% | Improved from 24.38% |
+| vectoradd | microbenchmark | complete | 0.302 | 0.329 | 8.94% | Improved from 21.88% |
+| reductiontree | microbenchmark | complete | 0.406 | 0.480 | 18.23% | Regressed from 6.19% |
+| strideindirect | microbenchmark | complete | 0.761 | 0.528 | 44.13% | Regressed from 15.91% |
+| atax | polybench | timeout | — | 0.2185 | — | REGRESSION: 953 insts in 5B cycles |
+| bicg | polybench | timeout | — | 0.2295 | — | REGRESSION: 776 insts in 5B cycles |
+| gemm | polybench | timeout | — | 0.2332 | — | REGRESSION: 30912 insts in 5B cycles |
+| mvt | polybench | timeout | — | 0.2156 | — | REGRESSION: 459 insts in 5B cycles |
+| jacobi-1d | polybench | timeout | — | 0.1510 | — | REGRESSION: 1068 insts in 5B cycles |
+| 2mm | polybench | timeout | — | 0.1435 | — | REGRESSION: 167 insts in 5B cycles |
+| 3mm | polybench | timeout | — | 0.1453 | — | REGRESSION: 197 insts in 5B cycles |
 | crc32 | embench | infeasible | — | — | — | 12.5B insts in 5B cycles; min workload |
 | edn | embench | infeasible | — | — | — | 13.0B insts in 5B cycles; N/ORDER reducible |
 | statemate | embench | infeasible | — | — | — | 9.2B insts in 5B cycles; no size knob |

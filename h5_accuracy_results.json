@@ -1,170 +1,163 @@
 {
   "summary": {
-    "total_ci_verified_benchmarks": 19,
-    "benchmarks_with_error_data": 18,
+    "total_ci_verified_benchmarks": 11,
+    "benchmarks_with_error_data": 11,
     "microbenchmarks_with_error": 11,
-    "polybench_with_error": 7,
-    "embench_sim_only": 1,
+    "polybench_with_error": 0,
+    "embench_sim_only": 0,
     "infeasible_benchmarks": 6,
-    "average_error": 0.6171,
-    "micro_average_error": 0.1421,
-    "polybench_average_error": 1.3636,
+    "average_error": 0.4117,
+    "micro_average_error": 0.4117,
+    "polybench_average_error": null,
     "h5_target_met": false,
-    "note": "18 benchmarks with error data (11 micro + 7 polybench). Both sim and HW use MINI dataset for polybench 2mm/3mm, SMALL dataset for other polybench. Overall 61.71% average error does NOT meet <20% target due to polybench (in-order vs OoO gap). All sim CPI values CI-verified from accuracy-consolidated run 22024974797 (includes Leo's PR #46 fix)."
+    "note": "After PR #70 (AfterBranch fix) and PR #71 merge: microbench average error regressed to 41.17% (was 14.21%). All 7 PolyBench benchmarks now timeout at 5B cycle limit (regression). Data from accuracy-consolidated run 22069383457. See issue #149 for regression details."
   },
   "benchmarks": [
     {
       "name": "arithmetic",
       "category": "microbenchmark",
-      "simulated_cpi": 0.27,
+      "simulated_cpi": 0.219,
       "hardware_cpi": 0.296,
-      "error": 0.0963,
+      "error": 0.3516,
       "ci_verified": true
     },
     {
       "name": "dependency",
       "category": "microbenchmark",
-      "simulated_cpi": 1.02,
+      "simulated_cpi": 1.015,
       "hardware_cpi": 1.088,
-      "error": 0.0667,
+      "error": 0.0719,
       "ci_verified": true
     },
     {
       "name": "branch",
       "category": "microbenchmark",
-      "simulated_cpi": 1.32,
+      "simulated_cpi": 1.311,
       "hardware_cpi": 1.303,
-      "error": 0.013,
+      "error": 0.0061,
       "ci_verified": true
     },
     {
       "name": "memorystrided",
       "category": "microbenchmark",
-      "simulated_cpi": 2.933,
+      "simulated_cpi": 0.750,
       "hardware_cpi": 2.648,
-      "error": 0.1076,
+      "error": 2.5307,
       "ci_verified": true
     },
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.361,
+      "simulated_cpi": 0.349,
       "hardware_cpi": 0.429,
-      "error": 0.1884,
+      "error": 0.2292,
       "ci_verified": true
     },
     {
       "name": "storeheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.491,
+      "simulated_cpi": 0.522,
       "hardware_cpi": 0.612,
-      "error": 0.2464,
+      "error": 0.1724,
       "ci_verified": true
     },
     {
       "name": "branchheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.829,
+      "simulated_cpi": 0.941,
       "hardware_cpi": 0.714,
-      "error": 0.1611,
+      "error": 0.3179,
       "ci_verified": true
     },
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.5,
+      "simulated_cpi": 0.354,
       "hardware_cpi": 0.402,
-      "error": 0.2438,
+      "error": 0.1356,
       "ci_verified": true
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.401,
+      "simulated_cpi": 0.302,
       "hardware_cpi": 0.329,
-      "error": 0.2188,
+      "error": 0.0894,
       "ci_verified": true
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.452,
-      "hardware_cpi": 0.48,
-      "error": 0.0619,
+      "simulated_cpi": 0.406,
+      "hardware_cpi": 0.480,
+      "error": 0.1823,
       "ci_verified": true
     },
     {
       "name": "strideindirect",
       "category": "microbenchmark",
-      "simulated_cpi": 0.612,
+      "simulated_cpi": 0.761,
       "hardware_cpi": 0.528,
-      "error": 0.1591,
+      "error": 0.4413,
       "ci_verified": true
-    },
+    }
+  ],
+  "polybench_regression": [
     {
       "name": "atax",
       "category": "polybench",
-      "simulated_cpi": 0.45,
-      "hardware_cpi": 0.2185,
-      "error": 1.0595,
-      "ci_verified": true
+      "status": "timeout_regression",
+      "reason": "Exceeded 5B cycle limit with only 953 instructions. Previously completed (CPI 0.186). Regression after PRs #66-#70.",
+      "ci_verified": true,
+      "ci_run": 22062557956
     },
     {
       "name": "bicg",
       "category": "polybench",
-      "simulated_cpi": 0.47,
-      "hardware_cpi": 0.2295,
-      "error": 1.0479,
-      "ci_verified": true
-    },
-    {
-      "name": "gemm",
-      "category": "polybench",
-      "simulated_cpi": 0.437,
-      "hardware_cpi": 0.2332,
-      "error": 0.8739,
-      "ci_verified": true
-    },
-    {
-      "name": "mvt",
-      "category": "polybench",
-      "simulated_cpi": 0.474,
-      "hardware_cpi": 0.2156,
-      "error": 1.1985,
-      "ci_verified": true
+      "status": "timeout_regression",
+      "reason": "Exceeded 5B cycle limit with only 776 instructions. Previously completed (CPI 0.392). Regression after PRs #66-#70.",
+      "ci_verified": true,
+      "ci_run": 22062557956
     },
     {
       "name": "jacobi-1d",
       "category": "polybench",
-      "simulated_cpi": 0.549,
-      "hardware_cpi": 0.151,
-      "error": 2.6358,
-      "ci_verified": true
+      "status": "timeout_regression",
+      "reason": "Exceeded 5B cycle limit with only 1068 instructions. Regression after PRs #66-#70.",
+      "ci_verified": true,
+      "ci_run": 22062557956
+    },
+    {
+      "name": "mvt",
+      "category": "polybench",
+      "status": "timeout_regression",
+      "reason": "Exceeded 5B cycle limit with only 459 instructions. Previously completed (CPI 0.279). Regression after PRs #66-#70.",
+      "ci_verified": true,
+      "ci_run": 22062557956
+    },
+    {
+      "name": "gemm",
+      "category": "polybench",
+      "status": "timeout_regression",
+      "reason": "Exceeded 5B cycle limit with only 30912 instructions. Regression after PRs #66-#70.",
+      "ci_verified": true,
+      "ci_run": 22062557956
     },
     {
       "name": "2mm",
       "category": "polybench",
-      "simulated_cpi": 0.34,
-      "hardware_cpi": 0.1435,
-      "error": 1.3693,
-      "ci_verified": true
+      "status": "timeout_regression",
+      "reason": "Exceeded 5B cycle limit with only 167 instructions. Previously completed (CPI 0.340). Regression after PRs #66-#70.",
+      "ci_verified": true,
+      "ci_run": 22062557956
     },
     {
       "name": "3mm",
       "category": "polybench",
-      "simulated_cpi": 0.343,
-      "hardware_cpi": 0.1453,
-      "error": 1.3606,
-      "ci_verified": true
-    },
-    {
-      "name": "aha_mont64",
-      "category": "embench",
-      "simulated_cpi": 0.347,
-      "hardware_cpi": null,
-      "error": null,
+      "status": "timeout_regression",
+      "reason": "Exceeded 5B cycle limit with only 197 instructions. Previously completed (CPI 0.343). Regression after PRs #66-#70.",
       "ci_verified": true,
-      "note": "No hardware CPI workflow exists for EmBench; sim CPI only"
+      "ci_run": 22062557956
     }
   ],
   "infeasible": [
