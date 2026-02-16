@@ -4294,6 +4294,21 @@ func (p *Pipeline) tickOctupleIssue() {
 					return
 				}
 				p.branchCheckpoint.Valid = false
+				// Clear AfterBranch from window and IFID since branch resolved correctly.
+				// Without this, stores fetched after a predicted-taken branch would be
+				// permanently blocked in the decode stage (they can never issue because
+				// AfterBranch is never cleared).
+				for i := 0; i < p.instrWindowLen; i++ {
+					p.instrWindow[i].AfterBranch = false
+				}
+				p.ifid.AfterBranch = false
+				p.ifid2.AfterBranch = false
+				p.ifid3.AfterBranch = false
+				p.ifid4.AfterBranch = false
+				p.ifid5.AfterBranch = false
+				p.ifid6.AfterBranch = false
+				p.ifid7.AfterBranch = false
+				p.ifid8.AfterBranch = false
 				p.stats.BranchCorrect++
 			}
 		}
