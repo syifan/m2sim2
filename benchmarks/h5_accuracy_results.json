@@ -1,30 +1,28 @@
 {
-  "total_benchmarks_run": 19,
-  "benchmarks_with_error_data": 18,
-  "average_error": 1.3406,
-  "max_error": 3.9338,
-  "min_error": 0.023,
-  "max_error_benchmark": "2mm",
+  "total_benchmarks_run": 16,
+  "benchmarks_with_error_data": 16,
+  "average_error": 0.4621,
+  "max_error": 2.5307,
+  "min_error": 0.0061,
+  "max_error_benchmark": "memorystrided",
   "min_error_benchmark": "branch",
   "per_benchmark_errors": {
-    "2mm": 3.9338,
-    "3mm": 3.9002,
-    "arithmetic": 0.1086,
-    "atax": 2.0481,
-    "bicg": 1.8061,
-    "branch": 0.023,
-    "branchheavy": 0.3585,
-    "dependency": 0.0667,
-    "gemm": 1.813,
-    "jacobi-1d": 3.3245,
-    "loadheavy": 0.0972,
-    "memorystrided": 2.0898,
-    "mvt": 2.0009,
-    "reductiontree": 0.0619,
+    "3mm": 0.6449,
+    "arithmetic": 0.3516,
+    "atax": 0.1747,
+    "bicg": 0.7081,
+    "branch": 0.0061,
+    "branchheavy": 0.3179,
+    "dependency": 0.0719,
+    "jacobi-1d": 1.3113,
+    "loadheavy": 0.2292,
+    "memorystrided": 2.5307,
+    "mvt": 0.2941,
+    "reductiontree": 0.1823,
     "storeheavy": 0.1724,
-    "strideindirect": 0.6629,
-    "vectoradd": 0.7447,
-    "vectorsum": 0.9179
+    "strideindirect": 0.1534,
+    "vectoradd": 0.1345,
+    "vectorsum": 0.1105
   },
   "suites": {
     "microbench": {
@@ -33,11 +31,11 @@
     },
     "polybench": {
       "available": true,
-      "count": 7
+      "count": 5
     },
     "embench": {
       "available": true,
-      "count": 1
+      "count": 0
     }
   }
 }

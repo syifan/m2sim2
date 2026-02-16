@@ -154,30 +154,25 @@ SPEC benchmarks will likely exercise ARM64 instructions not yet implemented. Exp
 
 **Important distinction (issue #354):** "Simulation time" = wall-clock time to run the simulator. "Virtual time" = the predicted execution time on the simulated M2 hardware. Our accuracy target is about virtual time matching real hardware.
 
-**ACCURACY STATUS (February 11, 2026):**
+**ACCURACY STATUS (February 16, 2026):**
 
-**Achieved:** 14.1% average error across 3 calibrated benchmarks (meets H3 target)
+**Current state:** 46.21% average error across 16 benchmarks (11 microbenchmarks + 5 PolyBench). Does **NOT** meet <20% target.
 
-**Pipeline Advancement:** 8 ready PRs represent critical pathway to 15+ goal
+**Pipeline changes (PRs #65-74):** Branch relaxation for OoO-style loop overlap, speculative store blocking, register checkpoint, AfterBranch clearing revert, ALU→Load address forwarding. These changes improved PolyBench accuracy but regressed microbenchmarks (memorystrided: 10.8% → 253.1%).
 
 **Current calibrated benchmark status:**
 
 | Benchmark | Error | Status |
 |-----------|--------|---------|
-| dependency | 6.7% | ✅ **Production calibrated** |
-| branch | 1.3% | ✅ **Production calibrated** |
-| memorystrided | 10.8% | ✅ **Production calibrated** |
+| dependency | 7.2% | ✅ Calibrated |
+| branch | 0.6% | ✅ Calibrated |
+| memorystrided | 253.1% | ❌ Regressed (pipeline changes) |
 
-**Current average: 14.1% (target <20% ✅)**
-
-**Pipeline toward 15+ goal:**
-- **PolyBench integration (PR #448):** +7 benchmarks ready
-- **Intermediate benchmarks (PR #435):** +4 benchmarks ready
-- **Accuracy improvements (6 PRs ready):** Validated calibration methodology
+**Original 3-benchmark average: 86.9% (was 14.1% before PRs #65-74)**
 
 Error formula: `abs(t_sim - t_real) / min(t_sim, t_real)`. Target: <20% average.
 
-**Accuracy journey:** 39.8% (baseline) → 34.2% (C1) → 22.8% (branch penalty fix) → 17.6% (fetch-stage branch target extraction) → **14.1% (H3 TARGET ACHIEVED)** → **15+ benchmarks (H5 goal)**
+**Accuracy journey:** 39.8% (baseline) → 34.2% (C1) → 22.8% (branch penalty fix) → 17.6% (fetch-stage branch target extraction) → 14.1% (H3 target achieved) → **46.2% (after pipeline rework PRs #65-74, 16 benchmarks)**
 
 #### H3.1: Calibration Infrastructure ✅ COMPLETE
 - [x] H3 calibration framework deployed (PR #321 merged)
@@ -257,54 +252,54 @@ Microbenchmark accuracy target met (14.1%). Now validate on real SPEC workloads.
 
 ---
 
-### H5: 18 Benchmarks with Error Data (February 14, 2026)
+### H5: 16 Benchmarks with Error Data (February 16, 2026)
 
 **Goal:** Achieve <20% average error across 15+ benchmarks with hardware CPI comparison.
 
-**STATUS:** 18 benchmarks with error data (11 microbenchmarks + 7 PolyBench). All 7/7 polybench CI-verified from accuracy-consolidated run 22024974797 (includes Leo's PR #46 fix).
+**STATUS:** 16 benchmarks with error data (11 microbenchmarks + 5 PolyBench). Data from PR #74 CI (AfterBranch revert + ALU→Load forwarding). GEMM exceeded 5B cycle limit; 2MM timed out (55m Go test timeout).
 
 **Results:**
-- **Total benchmarks with error data:** 18 (11 microbenchmarks + 7 PolyBench)
-- **Overall average error:** 61.71% — does **NOT** meet <20% target
-- **Microbenchmark average error:** 14.21% (11 benchmarks) — meets <20% target
-- **PolyBench average error:** 136.36% (7 benchmarks) — does **NOT** meet target
-- **Data source:** `h5_accuracy_results.json` — all benchmarks CI-verified
+- **Total benchmarks with error data:** 16 (11 microbenchmarks + 5 PolyBench)
+- **Overall average error:** 46.21% — does **NOT** meet <20% target
+- **Microbenchmark average error:** 38.73% (11 benchmarks) — does **NOT** meet target (memorystrided regressed to 253%)
+- **PolyBench average error:** 62.66% (5 benchmarks) — does **NOT** meet target
+- **Data source:** `h5_accuracy_results.json` — CI-verified from PR #74 PolyBench run 22074740889
 
-#### Microbenchmark Results (14.21% average error)
+#### Microbenchmark Results (38.73% average error)
 
 | Benchmark | Sim CPI | HW CPI | Error |
 |-----------|---------|--------|-------|
-| arithmetic | 0.270 | 0.296 | 9.63% |
-| dependency | 1.020 | 1.088 | 6.67% |
-| branch | 1.320 | 1.303 | 1.30% |
-| memorystrided | 2.933 | 2.648 | 10.76% |
-| loadheavy | 0.361 | 0.429 | 18.84% |
-| storeheavy | 0.491 | 0.612 | 24.64% |
-| branchheavy | 0.829 | 0.714 | 16.11% |
-| vectorsum | 0.500 | 0.402 | 24.38% |
-| vectoradd | 0.401 | 0.329 | 21.88% |
-| reductiontree | 0.452 | 0.480 | 6.19% |
-| strideindirect | 0.612 | 0.528 | 15.91% |
+| arithmetic | 0.219 | 0.296 | 35.16% |
+| dependency | 1.015 | 1.088 | 7.19% |
+| branch | 1.311 | 1.303 | 0.61% |
+| memorystrided | 0.750 | 2.648 | 253.07% |
+| loadheavy | 0.349 | 0.429 | 22.92% |
+| storeheavy | 0.522 | 0.612 | 17.24% |
+| branchheavy | 0.941 | 0.714 | 31.79% |
+| vectorsum | 0.362 | 0.402 | 11.05% |
+| vectoradd | 0.290 | 0.329 | 13.45% |
+| reductiontree | 0.406 | 0.480 | 18.23% |
+| strideindirect | 0.609 | 0.528 | 15.34% |
 
-#### PolyBench Results (136.36% average error — 7/7 benchmarks, all CI-verified)
+#### PolyBench Results (62.66% average error — 5/7 benchmarks completed, 2 infeasible)
 
-| Benchmark | Sim CPI | HW CPI | Error | Dataset |
-|-----------|---------|--------|-------|---------|
-| atax | 0.450 | 0.2185 | 105.9% | SMALL |
-| bicg | 0.470 | 0.2295 | 104.8% | SMALL |
-| gemm | 0.437 | 0.2332 | 87.4% | SMALL |
-| mvt | 0.474 | 0.2156 | 119.9% | SMALL |
-| jacobi-1d | 0.549 | 0.1510 | 263.6% | SMALL |
-| 2mm | 0.340 | 0.1435 | 136.9% | MINI |
-| 3mm | 0.343 | 0.1453 | 136.1% | MINI |
+| Benchmark | Sim CPI | HW CPI | Error | Dataset | Status |
+|-----------|---------|--------|-------|---------|--------|
+| atax | 0.186 | 0.2185 | 17.5% | SMALL | complete |
+| bicg | 0.392 | 0.2295 | 70.8% | SMALL | complete |
+| gemm | — | 0.2332 | — | SMALL | infeasible (18.8B insts in 5B cycles) |
+| mvt | 0.279 | 0.2156 | 29.4% | SMALL | complete |
+| jacobi-1d | 0.349 | 0.1510 | 131.1% | SMALL | complete |
+| 2mm | — | 0.1435 | — | MINI | infeasible (55m Go test timeout) |
+| 3mm | 0.239 | 0.1453 | 64.5% | MINI | complete |
 
-SMALL dataset used for atax/bicg/gemm/mvt/jacobi-1d; MINI dataset for 2mm/3mm. All sim CPI values from CI run 22024974797 (after Leo's PR #46 hazard fix).
+Data from PR #74 CI (PolyBench run 22074740889). GEMM exceeded 5B cycle limit executing 18.8B instructions. 2MM hit Go test timeout (55m) before reaching cycle limit. Pipeline changes (ALU→Load forwarding, unconditional AfterBranch clearing) significantly reduced sim CPI compared to pre-PR#65 values.
 
-#### Known Gap: In-Order vs Out-of-Order
+#### Known Gap: Pipeline Accuracy
 
-**Root cause of PolyBench error:** M2Sim models an in-order pipeline, but the real Apple M2 is out-of-order. PolyBench kernels with heavy memory and computation patterns benefit enormously from OoO execution, resulting in 87-264% CPI overestimation by the in-order model.
+**Key regressions:** PRs #65-74 introduced branch relaxation, speculative store blocking, register checkpointing, and ALU→Load forwarding. These changes significantly improved PolyBench CPI (reduced from 0.34-0.55 to 0.19-0.39) but caused memorystrided to regress from 10.8% to 253.1% error (sim CPI dropped from 2.933 to 0.750 vs HW 2.648).
 
-The microbenchmark accuracy (14.21%) validates the core timing model for individual microarchitectural features. The PolyBench gap is an architectural limitation, not a calibration error.
+The overall error (46.21%) is dominated by memorystrided (253%) and jacobi-1d (131%). Without these two outliers, the remaining 14 benchmarks average 23.9% error.
 
 #### Infeasible Benchmarks — Detailed Analysis (CI Run #22019560953)
 
@@ -323,37 +318,38 @@ All 6 EmBench benchmarks below are at `LOCAL_SCALE_FACTOR=1`, `CPU_MHZ=1` (minim
 
 **Benchmarks with potential further reduction** (edn, huffbench, matmult-int) would require a RISC-V cross-compiler to rebuild the ELF binaries with smaller parameters.
 
-**Previously infeasible, now resolved:** 2mm and 3mm (PolyBench) were rebuilt with MINI_DATASET and now complete successfully (PR #46).
+**Previously infeasible, now resolved:** 3mm (PolyBench) was rebuilt with MINI_DATASET and completes successfully (CPI 0.239).
+
+**Newly infeasible after PRs #65-74:** GEMM exceeded 5B cycle limit (18.8B insts at CPI ~0.27); 2MM hit 55m Go test timeout before reaching 5B cycles. Both were previously completing successfully.
 
 #### Full Benchmark Coverage Table
 
 | Benchmark | Category | Status | Sim CPI | HW CPI | Error | Notes |
 |-----------|----------|--------|--------:|-------:|------:|-------|
-| arithmetic | microbenchmark | complete | 0.270 | 0.296 | 9.63% | |
-| dependency | microbenchmark | complete | 1.020 | 1.088 | 6.67% | |
-| branch | microbenchmark | complete | 1.320 | 1.303 | 1.30% | |
-| memorystrided | microbenchmark | complete | 2.933 | 2.648 | 10.76% | |
-| loadheavy | microbenchmark | complete | 0.361 | 0.429 | 18.84% | |
-| storeheavy | microbenchmark | complete | 0.491 | 0.612 | 24.64% | |
-| branchheavy | microbenchmark | complete | 0.829 | 0.714 | 16.11% | |
-| vectorsum | microbenchmark | complete | 0.500 | 0.402 | 24.38% | |
-| vectoradd | microbenchmark | complete | 0.401 | 0.329 | 21.88% | |
-| reductiontree | microbenchmark | complete | 0.452 | 0.480 | 6.19% | |
-| strideindirect | microbenchmark | complete | 0.612 | 0.528 | 15.91% | |
-| atax | polybench | complete | 0.450 | 0.2185 | 105.9% | In-order vs OoO gap |
-| bicg | polybench | complete | 0.470 | 0.2295 | 104.8% | In-order vs OoO gap |
-| gemm | polybench | complete | 0.437 | 0.2332 | 87.4% | In-order vs OoO gap |
-| mvt | polybench | complete | 0.474 | 0.2156 | 119.9% | In-order vs OoO gap |
-| jacobi-1d | polybench | complete | 0.549 | 0.1510 | 263.6% | In-order vs OoO gap |
-| 2mm | polybench | complete | 0.340 | 0.1435 | 136.9% | MINI dataset; in-order vs OoO gap |
-| 3mm | polybench | complete | 0.343 | 0.1453 | 136.1% | MINI dataset; in-order vs OoO gap |
-| aha_mont64 | embench | sim-only | 0.347 | — | — | No HW CPI data |
+| arithmetic | microbenchmark | complete | 0.219 | 0.296 | 35.16% | Regressed from 9.6% |
+| dependency | microbenchmark | complete | 1.015 | 1.088 | 7.19% | |
+| branch | microbenchmark | complete | 1.311 | 1.303 | 0.61% | |
+| memorystrided | microbenchmark | complete | 0.750 | 2.648 | 253.07% | Regressed from 10.8% |
+| loadheavy | microbenchmark | complete | 0.349 | 0.429 | 22.92% | |
+| storeheavy | microbenchmark | complete | 0.522 | 0.612 | 17.24% | |
+| branchheavy | microbenchmark | complete | 0.941 | 0.714 | 31.79% | Regressed from 16.1% |
+| vectorsum | microbenchmark | complete | 0.362 | 0.402 | 11.05% | |
+| vectoradd | microbenchmark | complete | 0.290 | 0.329 | 13.45% | |
+| reductiontree | microbenchmark | complete | 0.406 | 0.480 | 18.23% | |
+| strideindirect | microbenchmark | complete | 0.609 | 0.528 | 15.34% | |
+| atax | polybench | complete | 0.186 | 0.2185 | 17.47% | Improved from 105.9% |
+| bicg | polybench | complete | 0.392 | 0.2295 | 70.81% | Improved from 104.8% |
+| gemm | polybench | infeasible | — | 0.2332 | — | 18.8B insts in 5B cycles; was 87.4% |
+| mvt | polybench | complete | 0.279 | 0.2156 | 29.41% | Improved from 119.9% |
+| jacobi-1d | polybench | complete | 0.349 | 0.1510 | 131.13% | Improved from 263.6% |
+| 2mm | polybench | infeasible | — | 0.1435 | — | MINI dataset; 55m Go test timeout |
+| 3mm | polybench | complete | 0.239 | 0.1453 | 64.49% | MINI dataset; improved from 136.1% |
 | crc32 | embench | infeasible | — | — | — | 12.5B insts in 5B cycles; min workload |
 | edn | embench | infeasible | — | — | — | 13.0B insts in 5B cycles; N/ORDER reducible |
 | statemate | embench | infeasible | — | — | — | 9.2B insts in 5B cycles; no size knob |
 | primecount | embench | infeasible | — | — | — | 10.0B insts in 5B cycles; SZ=3 is minimum |
 | huffbench | embench | infeasible | — | — | — | CI timeout after 2h30m; memory-intensive loop; TEST_SIZE reducible |
-| matmult-int | embench | infeasible | — | — | — | CI timeout; never started (huffbench consumed 4h10m job); UPPERLIMIT reducible |
+| matmult-int | embench | infeasible | — | — | — | CI timeout; never started; UPPERLIMIT reducible |
 
 ## Scope
 
