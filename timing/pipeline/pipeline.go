@@ -4294,21 +4294,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					return
 				}
 				p.branchCheckpoint.Valid = false
-				// Clear AfterBranch from window and IFID since branch resolved correctly.
-				// Without this, stores fetched after a predicted-taken branch would be
-				// permanently blocked in the decode stage (they can never issue because
-				// AfterBranch is never cleared).
-				for i := 0; i < p.instrWindowLen; i++ {
-					p.instrWindow[i].AfterBranch = false
-				}
-				p.ifid.AfterBranch = false
-				p.ifid2.AfterBranch = false
-				p.ifid3.AfterBranch = false
-				p.ifid4.AfterBranch = false
-				p.ifid5.AfterBranch = false
-				p.ifid6.AfterBranch = false
-				p.ifid7.AfterBranch = false
-				p.ifid8.AfterBranch = false
+				p.clearAndRemarkAfterBranch()
 				p.stats.BranchCorrect++
 			}
 		}
@@ -4436,6 +4422,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.clearAndRemarkAfterBranch()
 				p.stats.BranchCorrect++
 			}
 		}
@@ -4577,6 +4564,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.clearAndRemarkAfterBranch()
 				p.stats.BranchCorrect++
 			}
 		}
@@ -4723,6 +4711,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.clearAndRemarkAfterBranch()
 				p.stats.BranchCorrect++
 			}
 		}
@@ -4876,6 +4865,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.clearAndRemarkAfterBranch()
 				p.stats.BranchCorrect++
 			}
 		}
@@ -5040,6 +5030,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.clearAndRemarkAfterBranch()
 				p.stats.BranchCorrect++
 			}
 		}
@@ -5215,6 +5206,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.clearAndRemarkAfterBranch()
 				p.stats.BranchCorrect++
 			}
 		}
@@ -5401,6 +5393,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					}
 					return
 				}
+				p.clearAndRemarkAfterBranch()
 				p.stats.BranchCorrect++
 			}
 		}
@@ -6034,6 +6027,48 @@ func (p *Pipeline) collectPendingFetchInstructionsSelective(consumed []bool) ([8
 	}
 
 	return result, count
+}
+
+// clearAndRemarkAfterBranch clears AfterBranch flags from IFID registers and
+// the instruction window, stopping at the first unresolved predicted-taken
+// branch. Instructions after that branch remain protected. This is called when
+// a branch resolves correctly so stores between the resolved branch and the
+// next unresolved branch can issue, while stores after the next unresolved
+// branch stay blocked.
+func (p *Pipeline) clearAndRemarkAfterBranch() {
+	type ifidEntry struct {
+		valid, predictedTaken, earlyResolved, afterBranch *bool
+	}
+	ifids := [8]ifidEntry{
+		{&p.ifid.Valid, &p.ifid.PredictedTaken, &p.ifid.EarlyResolved, &p.ifid.AfterBranch},
+		{&p.ifid2.Valid, &p.ifid2.PredictedTaken, &p.ifid2.EarlyResolved, &p.ifid2.AfterBranch},
+		{&p.ifid3.Valid, &p.ifid3.PredictedTaken, &p.ifid3.EarlyResolved, &p.ifid3.AfterBranch},
+		{&p.ifid4.Valid, &p.ifid4.PredictedTaken, &p.ifid4.EarlyResolved, &p.ifid4.AfterBranch},
+		{&p.ifid5.Valid, &p.ifid5.PredictedTaken, &p.ifid5.EarlyResolved, &p.ifid5.AfterBranch},
+		{&p.ifid6.Valid, &p.ifid6.PredictedTaken, &p.ifid6.EarlyResolved, &p.ifid6.AfterBranch},
+		{&p.ifid7.Valid, &p.ifid7.PredictedTaken, &p.ifid7.EarlyResolved, &p.ifid7.AfterBranch},
+		{&p.ifid8.Valid, &p.ifid8.PredictedTaken, &p.ifid8.EarlyResolved, &p.ifid8.AfterBranch},
+	}
+
+	// Scan IFID registers (oldest instructions first).
+	for i := 0; i < 8; i++ {
+		if !*ifids[i].valid {
+			continue
+		}
+		// Stop at the next unresolved predicted-taken branch.
+		if *ifids[i].predictedTaken && !*ifids[i].earlyResolved {
+			return
+		}
+		*ifids[i].afterBranch = false
+	}
+
+	// Continue scanning the instruction window (newer instructions).
+	for i := 0; i < p.instrWindowLen; i++ {
+		if p.instrWindow[i].PredictedTaken && !p.instrWindow[i].EarlyResolved {
+			return
+		}
+		p.instrWindow[i].AfterBranch = false
+	}
 }
 
 // pushUnconsumedToWindow pushes un-consumed IFID instructions into the
