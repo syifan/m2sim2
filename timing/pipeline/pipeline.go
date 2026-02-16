@@ -6026,45 +6026,28 @@ func (p *Pipeline) collectPendingFetchInstructionsSelective(consumed []bool) ([8
 }
 
 // clearAndRemarkAfterBranch clears AfterBranch flags from IFID registers and
-// the instruction window, stopping at the first unresolved predicted-taken
-// branch. Instructions after that branch remain protected. This is called when
-// a branch resolves correctly so stores between the resolved branch and the
-// next unresolved branch can issue, while stores after the next unresolved
-// branch stay blocked.
+// the instruction window when a branch resolves correctly. This allows stores
+// that were blocked behind the resolved branch to issue.
+//
+// All flags are cleared unconditionally because every instruction in the
+// pipeline after a correctly-resolved branch is on the correct execution
+// path. If a subsequent branch mispredicts, the pipeline flush discards all
+// younger instructions and the register checkpoint restores processor state.
+// Re-fetched instructions get fresh AfterBranch flags from the fetch stage.
+// Memory writes from correct-path stores between two correctly-predicted
+// branches are valid and don't need rollback.
 func (p *Pipeline) clearAndRemarkAfterBranch() {
-	type ifidEntry struct {
-		valid, predictedTaken, earlyResolved, afterBranch *bool
-	}
-	ifids := [8]ifidEntry{
-		{&p.ifid.Valid, &p.ifid.PredictedTaken, &p.ifid.EarlyResolved, &p.ifid.AfterBranch},
-		{&p.ifid2.Valid, &p.ifid2.PredictedTaken, &p.ifid2.EarlyResolved, &p.ifid2.AfterBranch},
-		{&p.ifid3.Valid, &p.ifid3.PredictedTaken, &p.ifid3.EarlyResolved, &p.ifid3.AfterBranch},
-		{&p.ifid4.Valid, &p.ifid4.PredictedTaken, &p.ifid4.EarlyResolved, &p.ifid4.AfterBranch},
-		{&p.ifid5.Valid, &p.ifid5.PredictedTaken, &p.ifid5.EarlyResolved, &p.ifid5.AfterBranch},
-		{&p.ifid6.Valid, &p.ifid6.PredictedTaken, &p.ifid6.EarlyResolved, &p.ifid6.AfterBranch},
-		{&p.ifid7.Valid, &p.ifid7.PredictedTaken, &p.ifid7.EarlyResolved, &p.ifid7.AfterBranch},
-		{&p.ifid8.Valid, &p.ifid8.PredictedTaken, &p.ifid8.EarlyResolved, &p.ifid8.AfterBranch},
-	}
-
-	// Scan IFID registers (oldest instructions first).
-	for i := 0; i < 8; i++ {
-		if !*ifids[i].valid {
-			continue
-		}
-		// Stop at the next unresolved predicted-taken branch.
-		if *ifids[i].predictedTaken && !*ifids[i].earlyResolved {
-			return
-		}
-		*ifids[i].afterBranch = false
-	}
-
-	// Continue scanning the instruction window (newer instructions).
 	for i := 0; i < p.instrWindowLen; i++ {
-		if p.instrWindow[i].PredictedTaken && !p.instrWindow[i].EarlyResolved {
-			return
-		}
 		p.instrWindow[i].AfterBranch = false
 	}
+	p.ifid.AfterBranch = false
+	p.ifid2.AfterBranch = false
+	p.ifid3.AfterBranch = false
+	p.ifid4.AfterBranch = false
+	p.ifid5.AfterBranch = false
+	p.ifid6.AfterBranch = false
+	p.ifid7.AfterBranch = false
+	p.ifid8.AfterBranch = false
 }
 
 // pushUnconsumedToWindow pushes un-consumed IFID instructions into the
