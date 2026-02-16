@@ -1,160 +1,144 @@
 {
   "summary": {
-    "total_ci_verified_benchmarks": 19,
-    "benchmarks_with_error_data": 18,
+    "total_ci_verified_benchmarks": 25,
+    "benchmarks_with_error_data": 16,
     "microbenchmarks_with_error": 11,
-    "polybench_with_error": 7,
+    "polybench_with_error": 5,
     "embench_sim_only": 1,
-    "infeasible_benchmarks": 6,
-    "average_error": 0.6171,
-    "micro_average_error": 0.1421,
-    "polybench_average_error": 1.3636,
+    "infeasible_benchmarks": 8,
+    "average_error": 0.4621,
+    "micro_average_error": 0.3873,
+    "polybench_average_error": 0.6266,
     "h5_target_met": false,
-    "note": "18 benchmarks with error data (11 micro + 7 polybench). Both sim and HW use MINI dataset for polybench 2mm/3mm, SMALL dataset for other polybench. Overall 61.71% average error does NOT meet <20% target due to polybench (in-order vs OoO gap). All sim CPI values CI-verified from accuracy-consolidated run 22024974797 (includes Leo's PR #46 fix)."
+    "note": "16 benchmarks with error data (11 micro + 5 polybench). GEMM and 2MM moved to infeasible (GEMM exceeded 5B cycle limit, 2MM timed out at 55m). Sim CPI values from PR #74 CI runs 22074740888 (microbench) and 22074740889 (polybench) which include AfterBranch revert fix + ALU-Load forwarding. Overall 46.21% avg error (was 61.71%), down from pipeline rework PRs #65-#74. Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
       "name": "arithmetic",
       "category": "microbenchmark",
-      "simulated_cpi": 0.27,
+      "simulated_cpi": 0.219,
       "hardware_cpi": 0.296,
-      "error": 0.0963,
+      "error": 0.3516,
       "ci_verified": true
     },
     {
       "name": "dependency",
       "category": "microbenchmark",
-      "simulated_cpi": 1.02,
+      "simulated_cpi": 1.015,
       "hardware_cpi": 1.088,
-      "error": 0.0667,
+      "error": 0.0719,
       "ci_verified": true
     },
     {
       "name": "branch",
       "category": "microbenchmark",
-      "simulated_cpi": 1.32,
+      "simulated_cpi": 1.311,
       "hardware_cpi": 1.303,
-      "error": 0.013,
+      "error": 0.0061,
       "ci_verified": true
     },
     {
       "name": "memorystrided",
       "category": "microbenchmark",
-      "simulated_cpi": 2.933,
+      "simulated_cpi": 0.75,
       "hardware_cpi": 2.648,
-      "error": 0.1076,
+      "error": 2.5307,
       "ci_verified": true
     },
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.361,
+      "simulated_cpi": 0.349,
       "hardware_cpi": 0.429,
-      "error": 0.1884,
+      "error": 0.2292,
       "ci_verified": true
     },
     {
       "name": "storeheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.491,
+      "simulated_cpi": 0.522,
       "hardware_cpi": 0.612,
-      "error": 0.2464,
+      "error": 0.1724,
       "ci_verified": true
     },
     {
       "name": "branchheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.829,
+      "simulated_cpi": 0.941,
       "hardware_cpi": 0.714,
-      "error": 0.1611,
+      "error": 0.3179,
       "ci_verified": true
     },
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.5,
+      "simulated_cpi": 0.362,
       "hardware_cpi": 0.402,
-      "error": 0.2438,
+      "error": 0.1105,
       "ci_verified": true
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.401,
+      "simulated_cpi": 0.29,
       "hardware_cpi": 0.329,
-      "error": 0.2188,
+      "error": 0.1345,
       "ci_verified": true
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.452,
+      "simulated_cpi": 0.406,
       "hardware_cpi": 0.48,
-      "error": 0.0619,
+      "error": 0.1823,
       "ci_verified": true
     },
     {
       "name": "strideindirect",
       "category": "microbenchmark",
-      "simulated_cpi": 0.612,
+      "simulated_cpi": 0.609,
       "hardware_cpi": 0.528,
-      "error": 0.1591,
+      "error": 0.1534,
       "ci_verified": true
     },
     {
       "name": "atax",
       "category": "polybench",
-      "simulated_cpi": 0.45,
+      "simulated_cpi": 0.186,
       "hardware_cpi": 0.2185,
-      "error": 1.0595,
+      "error": 0.1747,
       "ci_verified": true
     },
     {
       "name": "bicg",
       "category": "polybench",
-      "simulated_cpi": 0.47,
+      "simulated_cpi": 0.392,
       "hardware_cpi": 0.2295,
-      "error": 1.0479,
-      "ci_verified": true
-    },
-    {
-      "name": "gemm",
-      "category": "polybench",
-      "simulated_cpi": 0.437,
-      "hardware_cpi": 0.2332,
-      "error": 0.8739,
+      "error": 0.7081,
       "ci_verified": true
     },
     {
       "name": "mvt",
       "category": "polybench",
-      "simulated_cpi": 0.474,
+      "simulated_cpi": 0.279,
       "hardware_cpi": 0.2156,
-      "error": 1.1985,
+      "error": 0.2941,
       "ci_verified": true
     },
     {
       "name": "jacobi-1d",
       "category": "polybench",
-      "simulated_cpi": 0.549,
+      "simulated_cpi": 0.349,
       "hardware_cpi": 0.151,
-      "error": 2.6358,
-      "ci_verified": true
-    },
-    {
-      "name": "2mm",
-      "category": "polybench",
-      "simulated_cpi": 0.34,
-      "hardware_cpi": 0.1435,
-      "error": 1.3693,
+      "error": 1.3113,
       "ci_verified": true
     },
     {
       "name": "3mm",
       "category": "polybench",
-      "simulated_cpi": 0.343,
+      "simulated_cpi": 0.239,
       "hardware_cpi": 0.1453,
-      "error": 1.3606,
+      "error": 0.6449,
       "ci_verified": true
     },
     {
@@ -169,10 +153,28 @@
   ],
   "infeasible": [
     {
+      "name": "gemm",
+      "category": "polybench",
+      "status": "infeasible",
+      "reason": "Exceeded 5B cycle limit. Retired 18,766,215,802 instructions in 5B cycles. CPI at limit: 0.266. SMALL dataset too large for in-order pipeline.",
+      "ci_verified": true,
+      "cycles_at_limit": 5000000000,
+      "instructions_at_limit": 18766215802,
+      "ci_run": 22074740889
+    },
+    {
+      "name": "2mm",
+      "category": "polybench",
+      "status": "infeasible",
+      "reason": "Go test timeout after 55m. MINI dataset exceeds Go test time limit with current pipeline performance.",
+      "ci_verified": true,
+      "ci_run": 22074740889
+    },
+    {
       "name": "crc32",
       "category": "embench",
       "status": "infeasible",
-      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 12,499,991,230 instructions in 5B cycles (44m29s wall time). CPI at limit: 0.400. Single iteration of 1024 CRC ops — already at minimum workload, no further reduction possible without altering benchmark semantics.",
+      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 12,499,991,230 instructions in 5B cycles (44m29s wall time). CPI at limit: 0.400.",
       "ci_verified": true,
       "cycles_at_limit": 5000000000,
       "instructions_at_limit": 12499991230,
@@ -183,19 +185,18 @@
       "name": "edn",
       "category": "embench",
       "status": "infeasible",
-      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 13,000,000,936 instructions in 5B cycles (45m10s wall time). CPI at limit: 0.385. Parameters N=100, ORDER=50 could theoretically be reduced, but requires cross-compilation rebuild.",
+      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 13,000,000,936 instructions in 5B cycles (45m10s wall time). CPI at limit: 0.385.",
       "ci_verified": true,
       "cycles_at_limit": 5000000000,
       "instructions_at_limit": 13000000936,
       "wall_time_at_limit": "45m10s",
-      "ci_run": 22019560953,
-      "reduction_possible": "N=100, ORDER=50 could be reduced but requires cross-compiler rebuild"
+      "ci_run": 22019560953
     },
     {
       "name": "statemate",
       "category": "embench",
       "status": "infeasible",
-      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 9,210,526,236 instructions in 5B cycles (35m17s wall time). CPI at limit: 0.543. Complex auto-generated state machine with no obvious size reduction parameter.",
+      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 9,210,526,236 instructions in 5B cycles (35m17s wall time). CPI at limit: 0.543.",
       "ci_verified": true,
       "cycles_at_limit": 5000000000,
       "instructions_at_limit": 9210526236,
@@ -206,7 +207,7 @@
       "name": "primecount",
       "category": "embench",
       "status": "infeasible",
-      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1, SZ=3, NPRIMES=9 (already maximally reduced). Retired 9,999,999,968 instructions in 5B cycles (42m49s wall time). CPI at limit: 0.500. No further reduction possible — SZ=3 is the absolute minimum.",
+      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1, SZ=3, NPRIMES=9 (already maximally reduced). Retired 9,999,999,968 instructions in 5B cycles (42m49s wall time). CPI at limit: 0.500.",
       "ci_verified": true,
       "cycles_at_limit": 5000000000,
       "instructions_at_limit": 9999999968,
@@ -217,19 +218,17 @@
       "name": "huffbench",
       "category": "embench",
       "status": "infeasible",
-      "reason": "CI timeout after 2h30m wall-time; test killed before reaching 5B cycle limit; running in memory-intensive loop (Memory.Write64)",
+      "reason": "CI timeout after 2h30m wall-time; test killed before reaching 5B cycle limit.",
       "ci_verified": true,
-      "ci_run": 22019560953,
-      "reduction_possible": "TEST_SIZE=500 could be reduced but requires cross-compiler rebuild"
+      "ci_run": 22019560953
     },
     {
       "name": "matmult-int",
       "category": "embench",
       "status": "infeasible",
-      "reason": "CI timeout; never started due to huffbench consuming full job allocation (4h10m); expected to exceed 5B cycles based on compute intensity",
+      "reason": "CI timeout; never started due to huffbench consuming full job allocation; expected to exceed 5B cycles based on compute intensity.",
       "ci_verified": true,
-      "ci_run": 22019560953,
-      "reduction_possible": "UPPERLIMIT=20 could be reduced (e.g. to 5) but requires cross-compiler rebuild"
+      "ci_run": 22019560953
     }
   ]
 }
