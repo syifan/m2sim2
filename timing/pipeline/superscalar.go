@@ -948,7 +948,8 @@ const maxLoadPorts = 3
 const maxStorePorts = 2
 
 // maxMemPorts is the total AGU bandwidth (load + store combined).
-// M2 Avalanche has 3 load + 2 store = 5 total AGU ports; 4 approximates this.
+// M2 Avalanche has 3 load + 2 store = 5 total AGU ports, but the MEM stage
+// only has 3 hardware memory ports (slots 1-3), so we limit to 4.
 const maxMemPorts = 4
 
 // maxWritePorts is the maximum number of register file write-back ports per
