@@ -333,6 +333,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex.PC + 4
@@ -466,6 +467,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex2.PC + 4
@@ -594,6 +596,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex3.PC + 4
@@ -720,6 +723,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex4.PC + 4
@@ -846,6 +850,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex5.PC + 4
@@ -976,6 +981,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex6.PC + 4
@@ -1110,6 +1116,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex7.PC + 4
@@ -1248,6 +1255,7 @@ func (p *Pipeline) tickOctupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex8.PC + 4
@@ -1303,6 +1311,9 @@ func (p *Pipeline) tickOctupleIssue() {
 
 			loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
 				p.idex.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
+			if loadUseHazard {
+				p.stats.RAWHazardStalls++
+			}
 		}
 	}
 
@@ -1470,6 +1481,8 @@ func (p *Pipeline) tickOctupleIssue() {
 				if !(p.ifid2.AfterBranch && decResult2.MemWrite) && canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
 					nextIDEX2.fromIDEX(&tempIDEX2)
 					issued[issuedCount] = true
+				} else {
+					p.stats.StructuralHazardStalls++
 				}
 				issuedInsts[issuedCount] = &tempIDEX2
 				issuedCount++
@@ -1503,6 +1516,8 @@ func (p *Pipeline) tickOctupleIssue() {
 				if !(p.ifid3.AfterBranch && decResult3.MemWrite) && canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
 					nextIDEX3.fromIDEX(&tempIDEX3)
 					issued[issuedCount] = true
+				} else {
+					p.stats.StructuralHazardStalls++
 				}
 				issuedInsts[issuedCount] = &tempIDEX3
 				issuedCount++
@@ -1536,6 +1551,8 @@ func (p *Pipeline) tickOctupleIssue() {
 				if !(p.ifid4.AfterBranch && decResult4.MemWrite) && canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
 					nextIDEX4.fromIDEX(&tempIDEX4)
 					issued[issuedCount] = true
+				} else {
+					p.stats.StructuralHazardStalls++
 				}
 				issuedInsts[issuedCount] = &tempIDEX4
 				issuedCount++
@@ -1569,6 +1586,8 @@ func (p *Pipeline) tickOctupleIssue() {
 				if !(p.ifid5.AfterBranch && decResult5.MemWrite) && canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
 					nextIDEX5.fromIDEX(&tempIDEX5)
 					issued[issuedCount] = true
+				} else {
+					p.stats.StructuralHazardStalls++
 				}
 				issuedInsts[issuedCount] = &tempIDEX5
 				issuedCount++
@@ -1602,6 +1621,8 @@ func (p *Pipeline) tickOctupleIssue() {
 				if !(p.ifid6.AfterBranch && decResult6.MemWrite) && canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
 					nextIDEX6.fromIDEX(&tempIDEX6)
 					issued[issuedCount] = true
+				} else {
+					p.stats.StructuralHazardStalls++
 				}
 				issuedInsts[issuedCount] = &tempIDEX6
 				issuedCount++
@@ -1635,6 +1656,8 @@ func (p *Pipeline) tickOctupleIssue() {
 				if !(p.ifid7.AfterBranch && decResult7.MemWrite) && canIssueWith(&tempIDEX7, &issuedInsts, issuedCount, &issued) {
 					nextIDEX7.fromIDEX(&tempIDEX7)
 					issued[issuedCount] = true
+				} else {
+					p.stats.StructuralHazardStalls++
 				}
 				issuedInsts[issuedCount] = &tempIDEX7
 				issuedCount++
@@ -1668,6 +1691,8 @@ func (p *Pipeline) tickOctupleIssue() {
 				if ok, fwd := canIssueWithFwd(&tempIDEX8, &issuedInsts, issuedCount, &issued, &forwarded); ok && !(p.ifid8.AfterBranch && decResult8.MemWrite) {
 					nextIDEX8.fromIDEX(&tempIDEX8)
 					_ = fwd
+				} else {
+					p.stats.StructuralHazardStalls++
 				}
 				issuedInsts[issuedCount] = &tempIDEX8
 			}

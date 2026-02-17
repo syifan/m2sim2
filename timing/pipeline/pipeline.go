@@ -65,6 +65,23 @@ type Statistics struct {
 	// eliminated from the pipeline (zero-cycle execution), similar to how
 	// M2 handles predicted-taken branches with BTB hits.
 	FoldedBranches uint64
+
+	// --- Stall profiling counters ---
+
+	// RAWHazardStalls counts cycles lost to load-use (RAW) data dependency
+	// stalls, where a load result is needed by the immediately following
+	// instruction and the pipeline must insert a bubble.
+	RAWHazardStalls uint64
+	// StructuralHazardStalls counts cycles where an instruction could not
+	// co-issue because canIssueWith() rejected it due to port conflicts,
+	// RAW hazards between co-issued instructions, or branch serialization.
+	// Each count represents one instruction that failed to issue in a cycle
+	// where the primary slot was active.
+	StructuralHazardStalls uint64
+	// BranchMispredictionStalls counts the total pipeline flush penalty
+	// cycles attributed to branch mispredictions. Each misprediction
+	// flushes IF and ID stages, costing 2 cycles of useful work.
+	BranchMispredictionStalls uint64
 }
 
 // CPI returns the cycles per instruction.

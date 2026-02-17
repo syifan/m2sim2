@@ -1,5 +1,7 @@
 package pipeline
 
+import "fmt"
+
 // isUnconditionalBranch checks if an instruction word is an unconditional branch (B or BL).
 // Returns true and the target PC if it is, false otherwise.
 func isUnconditionalBranch(word uint32, pc uint64) (bool, uint64) {
@@ -595,4 +597,34 @@ func (p *Pipeline) popWindowToIFID(
 		p.instrWindow[i] = instrWindowEntry{}
 	}
 	p.instrWindowLen = remaining
+}
+
+// StallProfile returns a formatted string summarizing stall sources.
+func (p *Pipeline) StallProfile() string {
+	s := p.stats
+	return fmt.Sprintf(
+		"Stall Profile:\n"+
+			"  Cycles:                    %d\n"+
+			"  Instructions:              %d\n"+
+			"  CPI:                       %.3f\n"+
+			"  RAW Hazard Stalls:         %d\n"+
+			"  Structural Hazard Stalls:  %d\n"+
+			"  Exec Stalls:               %d\n"+
+			"  Mem Stalls:                %d\n"+
+			"  Branch Mispred Stalls:     %d\n"+
+			"  Pipeline Flushes:          %d\n"+
+			"  Branch Mispredictions:     %d\n"+
+			"  Fetch/Other Stalls:        %d\n",
+		s.Cycles,
+		s.Instructions,
+		s.CPI(),
+		s.RAWHazardStalls,
+		s.StructuralHazardStalls,
+		s.ExecStalls,
+		s.MemStalls,
+		s.BranchMispredictionStalls,
+		s.Flushes,
+		s.BranchMispredictions,
+		s.Stalls,
+	)
 }

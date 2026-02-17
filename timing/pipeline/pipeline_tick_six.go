@@ -353,6 +353,7 @@ func (p *Pipeline) tickSextupleIssue() {
 
 				if wasMispredicted {
 					p.stats.BranchMispredictions++
+					p.stats.BranchMispredictionStalls += 2 // IF+ID flush penalty
 					branchTarget := actualTarget
 					if !actualTaken {
 						branchTarget = p.idex.PC + 4
@@ -686,6 +687,9 @@ func (p *Pipeline) tickSextupleIssue() {
 
 			loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
 				p.idex.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
+			if loadUseHazard {
+				p.stats.RAWHazardStalls++
+			}
 		}
 	}
 
@@ -809,6 +813,8 @@ func (p *Pipeline) tickSextupleIssue() {
 			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
 				issued[issuedCount] = true
+			} else {
+				p.stats.StructuralHazardStalls++
 			}
 			issuedInsts[issuedCount] = &tempIDEX2
 			issuedCount++
@@ -838,6 +844,8 @@ func (p *Pipeline) tickSextupleIssue() {
 			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
 				issued[issuedCount] = true
+			} else {
+				p.stats.StructuralHazardStalls++
 			}
 			issuedInsts[issuedCount] = &tempIDEX3
 			issuedCount++
@@ -867,6 +875,8 @@ func (p *Pipeline) tickSextupleIssue() {
 			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
 				issued[issuedCount] = true
+			} else {
+				p.stats.StructuralHazardStalls++
 			}
 			issuedInsts[issuedCount] = &tempIDEX4
 			issuedCount++
@@ -896,6 +906,8 @@ func (p *Pipeline) tickSextupleIssue() {
 			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
 				nextIDEX5.fromIDEX(&tempIDEX5)
 				issued[issuedCount] = true
+			} else {
+				p.stats.StructuralHazardStalls++
 			}
 			issuedInsts[issuedCount] = &tempIDEX5
 			issuedCount++
@@ -924,6 +936,8 @@ func (p *Pipeline) tickSextupleIssue() {
 			}
 			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
 				nextIDEX6.fromIDEX(&tempIDEX6)
+			} else {
+				p.stats.StructuralHazardStalls++
 			}
 		}
 	} else if (stallResult.StallID || execStall || memStall) && !stallResult.FlushID {

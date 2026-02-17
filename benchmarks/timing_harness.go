@@ -51,6 +51,13 @@ type BenchmarkResult struct {
 	// that were eliminated at fetch time and never entered the pipeline
 	EliminatedBranches uint64 `json:"eliminated_branches"`
 
+	// RAWHazardStalls is the number of load-use (RAW) data dependency stall cycles
+	RAWHazardStalls uint64 `json:"raw_hazard_stalls"`
+	// StructuralHazardStalls counts instructions that failed to co-issue
+	StructuralHazardStalls uint64 `json:"structural_hazard_stalls"`
+	// BranchMispredictionStalls counts pipeline flush penalty cycles from mispredictions
+	BranchMispredictionStalls uint64 `json:"branch_misprediction_stalls"`
+
 	// ICacheHits/Misses (if cache enabled)
 	ICacheHits   uint64 `json:"icache_hits,omitempty"`
 	ICacheMisses uint64 `json:"icache_misses,omitempty"`
@@ -292,9 +299,12 @@ func (h *Harness) runBenchmark(bench Benchmark) BenchmarkResult {
 		MemStalls:           stats.MemStalls,
 		DataHazards:         stats.DataHazards,
 		PipelineFlushes:     stats.Flushes,
-		EliminatedBranches:  stats.EliminatedBranches,
-		ExitCode:            exitCode,
-		WallTime:            wallTime,
+		EliminatedBranches:        stats.EliminatedBranches,
+		RAWHazardStalls:           stats.RAWHazardStalls,
+		StructuralHazardStalls:    stats.StructuralHazardStalls,
+		BranchMispredictionStalls: stats.BranchMispredictionStalls,
+		ExitCode:                  exitCode,
+		WallTime:                  wallTime,
 	}
 
 	// Collect cache stats if enabled
