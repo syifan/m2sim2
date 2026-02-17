@@ -6,99 +6,99 @@
     "polybench_with_error": 5,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 8,
-    "average_error": 0.4621,
-    "micro_average_error": 0.3873,
+    "average_error": 0.2935,
+    "micro_average_error": 0.1421,
     "polybench_average_error": 0.6266,
     "h5_target_met": false,
-    "note": "16 benchmarks with error data (11 micro + 5 polybench). GEMM and 2MM moved to infeasible (GEMM exceeded 5B cycle limit, 2MM timed out at 55m). Sim CPI values from PR #74 CI runs 22074740888 (microbench) and 22074740889 (polybench) which include AfterBranch revert fix + ALU-Load forwarding. Overall 46.21% avg error (was 61.71%), down from pipeline rework PRs #65-#74. Error formula: |sim-hw|/min(sim,hw)."
+    "note": "16 benchmarks with error data (11 micro + 5 polybench). Micro CPI values updated from accuracy-microbench/microbench_results.json which includes WAR hazard fix (PR #78/commit fc50a98) + superscalar decode fix. Memorystrided regression fixed: 253% -> 10.8%. Overall 29.35% avg error (was 46.21%). Micro avg error 14.21% (was 38.73%). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
       "name": "arithmetic",
       "category": "microbenchmark",
-      "simulated_cpi": 0.219,
+      "simulated_cpi": 0.27,
       "hardware_cpi": 0.296,
-      "error": 0.3516,
+      "error": 0.0963,
       "ci_verified": true
     },
     {
       "name": "dependency",
       "category": "microbenchmark",
-      "simulated_cpi": 1.015,
+      "simulated_cpi": 1.02,
       "hardware_cpi": 1.088,
-      "error": 0.0719,
+      "error": 0.0667,
       "ci_verified": true
     },
     {
       "name": "branch",
       "category": "microbenchmark",
-      "simulated_cpi": 1.311,
+      "simulated_cpi": 1.32,
       "hardware_cpi": 1.303,
-      "error": 0.0061,
+      "error": 0.013,
       "ci_verified": true
     },
     {
       "name": "memorystrided",
       "category": "microbenchmark",
-      "simulated_cpi": 0.75,
+      "simulated_cpi": 2.933,
       "hardware_cpi": 2.648,
-      "error": 2.5307,
+      "error": 0.1076,
       "ci_verified": true
     },
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.349,
+      "simulated_cpi": 0.361,
       "hardware_cpi": 0.429,
-      "error": 0.2292,
+      "error": 0.1884,
       "ci_verified": true
     },
     {
       "name": "storeheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.522,
+      "simulated_cpi": 0.491,
       "hardware_cpi": 0.612,
-      "error": 0.1724,
+      "error": 0.2464,
       "ci_verified": true
     },
     {
       "name": "branchheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.941,
+      "simulated_cpi": 0.829,
       "hardware_cpi": 0.714,
-      "error": 0.3179,
+      "error": 0.1611,
       "ci_verified": true
     },
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.362,
+      "simulated_cpi": 0.5,
       "hardware_cpi": 0.402,
-      "error": 0.1105,
+      "error": 0.2438,
       "ci_verified": true
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.29,
+      "simulated_cpi": 0.401,
       "hardware_cpi": 0.329,
-      "error": 0.1345,
+      "error": 0.2188,
       "ci_verified": true
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.406,
+      "simulated_cpi": 0.452,
       "hardware_cpi": 0.48,
-      "error": 0.1823,
+      "error": 0.0619,
       "ci_verified": true
     },
     {
       "name": "strideindirect",
       "category": "microbenchmark",
-      "simulated_cpi": 0.609,
+      "simulated_cpi": 0.612,
       "hardware_cpi": 0.528,
-      "error": 0.1534,
+      "error": 0.1591,
       "ci_verified": true
     },
     {
