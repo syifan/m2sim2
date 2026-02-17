@@ -1119,14 +1119,14 @@ func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCo
 				// available via nextEXMEM forwarding in the EX stage.
 				producerIsALU := isIssued && !prev.MemRead && !prev.MemWrite && !prev.IsBranch
 
-				// ALU→Load address forwarding: always allow when the
-				// consumer is a load instruction reading a register that
-				// an issued ALU op writes. The AGU can receive the
-				// forwarded ALU result for address computation. This
-				// cannot chain (load results aren't available until MEM),
-				// so no depth tracking is needed.
-				consumerIsLoad := newInst.MemRead && !newInst.MemWrite
-				if producerIsALU && consumerIsLoad {
+				// ALU→Memory address forwarding: always allow when the
+				// consumer is a load or store instruction reading a
+				// register that an issued ALU op writes. The AGU can
+				// receive the forwarded ALU result for address computation.
+				// This cannot chain (load results aren't available until
+				// MEM), so no depth tracking is needed.
+				consumerIsMem := newInst.MemRead || newInst.MemWrite
+				if producerIsALU && consumerIsMem {
 					usesForwarding = true
 				} else if forwarded != nil && producerIsALU {
 					// General ALU→ALU forwarding with 1-hop depth limit:
@@ -1158,6 +1158,50 @@ func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCo
 			// Store value register may also read the base register
 			if newInst.MemWrite && newInst.Inst != nil && newInst.Inst.Rd == prev.Rn {
 				return false, false
+			}
+		}
+
+		// WAR hazard: if a non-issued instruction reads a register that
+		// the new instruction writes, block co-issue to prevent the new
+		// instruction's writeback from corrupting the blocked instruction's
+		// operands when it retries in a later cycle.
+		if !isIssued && newInst.RegWrite && newInst.Rd != 31 {
+			wd := newInst.Rd
+			// Rn is always read
+			if prev.Rn == wd {
+				return false, false
+			}
+			// Rm is read for register-format DP and register-offset load/store
+			if prev.Inst != nil && prev.Rm == wd {
+				if prev.Inst.Format == insts.FormatDPReg ||
+					(prev.Inst.Format == insts.FormatLoadStore && prev.Inst.IndexMode == insts.IndexRegBase) {
+					return false, false
+				}
+			}
+			// Store data register (Inst.Rd is the value register for stores)
+			if prev.MemWrite && prev.Inst != nil && prev.Inst.Rd == wd {
+				return false, false
+			}
+			if prev.Inst != nil {
+				// MADD/MSUB read Ra (Inst.Rt2) as accumulator
+				if (prev.Inst.Op == insts.OpMADD || prev.Inst.Op == insts.OpMSUB) && prev.Inst.Rt2 == wd {
+					return false, false
+				}
+				// CBZ/CBNZ/TBZ/TBNZ read Inst.Rd as the test register
+				switch prev.Inst.Op {
+				case insts.OpCBZ, insts.OpCBNZ, insts.OpTBZ, insts.OpTBNZ:
+					if prev.Inst.Rd == wd {
+						return false, false
+					}
+				}
+				// MOVK reads Inst.Rd as the current value to merge into
+				if prev.Inst.Op == insts.OpMOVK && prev.Inst.Rd == wd {
+					return false, false
+				}
+				// BFM reads Inst.Rd as the destination merge value
+				if prev.Inst.Op == insts.OpBFM && prev.Inst.Rd == wd {
+					return false, false
+				}
 			}
 		}
 

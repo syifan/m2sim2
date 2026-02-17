@@ -73,6 +73,8 @@ func runPolybenchTest(t *testing.T, name, elfName string) {
 	t.Logf("%s: cycles=%d, insts=%d, CPI=%.3f, dcache_hits=%d, dcache_misses=%d, exit=%d",
 		r.Name, r.SimulatedCycles, r.InstructionsRetired, r.CPI,
 		r.DCacheHits, r.DCacheMisses, r.ExitCode)
+	t.Logf("  stalls=%d, exec_stalls=%d, mem_stalls=%d, data_hazards=%d, flushes=%d, eliminated=%d",
+		r.StallCycles, r.ExecStalls, r.MemStalls, r.DataHazards, r.PipelineFlushes, r.EliminatedBranches)
 }
 
 func TestPolybenchATAX(t *testing.T) {
