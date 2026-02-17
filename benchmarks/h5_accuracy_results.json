@@ -1,41 +1,232 @@
 {
-  "total_benchmarks_run": 16,
-  "benchmarks_with_error_data": 16,
-  "average_error": 0.2935,
-  "max_error": 1.3113,
-  "min_error": 0.013,
-  "max_error_benchmark": "jacobi-1d",
-  "min_error_benchmark": "branch",
-  "per_benchmark_errors": {
-    "3mm": 0.6449,
-    "arithmetic": 0.0963,
-    "atax": 0.1747,
-    "bicg": 0.7081,
-    "branch": 0.013,
-    "branchheavy": 0.1611,
-    "dependency": 0.0667,
-    "jacobi-1d": 1.3113,
-    "loadheavy": 0.1884,
-    "memorystrided": 0.1076,
-    "mvt": 0.2941,
-    "reductiontree": 0.0619,
-    "storeheavy": 0.2464,
-    "strideindirect": 0.1591,
-    "vectoradd": 0.2188,
-    "vectorsum": 0.2438
+  "summary": {
+    "total_ci_verified_benchmarks": 25,
+    "benchmarks_with_error_data": 18,
+    "microbenchmarks_with_error": 11,
+    "polybench_with_error": 7,
+    "embench_sim_only": 1,
+    "infeasible_benchmarks": 6,
+    "average_error": 0.4856,
+    "micro_average_error": 0.1700,
+    "polybench_average_error": 0.9815,
+    "h5_target_met": false,
+    "note": "18 benchmarks with error data (11 micro + 7 polybench). Microbench unchanged. PolyBench updated from CI run 22115496325 (post PR #87 pipeline improvements, commit 71b3c75). bicg 0.342->0.343, mvt 0.366->0.364, gemm 0.303->0.301. Error formula: |sim-hw|/min(sim,hw)."
   },
-  "suites": {
-    "microbench": {
-      "available": true,
-      "count": 11
+  "benchmarks": [
+    {
+      "name": "arithmetic",
+      "category": "microbenchmark",
+      "simulated_cpi": 0.220,
+      "hardware_cpi": 0.296,
+      "error": 0.3455,
+      "ci_verified": true
     },
-    "polybench": {
-      "available": true,
-      "count": 5
+    {
+      "name": "dependency",
+      "category": "microbenchmark",
+      "simulated_cpi": 1.020,
+      "hardware_cpi": 1.088,
+      "error": 0.0667,
+      "ci_verified": true
     },
-    "embench": {
-      "available": true,
-      "count": 0
+    {
+      "name": "branch",
+      "category": "microbenchmark",
+      "simulated_cpi": 1.320,
+      "hardware_cpi": 1.303,
+      "error": 0.0130,
+      "ci_verified": true
+    },
+    {
+      "name": "memorystrided",
+      "category": "microbenchmark",
+      "simulated_cpi": 2.267,
+      "hardware_cpi": 2.648,
+      "error": 0.1681,
+      "ci_verified": true
+    },
+    {
+      "name": "loadheavy",
+      "category": "microbenchmark",
+      "simulated_cpi": 0.356,
+      "hardware_cpi": 0.429,
+      "error": 0.2050,
+      "ci_verified": true
+    },
+    {
+      "name": "storeheavy",
+      "category": "microbenchmark",
+      "simulated_cpi": 0.518,
+      "hardware_cpi": 0.612,
+      "error": 0.1815,
+      "ci_verified": true
+    },
+    {
+      "name": "branchheavy",
+      "category": "microbenchmark",
+      "simulated_cpi": 0.970,
+      "hardware_cpi": 0.714,
+      "error": 0.3585,
+      "ci_verified": true
+    },
+    {
+      "name": "vectorsum",
+      "category": "microbenchmark",
+      "simulated_cpi": 0.490,
+      "hardware_cpi": 0.402,
+      "error": 0.2189,
+      "ci_verified": true
+    },
+    {
+      "name": "vectoradd",
+      "category": "microbenchmark",
+      "simulated_cpi": 0.378,
+      "hardware_cpi": 0.329,
+      "error": 0.1489,
+      "ci_verified": true
+    },
+    {
+      "name": "reductiontree",
+      "category": "microbenchmark",
+      "simulated_cpi": 0.452,
+      "hardware_cpi": 0.480,
+      "error": 0.0619,
+      "ci_verified": true
+    },
+    {
+      "name": "strideindirect",
+      "category": "microbenchmark",
+      "simulated_cpi": 0.582,
+      "hardware_cpi": 0.528,
+      "error": 0.1023,
+      "ci_verified": true
+    },
+    {
+      "name": "atax",
+      "category": "polybench",
+      "simulated_cpi": 0.396,
+      "hardware_cpi": 0.2185,
+      "error": 0.8124,
+      "ci_verified": true
+    },
+    {
+      "name": "bicg",
+      "category": "polybench",
+      "simulated_cpi": 0.343,
+      "hardware_cpi": 0.2295,
+      "error": 0.4946,
+      "ci_verified": true
+    },
+    {
+      "name": "mvt",
+      "category": "polybench",
+      "simulated_cpi": 0.364,
+      "hardware_cpi": 0.2156,
+      "error": 0.6883,
+      "ci_verified": true
+    },
+    {
+      "name": "jacobi-1d",
+      "category": "polybench",
+      "simulated_cpi": 0.453,
+      "hardware_cpi": 0.151,
+      "error": 2.0,
+      "ci_verified": true
+    },
+    {
+      "name": "3mm",
+      "category": "polybench",
+      "simulated_cpi": 0.334,
+      "hardware_cpi": 0.1453,
+      "error": 1.2987,
+      "ci_verified": true
+    },
+    {
+      "name": "gemm",
+      "category": "polybench",
+      "simulated_cpi": 0.301,
+      "hardware_cpi": 0.2332,
+      "error": 0.2907,
+      "ci_verified": true
+    },
+    {
+      "name": "2mm",
+      "category": "polybench",
+      "simulated_cpi": 0.328,
+      "hardware_cpi": 0.1435,
+      "error": 1.2857,
+      "ci_verified": true
+    },
+    {
+      "name": "aha_mont64",
+      "category": "embench",
+      "simulated_cpi": 0.347,
+      "hardware_cpi": null,
+      "error": null,
+      "ci_verified": true,
+      "note": "No hardware CPI workflow exists for EmBench; sim CPI only"
     }
-  }
+  ],
+  "infeasible": [
+    {
+      "name": "crc32",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 12,499,991,230 instructions in 5B cycles (44m29s wall time). CPI at limit: 0.400.",
+      "ci_verified": true,
+      "cycles_at_limit": 5000000000,
+      "instructions_at_limit": 12499991230,
+      "wall_time_at_limit": "44m29s",
+      "ci_run": 22019560953
+    },
+    {
+      "name": "edn",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 13,000,000,936 instructions in 5B cycles (45m10s wall time). CPI at limit: 0.385.",
+      "ci_verified": true,
+      "cycles_at_limit": 5000000000,
+      "instructions_at_limit": 13000000936,
+      "wall_time_at_limit": "45m10s",
+      "ci_run": 22019560953
+    },
+    {
+      "name": "statemate",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1. Retired 9,210,526,236 instructions in 5B cycles (35m17s wall time). CPI at limit: 0.543.",
+      "ci_verified": true,
+      "cycles_at_limit": 5000000000,
+      "instructions_at_limit": 9210526236,
+      "wall_time_at_limit": "35m17s",
+      "ci_run": 22019560953
+    },
+    {
+      "name": "primecount",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "Exceeded 5B cycle limit at LOCAL_SCALE_FACTOR=1, CPU_MHZ=1, SZ=3, NPRIMES=9 (already maximally reduced). Retired 9,999,999,968 instructions in 5B cycles (42m49s wall time). CPI at limit: 0.500.",
+      "ci_verified": true,
+      "cycles_at_limit": 5000000000,
+      "instructions_at_limit": 9999999968,
+      "wall_time_at_limit": "42m49s",
+      "ci_run": 22019560953
+    },
+    {
+      "name": "huffbench",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "CI timeout after 2h30m wall-time; test killed before reaching 5B cycle limit.",
+      "ci_verified": true,
+      "ci_run": 22019560953
+    },
+    {
+      "name": "matmult-int",
+      "category": "embench",
+      "status": "infeasible",
+      "reason": "CI timeout; never started due to huffbench consuming full job allocation; expected to exceed 5B cycles based on compute intensity.",
+      "ci_verified": true,
+      "ci_run": 22019560953
+    }
+  ]
 }

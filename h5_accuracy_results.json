@@ -6,11 +6,11 @@
     "polybench_with_error": 7,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 6,
-    "average_error": 0.4863,
+    "average_error": 0.4856,
     "micro_average_error": 0.1700,
-    "polybench_average_error": 0.9834,
+    "polybench_average_error": 0.9815,
     "h5_target_met": false,
-    "note": "18 benchmarks with error data (11 micro + 7 polybench). Microbench updated from local run on main ee4bc5c (WAR hazard fix included). PolyBench from CI run 22081243602 (merged PR #78). Memorystrided regression fixed: sim_cpi=2.267 (16.8% error vs hw 2.648). Previous 0.75 was stale CI data from before WAR fix took effect. Error formula: |sim-hw|/min(sim,hw)."
+    "note": "18 benchmarks with error data (11 micro + 7 polybench). Microbench unchanged. PolyBench updated from CI run 22115496325 (post PR #87 pipeline improvements, commit 71b3c75). bicg 0.342->0.343, mvt 0.366->0.364, gemm 0.303->0.301. Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -112,17 +112,17 @@
     {
       "name": "bicg",
       "category": "polybench",
-      "simulated_cpi": 0.342,
+      "simulated_cpi": 0.343,
       "hardware_cpi": 0.2295,
-      "error": 0.4902,
+      "error": 0.4946,
       "ci_verified": true
     },
     {
       "name": "mvt",
       "category": "polybench",
-      "simulated_cpi": 0.366,
+      "simulated_cpi": 0.364,
       "hardware_cpi": 0.2156,
-      "error": 0.6976,
+      "error": 0.6883,
       "ci_verified": true
     },
     {
@@ -144,9 +144,9 @@
     {
       "name": "gemm",
       "category": "polybench",
-      "simulated_cpi": 0.303,
+      "simulated_cpi": 0.301,
       "hardware_cpi": 0.2332,
-      "error": 0.2993,
+      "error": 0.2907,
       "ci_verified": true
     },
     {
