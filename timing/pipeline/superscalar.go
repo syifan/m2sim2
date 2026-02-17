@@ -955,9 +955,8 @@ const maxMemPorts = 5
 // maxWritePorts is the maximum number of register file write-back ports per
 // cycle. This limits how many register-writing instructions can be issued in
 // the same cycle due to register-file write-back bandwidth, independent of
-// execution unit count. M2 has 6 ALU execution units, each with a write port.
-// The arithmetic benchmark is limited by register count (5 unique), not write ports.
-const maxWritePorts = 6
+// execution unit count. M2 has 6 ALU units + 3 load ports that write back.
+const maxWritePorts = 8
 
 // isALUOp returns true if the instruction uses an integer ALU execution port.
 func isALUOp(inst *IDEXRegister) bool {
