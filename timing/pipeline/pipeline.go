@@ -5572,257 +5572,217 @@ func (p *Pipeline) tickOctupleIssue() {
 		ifid2ConsumedByFusion := fusedCMPBcond
 
 		// Decode slot 2 (IFID2) - skip if consumed by fusion
-		// In-order issue: once an instruction is blocked, all subsequent
-		// instructions must also be blocked to prevent WAR hazards from
-		// out-of-order writeback.
-		issueBlocked := false
-		if p.ifid2.Valid && !ifid2ConsumedByFusion && !issueBlocked {
+		// OoO issue: non-issued instructions are tracked in issuedInsts
+		// with issued[i]=false so that WAR hazards are detected by
+		// canIssueWithFwd for later slots. No issueBlocked flag — later
+		// independent instructions can still issue.
+		if p.ifid2.Valid && !ifid2ConsumedByFusion {
 			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
-			// During load-use bypass, check if this instruction also depends on the load
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult2.Inst) {
-				// Dependent on load — don't issue, re-queue to IFID next cycle
-				issueBlocked = true
-				issuedCount++
-			} else {
-				tempIDEX2 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid2.PC,
-					Inst:            decResult2.Inst,
-					RnValue:         decResult2.RnValue,
-					RmValue:         decResult2.RmValue,
-					Rd:              decResult2.Rd,
-					Rn:              decResult2.Rn,
-					Rm:              decResult2.Rm,
-					MemRead:         decResult2.MemRead,
-					MemWrite:        decResult2.MemWrite,
-					RegWrite:        decResult2.RegWrite,
-					MemToReg:        decResult2.MemToReg,
-					IsBranch:        decResult2.IsBranch,
-					PredictedTaken:  p.ifid2.PredictedTaken,
-					PredictedTarget: p.ifid2.PredictedTarget,
-					EarlyResolved:   p.ifid2.EarlyResolved,
-				}
-				if !(p.ifid2.AfterBranch && decResult2.MemWrite) && canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
-					nextIDEX2.fromIDEX(&tempIDEX2)
-					issued[issuedCount] = true
-				} else {
-					issueBlocked = true
-				}
-				issuedInsts[issuedCount] = &tempIDEX2
-				issuedCount++
+			tempIDEX2 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid2.PC,
+				Inst:            decResult2.Inst,
+				RnValue:         decResult2.RnValue,
+				RmValue:         decResult2.RmValue,
+				Rd:              decResult2.Rd,
+				Rn:              decResult2.Rn,
+				Rm:              decResult2.Rm,
+				MemRead:         decResult2.MemRead,
+				MemWrite:        decResult2.MemWrite,
+				RegWrite:        decResult2.RegWrite,
+				MemToReg:        decResult2.MemToReg,
+				IsBranch:        decResult2.IsBranch,
+				PredictedTaken:  p.ifid2.PredictedTaken,
+				PredictedTarget: p.ifid2.PredictedTarget,
+				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
+			// During load-use bypass, check if this instruction also depends on the load
+			loadBlocked := loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult2.Inst)
+			if !loadBlocked && !(p.ifid2.AfterBranch && decResult2.MemWrite) && canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
+				nextIDEX2.fromIDEX(&tempIDEX2)
+				issued[issuedCount] = true
+			}
+			issuedInsts[issuedCount] = &tempIDEX2
+			issuedCount++
 		}
 
 		// Decode slot 3
-		if p.ifid3.Valid && !issueBlocked {
+		if p.ifid3.Valid {
 			decResult3 := p.decodeStage.Decode(p.ifid3.InstructionWord, p.ifid3.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult3.Inst) {
-				issueBlocked = true
-				issuedCount++
-			} else {
-				tempIDEX3 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid3.PC,
-					Inst:            decResult3.Inst,
-					RnValue:         decResult3.RnValue,
-					RmValue:         decResult3.RmValue,
-					Rd:              decResult3.Rd,
-					Rn:              decResult3.Rn,
-					Rm:              decResult3.Rm,
-					MemRead:         decResult3.MemRead,
-					MemWrite:        decResult3.MemWrite,
-					RegWrite:        decResult3.RegWrite,
-					MemToReg:        decResult3.MemToReg,
-					IsBranch:        decResult3.IsBranch,
-					PredictedTaken:  p.ifid3.PredictedTaken,
-					PredictedTarget: p.ifid3.PredictedTarget,
-					EarlyResolved:   p.ifid3.EarlyResolved,
-				}
-				if !(p.ifid3.AfterBranch && decResult3.MemWrite) && canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
-					nextIDEX3.fromIDEX(&tempIDEX3)
-					issued[issuedCount] = true
-				} else {
-					issueBlocked = true
-				}
-				issuedInsts[issuedCount] = &tempIDEX3
-				issuedCount++
+			tempIDEX3 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid3.PC,
+				Inst:            decResult3.Inst,
+				RnValue:         decResult3.RnValue,
+				RmValue:         decResult3.RmValue,
+				Rd:              decResult3.Rd,
+				Rn:              decResult3.Rn,
+				Rm:              decResult3.Rm,
+				MemRead:         decResult3.MemRead,
+				MemWrite:        decResult3.MemWrite,
+				RegWrite:        decResult3.RegWrite,
+				MemToReg:        decResult3.MemToReg,
+				IsBranch:        decResult3.IsBranch,
+				PredictedTaken:  p.ifid3.PredictedTaken,
+				PredictedTarget: p.ifid3.PredictedTarget,
+				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
+			loadBlocked := loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult3.Inst)
+			if !loadBlocked && !(p.ifid3.AfterBranch && decResult3.MemWrite) && canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
+				nextIDEX3.fromIDEX(&tempIDEX3)
+				issued[issuedCount] = true
+			}
+			issuedInsts[issuedCount] = &tempIDEX3
+			issuedCount++
 		}
 
 		// Decode slot 4
-		if p.ifid4.Valid && !issueBlocked {
+		if p.ifid4.Valid {
 			decResult4 := p.decodeStage.Decode(p.ifid4.InstructionWord, p.ifid4.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult4.Inst) {
-				issueBlocked = true
-				issuedCount++
-			} else {
-				tempIDEX4 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid4.PC,
-					Inst:            decResult4.Inst,
-					RnValue:         decResult4.RnValue,
-					RmValue:         decResult4.RmValue,
-					Rd:              decResult4.Rd,
-					Rn:              decResult4.Rn,
-					Rm:              decResult4.Rm,
-					MemRead:         decResult4.MemRead,
-					MemWrite:        decResult4.MemWrite,
-					RegWrite:        decResult4.RegWrite,
-					MemToReg:        decResult4.MemToReg,
-					IsBranch:        decResult4.IsBranch,
-					PredictedTaken:  p.ifid4.PredictedTaken,
-					PredictedTarget: p.ifid4.PredictedTarget,
-					EarlyResolved:   p.ifid4.EarlyResolved,
-				}
-				if !(p.ifid4.AfterBranch && decResult4.MemWrite) && canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
-					nextIDEX4.fromIDEX(&tempIDEX4)
-					issued[issuedCount] = true
-				} else {
-					issueBlocked = true
-				}
-				issuedInsts[issuedCount] = &tempIDEX4
-				issuedCount++
+			tempIDEX4 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid4.PC,
+				Inst:            decResult4.Inst,
+				RnValue:         decResult4.RnValue,
+				RmValue:         decResult4.RmValue,
+				Rd:              decResult4.Rd,
+				Rn:              decResult4.Rn,
+				Rm:              decResult4.Rm,
+				MemRead:         decResult4.MemRead,
+				MemWrite:        decResult4.MemWrite,
+				RegWrite:        decResult4.RegWrite,
+				MemToReg:        decResult4.MemToReg,
+				IsBranch:        decResult4.IsBranch,
+				PredictedTaken:  p.ifid4.PredictedTaken,
+				PredictedTarget: p.ifid4.PredictedTarget,
+				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
+			loadBlocked := loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult4.Inst)
+			if !loadBlocked && !(p.ifid4.AfterBranch && decResult4.MemWrite) && canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
+				nextIDEX4.fromIDEX(&tempIDEX4)
+				issued[issuedCount] = true
+			}
+			issuedInsts[issuedCount] = &tempIDEX4
+			issuedCount++
 		}
 
 		// Decode slot 5
-		if p.ifid5.Valid && !issueBlocked {
+		if p.ifid5.Valid {
 			decResult5 := p.decodeStage.Decode(p.ifid5.InstructionWord, p.ifid5.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult5.Inst) {
-				issueBlocked = true
-				issuedCount++
-			} else {
-				tempIDEX5 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid5.PC,
-					Inst:            decResult5.Inst,
-					RnValue:         decResult5.RnValue,
-					RmValue:         decResult5.RmValue,
-					Rd:              decResult5.Rd,
-					Rn:              decResult5.Rn,
-					Rm:              decResult5.Rm,
-					MemRead:         decResult5.MemRead,
-					MemWrite:        decResult5.MemWrite,
-					RegWrite:        decResult5.RegWrite,
-					MemToReg:        decResult5.MemToReg,
-					IsBranch:        decResult5.IsBranch,
-					PredictedTaken:  p.ifid5.PredictedTaken,
-					PredictedTarget: p.ifid5.PredictedTarget,
-					EarlyResolved:   p.ifid5.EarlyResolved,
-				}
-				if !(p.ifid5.AfterBranch && decResult5.MemWrite) && canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
-					nextIDEX5.fromIDEX(&tempIDEX5)
-					issued[issuedCount] = true
-				} else {
-					issueBlocked = true
-				}
-				issuedInsts[issuedCount] = &tempIDEX5
-				issuedCount++
+			tempIDEX5 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid5.PC,
+				Inst:            decResult5.Inst,
+				RnValue:         decResult5.RnValue,
+				RmValue:         decResult5.RmValue,
+				Rd:              decResult5.Rd,
+				Rn:              decResult5.Rn,
+				Rm:              decResult5.Rm,
+				MemRead:         decResult5.MemRead,
+				MemWrite:        decResult5.MemWrite,
+				RegWrite:        decResult5.RegWrite,
+				MemToReg:        decResult5.MemToReg,
+				IsBranch:        decResult5.IsBranch,
+				PredictedTaken:  p.ifid5.PredictedTaken,
+				PredictedTarget: p.ifid5.PredictedTarget,
+				EarlyResolved:   p.ifid5.EarlyResolved,
 			}
+			loadBlocked := loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult5.Inst)
+			if !loadBlocked && !(p.ifid5.AfterBranch && decResult5.MemWrite) && canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
+				nextIDEX5.fromIDEX(&tempIDEX5)
+				issued[issuedCount] = true
+			}
+			issuedInsts[issuedCount] = &tempIDEX5
+			issuedCount++
 		}
 
 		// Decode slot 6
-		if p.ifid6.Valid && !issueBlocked {
+		if p.ifid6.Valid {
 			decResult6 := p.decodeStage.Decode(p.ifid6.InstructionWord, p.ifid6.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult6.Inst) {
-				issueBlocked = true
-				issuedCount++
-			} else {
-				tempIDEX6 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid6.PC,
-					Inst:            decResult6.Inst,
-					RnValue:         decResult6.RnValue,
-					RmValue:         decResult6.RmValue,
-					Rd:              decResult6.Rd,
-					Rn:              decResult6.Rn,
-					Rm:              decResult6.Rm,
-					MemRead:         decResult6.MemRead,
-					MemWrite:        decResult6.MemWrite,
-					RegWrite:        decResult6.RegWrite,
-					MemToReg:        decResult6.MemToReg,
-					IsBranch:        decResult6.IsBranch,
-					PredictedTaken:  p.ifid6.PredictedTaken,
-					PredictedTarget: p.ifid6.PredictedTarget,
-					EarlyResolved:   p.ifid6.EarlyResolved,
-				}
-				if !(p.ifid6.AfterBranch && decResult6.MemWrite) && canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
-					nextIDEX6.fromIDEX(&tempIDEX6)
-					issued[issuedCount] = true
-				} else {
-					issueBlocked = true
-				}
-				issuedInsts[issuedCount] = &tempIDEX6
-				issuedCount++
+			tempIDEX6 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid6.PC,
+				Inst:            decResult6.Inst,
+				RnValue:         decResult6.RnValue,
+				RmValue:         decResult6.RmValue,
+				Rd:              decResult6.Rd,
+				Rn:              decResult6.Rn,
+				Rm:              decResult6.Rm,
+				MemRead:         decResult6.MemRead,
+				MemWrite:        decResult6.MemWrite,
+				RegWrite:        decResult6.RegWrite,
+				MemToReg:        decResult6.MemToReg,
+				IsBranch:        decResult6.IsBranch,
+				PredictedTaken:  p.ifid6.PredictedTaken,
+				PredictedTarget: p.ifid6.PredictedTarget,
+				EarlyResolved:   p.ifid6.EarlyResolved,
 			}
+			loadBlocked := loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult6.Inst)
+			if !loadBlocked && !(p.ifid6.AfterBranch && decResult6.MemWrite) && canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
+				nextIDEX6.fromIDEX(&tempIDEX6)
+				issued[issuedCount] = true
+			}
+			issuedInsts[issuedCount] = &tempIDEX6
+			issuedCount++
 		}
 
 		// Decode slot 7
-		if p.ifid7.Valid && !issueBlocked {
+		if p.ifid7.Valid {
 			decResult7 := p.decodeStage.Decode(p.ifid7.InstructionWord, p.ifid7.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult7.Inst) {
-				issueBlocked = true
-				issuedCount++
-			} else {
-				tempIDEX7 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid7.PC,
-					Inst:            decResult7.Inst,
-					RnValue:         decResult7.RnValue,
-					RmValue:         decResult7.RmValue,
-					Rd:              decResult7.Rd,
-					Rn:              decResult7.Rn,
-					Rm:              decResult7.Rm,
-					MemRead:         decResult7.MemRead,
-					MemWrite:        decResult7.MemWrite,
-					RegWrite:        decResult7.RegWrite,
-					MemToReg:        decResult7.MemToReg,
-					IsBranch:        decResult7.IsBranch,
-					PredictedTaken:  p.ifid7.PredictedTaken,
-					PredictedTarget: p.ifid7.PredictedTarget,
-					EarlyResolved:   p.ifid7.EarlyResolved,
-				}
-				if !(p.ifid7.AfterBranch && decResult7.MemWrite) && canIssueWith(&tempIDEX7, &issuedInsts, issuedCount, &issued) {
-					nextIDEX7.fromIDEX(&tempIDEX7)
-					issued[issuedCount] = true
-				} else {
-					issueBlocked = true
-				}
-				issuedInsts[issuedCount] = &tempIDEX7
-				issuedCount++
+			tempIDEX7 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid7.PC,
+				Inst:            decResult7.Inst,
+				RnValue:         decResult7.RnValue,
+				RmValue:         decResult7.RmValue,
+				Rd:              decResult7.Rd,
+				Rn:              decResult7.Rn,
+				Rm:              decResult7.Rm,
+				MemRead:         decResult7.MemRead,
+				MemWrite:        decResult7.MemWrite,
+				RegWrite:        decResult7.RegWrite,
+				MemToReg:        decResult7.MemToReg,
+				IsBranch:        decResult7.IsBranch,
+				PredictedTaken:  p.ifid7.PredictedTaken,
+				PredictedTarget: p.ifid7.PredictedTarget,
+				EarlyResolved:   p.ifid7.EarlyResolved,
 			}
+			loadBlocked := loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult7.Inst)
+			if !loadBlocked && !(p.ifid7.AfterBranch && decResult7.MemWrite) && canIssueWith(&tempIDEX7, &issuedInsts, issuedCount, &issued) {
+				nextIDEX7.fromIDEX(&tempIDEX7)
+				issued[issuedCount] = true
+			}
+			issuedInsts[issuedCount] = &tempIDEX7
+			issuedCount++
 		}
 
 		// Decode slot 8
-		if p.ifid8.Valid && !issueBlocked {
+		if p.ifid8.Valid {
 			decResult8 := p.decodeStage.Decode(p.ifid8.InstructionWord, p.ifid8.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult8.Inst) {
-				// dependent — will be re-queued
-			} else {
-				tempIDEX8 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid8.PC,
-					Inst:            decResult8.Inst,
-					RnValue:         decResult8.RnValue,
-					RmValue:         decResult8.RmValue,
-					Rd:              decResult8.Rd,
-					Rn:              decResult8.Rn,
-					Rm:              decResult8.Rm,
-					MemRead:         decResult8.MemRead,
-					MemWrite:        decResult8.MemWrite,
-					RegWrite:        decResult8.RegWrite,
-					MemToReg:        decResult8.MemToReg,
-					IsBranch:        decResult8.IsBranch,
-					PredictedTaken:  p.ifid8.PredictedTaken,
-					PredictedTarget: p.ifid8.PredictedTarget,
-					EarlyResolved:   p.ifid8.EarlyResolved,
-				}
-				if ok, fwd := canIssueWithFwd(&tempIDEX8, &issuedInsts, issuedCount, &issued, &forwarded); ok && !(p.ifid8.AfterBranch && decResult8.MemWrite) {
-					nextIDEX8.fromIDEX(&tempIDEX8)
-					_ = fwd
-				}
-				issuedInsts[issuedCount] = &tempIDEX8
+			tempIDEX8 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid8.PC,
+				Inst:            decResult8.Inst,
+				RnValue:         decResult8.RnValue,
+				RmValue:         decResult8.RmValue,
+				Rd:              decResult8.Rd,
+				Rn:              decResult8.Rn,
+				Rm:              decResult8.Rm,
+				MemRead:         decResult8.MemRead,
+				MemWrite:        decResult8.MemWrite,
+				RegWrite:        decResult8.RegWrite,
+				MemToReg:        decResult8.MemToReg,
+				IsBranch:        decResult8.IsBranch,
+				PredictedTaken:  p.ifid8.PredictedTaken,
+				PredictedTarget: p.ifid8.PredictedTarget,
+				EarlyResolved:   p.ifid8.EarlyResolved,
 			}
+			loadBlocked := loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult8.Inst)
+			if ok, fwd := canIssueWithFwd(&tempIDEX8, &issuedInsts, issuedCount, &issued, &forwarded); ok && !loadBlocked && !(p.ifid8.AfterBranch && decResult8.MemWrite) {
+				nextIDEX8.fromIDEX(&tempIDEX8)
+				_ = fwd
+			}
+			issuedInsts[issuedCount] = &tempIDEX8
 		}
 	} else if (stallResult.StallID || memStall) && !stallResult.FlushID {
 		nextIDEX = p.idex

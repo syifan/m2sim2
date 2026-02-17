@@ -1,105 +1,105 @@
 [
   {
     "name": "arithmetic_sequential",
-    "full_pipeline_cpi": 0.27,
+    "full_pipeline_cpi": 0.21890547263681592,
     "fast_timing_cpi": 1,
-    "divergence_pct": 270.3703703703703
+    "divergence_pct": 356.8181818181818
   },
   {
     "name": "arithmetic_6wide",
-    "full_pipeline_cpi": 0.4166666666666667,
+    "full_pipeline_cpi": 0.3333333333333333,
     "fast_timing_cpi": 1,
-    "divergence_pct": 139.99999999999997
+    "divergence_pct": 200.00000000000006
   },
   {
     "name": "arithmetic_8wide",
-    "full_pipeline_cpi": 0.375,
+    "full_pipeline_cpi": 0.2777777777777778,
     "fast_timing_cpi": 1,
-    "divergence_pct": 166.66666666666669
+    "divergence_pct": 259.99999999999994
   },
   {
     "name": "dependency_chain",
-    "full_pipeline_cpi": 1.02,
+    "full_pipeline_cpi": 1.0149253731343284,
     "fast_timing_cpi": 1,
-    "divergence_pct": -1.960784313725492
+    "divergence_pct": -1.4705882352941217
   },
   {
     "name": "memory_sequential",
-    "full_pipeline_cpi": 1.7,
-    "fast_timing_cpi": 2.4285714285714284,
-    "divergence_pct": 42.85714285714285
+    "full_pipeline_cpi": 0.7,
+    "fast_timing_cpi": 1.9523809523809523,
+    "divergence_pct": 178.91156462585036
   },
   {
     "name": "memory_strided",
-    "full_pipeline_cpi": 1.6,
-    "fast_timing_cpi": 1.9375,
-    "divergence_pct": 21.093749999999993
+    "full_pipeline_cpi": 0.625,
+    "fast_timing_cpi": 1.625,
+    "divergence_pct": 160
   },
   {
     "name": "memory_sequential_scaled",
-    "full_pipeline_cpi": 1.51,
-    "fast_timing_cpi": 2.4962593516209477,
-    "divergence_pct": 65.31518884906939
+    "full_pipeline_cpi": 0.51,
+    "fast_timing_cpi": 1.9975062344139651,
+    "divergence_pct": 291.6678891007775
   },
   {
     "name": "memory_strided_scaled",
-    "full_pipeline_cpi": 1.34,
-    "fast_timing_cpi": 1.9983361064891847,
-    "divergence_pct": 49.12956018576004
+    "full_pipeline_cpi": 0.3410981697171381,
+    "fast_timing_cpi": 1.6655574043261232,
+    "divergence_pct": 388.29268292682934
   },
   {
     "name": "memory_random_access",
-    "full_pipeline_cpi": 1.51,
-    "fast_timing_cpi": 2.4962593516209477,
-    "divergence_pct": 65.31518884906939
+    "full_pipeline_cpi": 0.51,
+    "fast_timing_cpi": 1.9975062344139651,
+    "divergence_pct": 291.6678891007775
   },
   {
     "name": "load_heavy",
-    "full_pipeline_cpi": 0.36086956521739133,
-    "fast_timing_cpi": 3.5974025974025974,
-    "divergence_pct": 896.8705992802377
+    "full_pipeline_cpi": 0.34893617021276596,
+    "fast_timing_cpi": 2.7316017316017316,
+    "divergence_pct": 682.8370816175694
   },
   {
     "name": "load_heavy_scaled",
     "full_pipeline_cpi": 0.355,
-    "fast_timing_cpi": 3.985074626865672,
-    "divergence_pct": 1022.5562329199076
+    "fast_timing_cpi": 2.990049751243781,
+    "divergence_pct": 742.2675355616285
   },
   {
     "name": "store_heavy",
-    "full_pipeline_cpi": 0.49130434782608695,
+    "full_pipeline_cpi": 0.5217391304347826,
     "fast_timing_cpi": 1,
-    "divergence_pct": 103.53982300884954
+    "divergence_pct": 91.66666666666667
   },
   {
     "name": "store_heavy_scaled",
-    "full_pipeline_cpi": 0.52,
+    "full_pipeline_cpi": 0.49760765550239233,
     "fast_timing_cpi": 1,
-    "divergence_pct": 92.3076923076923
+    "divergence_pct": 100.96153846153848
   },
   {
     "name": "branch_taken",
-    "full_pipeline_cpi": 1.8,
+    "full_pipeline_cpi": 1.5,
     "fast_timing_cpi": 1,
-    "divergence_pct": -44.44444444444445
+    "divergence_pct": -33.33333333333333
   },
   {
     "name": "branch_taken_conditional",
-    "full_pipeline_cpi": 1.32,
+    "full_pipeline_cpi": 1.3112582781456954,
     "fast_timing_cpi": 1,
-    "divergence_pct": -24.242424242424246
+    "divergence_pct": -23.73737373737374
   },
   {
     "name": "branch_hot_loop",
-    "full_pipeline_cpi": 1.4166666666666667,
+    "full_pipeline_cpi": 1.0555555555555556,
     "fast_timing_cpi": 1,
-    "divergence_pct": -29.411764705882355
+    "divergence_pct": -5.263157894736844
   },
   {
     "name": "branch_heavy",
-    "full_pipeline_cpi": 0.8285714285714286,
+    "full_pipeline_cpi": 0.9411764705882353,
     "fast_timing_cpi": 1,
-    "divergence_pct": 20.689655172413783
+    "divergence_pct": 6.250000000000002
   },
   {
     "name": "function_calls",
@@ -109,44 +109,44 @@
   },
   {
     "name": "mixed_operations",
-    "full_pipeline_cpi": 1.5,
-    "fast_timing_cpi": 1.4736842105263157,
-    "divergence_pct": -1.7543859649122862
+    "full_pipeline_cpi": 0.9473684210526315,
+    "fast_timing_cpi": 1.3157894736842106,
+    "divergence_pct": 38.88888888888891
   },
   {
     "name": "matrix_operations",
-    "full_pipeline_cpi": 0.6842105263157895,
-    "fast_timing_cpi": 2.2,
-    "divergence_pct": 221.53846153846155
+    "full_pipeline_cpi": 0.38461538461538464,
+    "fast_timing_cpi": 1.8,
+    "divergence_pct": 368
   },
   {
     "name": "loop_simulation",
-    "full_pipeline_cpi": 0.7,
+    "full_pipeline_cpi": 0.6666666666666666,
     "fast_timing_cpi": 1,
-    "divergence_pct": 42.85714285714287
+    "divergence_pct": 50.000000000000014
   },
   {
     "name": "vector_sum",
-    "full_pipeline_cpi": 0.5,
-    "fast_timing_cpi": 1.4948453608247423,
-    "divergence_pct": 198.96907216494844
+    "full_pipeline_cpi": 0.3617021276595745,
+    "fast_timing_cpi": 1.3298969072164948,
+    "divergence_pct": 267.6773802304427
   },
   {
     "name": "vector_add",
-    "full_pipeline_cpi": 0.4012345679012346,
-    "fast_timing_cpi": 1.607361963190184,
-    "divergence_pct": 300.6040585181689
+    "full_pipeline_cpi": 0.2994011976047904,
+    "fast_timing_cpi": 1.4049079754601228,
+    "divergence_pct": 369.23926380368107
   },
   {
     "name": "reduction_tree",
-    "full_pipeline_cpi": 0.45161290322580644,
-    "fast_timing_cpi": 2.5,
-    "divergence_pct": 453.57142857142856
+    "full_pipeline_cpi": 0.40625,
+    "fast_timing_cpi": 2,
+    "divergence_pct": 392.30769230769226
   },
   {
     "name": "stride_indirect",
-    "full_pipeline_cpi": 0.6122448979591837,
-    "fast_timing_cpi": 1.48,
-    "divergence_pct": 141.73333333333332
+    "full_pipeline_cpi": 0.6086956521739131,
+    "fast_timing_cpi": 1.32,
+    "divergence_pct": 116.85714285714286
   }
 ]
