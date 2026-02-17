@@ -1,0 +1,38 @@
+{
+  "benchmarks_run": 11,
+  "results": {
+    "arithmetic": {
+      "cpi": 0.219
+    },
+    "dependency": {
+      "cpi": 1.015
+    },
+    "branch": {
+      "cpi": 1.311
+    },
+    "memorystrided": {
+      "cpi": 0.75
+    },
+    "loadheavy": {
+      "cpi": 0.349
+    },
+    "storeheavy": {
+      "cpi": 0.522
+    },
+    "branchheavy": {
+      "cpi": 0.941
+    },
+    "vectorsum": {
+      "cpi": 0.362
+    },
+    "vectoradd": {
+      "cpi": 0.29
+    },
+    "reductiontree": {
+      "cpi": 0.406
+    },
+    "strideindirect": {
+      "cpi": 0.609
+    }
+  }
+}
