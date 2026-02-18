@@ -720,83 +720,83 @@ func (p *Pipeline) tickSextupleIssue() {
 		// During exec stall, the primary slot (slot 0) stays stalled in IDEX.
 		// We still decode secondary slots so independent instructions can issue.
 		if !execStall {
-		decResult := p.decodeStage.Decode(p.ifid.InstructionWord, p.ifid.PC)
+			decResult := p.decodeStage.Decode(p.ifid.InstructionWord, p.ifid.PC)
 
-		// CMP+B.cond fusion detection: check if slot 0 is CMP and slot 1 is B.cond
-		// Disable fusion during load-use bypass since slot 0 may be held.
-		if !loadUseHazard && IsCMP(decResult.Inst) && p.ifid2.Valid {
-			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
-			if IsBCond(decResult2.Inst) {
-				// Fuse CMP+B.cond: put B.cond in slot 0 with CMP operands
-				fusedCMPBcond = true
-				nextIDEX = IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid2.PC,
-					Inst:            decResult2.Inst,
-					RnValue:         decResult2.RnValue,
-					RmValue:         decResult2.RmValue,
-					Rd:              decResult2.Rd,
-					Rn:              decResult2.Rn,
-					Rm:              decResult2.Rm,
-					MemRead:         decResult2.MemRead,
-					MemWrite:        decResult2.MemWrite,
-					RegWrite:        decResult2.RegWrite,
-					MemToReg:        decResult2.MemToReg,
-					IsBranch:        decResult2.IsBranch,
-					PredictedTaken:  p.ifid2.PredictedTaken,
-					PredictedTarget: p.ifid2.PredictedTarget,
-					EarlyResolved:   p.ifid2.EarlyResolved,
-					// Fusion fields from CMP
-					IsFused:    true,
-					FusedRnVal: decResult.RnValue,
-					FusedRmVal: decResult.RmValue,
-					FusedIs64:  decResult.Inst.Is64Bit,
-					FusedIsImm: decResult.Inst.Format == insts.FormatDPImm,
-					FusedImmVal: func() uint64 {
-						if decResult.Inst.Format == insts.FormatDPImm {
-							imm := decResult.Inst.Imm
-							if decResult.Inst.Shift > 0 {
-								imm <<= decResult.Inst.Shift
+			// CMP+B.cond fusion detection: check if slot 0 is CMP and slot 1 is B.cond
+			// Disable fusion during load-use bypass since slot 0 may be held.
+			if !loadUseHazard && IsCMP(decResult.Inst) && p.ifid2.Valid {
+				decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
+				if IsBCond(decResult2.Inst) {
+					// Fuse CMP+B.cond: put B.cond in slot 0 with CMP operands
+					fusedCMPBcond = true
+					nextIDEX = IDEXRegister{
+						Valid:           true,
+						PC:              p.ifid2.PC,
+						Inst:            decResult2.Inst,
+						RnValue:         decResult2.RnValue,
+						RmValue:         decResult2.RmValue,
+						Rd:              decResult2.Rd,
+						Rn:              decResult2.Rn,
+						Rm:              decResult2.Rm,
+						MemRead:         decResult2.MemRead,
+						MemWrite:        decResult2.MemWrite,
+						RegWrite:        decResult2.RegWrite,
+						MemToReg:        decResult2.MemToReg,
+						IsBranch:        decResult2.IsBranch,
+						PredictedTaken:  p.ifid2.PredictedTaken,
+						PredictedTarget: p.ifid2.PredictedTarget,
+						EarlyResolved:   p.ifid2.EarlyResolved,
+						// Fusion fields from CMP
+						IsFused:    true,
+						FusedRnVal: decResult.RnValue,
+						FusedRmVal: decResult.RmValue,
+						FusedIs64:  decResult.Inst.Is64Bit,
+						FusedIsImm: decResult.Inst.Format == insts.FormatDPImm,
+						FusedImmVal: func() uint64 {
+							if decResult.Inst.Format == insts.FormatDPImm {
+								imm := decResult.Inst.Imm
+								if decResult.Inst.Shift > 0 {
+									imm <<= decResult.Inst.Shift
+								}
+								return imm
 							}
-							return imm
-						}
-						return 0
-					}(),
+							return 0
+						}(),
+					}
+					// Mark both instructions as consumed (CMP + B.cond count as 2 issued)
+					// This will be reflected in the issueCount later
+					// Note: IsFused flag is propagated through the pipeline.
+					// When the fused instruction retires, it counts as 2 instructions.
 				}
-				// Mark both instructions as consumed (CMP + B.cond count as 2 issued)
-				// This will be reflected in the issueCount later
-				// Note: IsFused flag is propagated through the pipeline.
-				// When the fused instruction retires, it counts as 2 instructions.
 			}
-		}
 
-		if !fusedCMPBcond {
-			// During load-use hazard, skip the dependent instruction (slot 0).
-			// It will be re-queued to IFID for the next cycle via consumed tracking.
-			// Also block speculative stores in slot 0: instructions fetched after
-			// a predicted-taken branch that write to memory cannot issue because
-			// memory writes are not rolled back on misprediction.
-			if !loadUseHazard && !(p.ifid.AfterBranch && decResult.MemWrite) {
-				nextIDEX = IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid.PC,
-					Inst:            decResult.Inst,
-					RnValue:         decResult.RnValue,
-					RmValue:         decResult.RmValue,
-					Rd:              decResult.Rd,
-					Rn:              decResult.Rn,
-					Rm:              decResult.Rm,
-					MemRead:         decResult.MemRead,
-					MemWrite:        decResult.MemWrite,
-					RegWrite:        decResult.RegWrite,
-					MemToReg:        decResult.MemToReg,
-					IsBranch:        decResult.IsBranch,
-					PredictedTaken:  p.ifid.PredictedTaken,
-					PredictedTarget: p.ifid.PredictedTarget,
-					EarlyResolved:   p.ifid.EarlyResolved,
+			if !fusedCMPBcond {
+				// During load-use hazard, skip the dependent instruction (slot 0).
+				// It will be re-queued to IFID for the next cycle via consumed tracking.
+				// Also block speculative stores in slot 0: instructions fetched after
+				// a predicted-taken branch that write to memory cannot issue because
+				// memory writes are not rolled back on misprediction.
+				if !loadUseHazard && !(p.ifid.AfterBranch && decResult.MemWrite) {
+					nextIDEX = IDEXRegister{
+						Valid:           true,
+						PC:              p.ifid.PC,
+						Inst:            decResult.Inst,
+						RnValue:         decResult.RnValue,
+						RmValue:         decResult.RmValue,
+						Rd:              decResult.Rd,
+						Rn:              decResult.Rn,
+						Rm:              decResult.Rm,
+						MemRead:         decResult.MemRead,
+						MemWrite:        decResult.MemWrite,
+						RegWrite:        decResult.RegWrite,
+						MemToReg:        decResult.MemToReg,
+						IsBranch:        decResult.IsBranch,
+						PredictedTaken:  p.ifid.PredictedTaken,
+						PredictedTarget: p.ifid.PredictedTarget,
+						EarlyResolved:   p.ifid.EarlyResolved,
+					}
 				}
 			}
-		}
 		}
 
 		// Try to issue instructions 2-6 if they can issue with earlier instructions.
