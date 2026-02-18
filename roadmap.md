@@ -127,15 +127,22 @@ Cache verification tests written and passed (PR #88, issue #183 closed). Akita c
 1. ✅ Check CI run 22144669883 — still QUEUED (runner congestion); used PR branch run 22142753352
 2. ✅ Update h5_accuracy_results.json — memorystrided DCache CPI=0.750, error=253.1% (2.531)
 3. ✅ Close open issues #222 and #223 in tbc-db
-4. ❌ memorystrided still >100% (253.1%): root cause identified in issue #226
+4. ❌ memorystrided still >100% (253.1%): root cause identified in issue #226; PR#96 (StoreForwardLatency 1→3) reduces to 202% error (CPI=0.875), still needs work
 5. ✅ Root cause analysis complete: issues #226 (memorystrided) and #227 (jacobi-1d) filed
 6. ✅ Investigated jacobi-1d root cause (sim 0.231 vs HW 0.151 — see issue #227)
+7. ❌ PR#94 regression discovered: 6 micros regressed 25-84%, jacobi-1d now infeasible; PR#99 (Leo) fixes this — CI running
+8. ⏳ PR#99 CI pending — must merge before PR#96 and PR#97 can be evaluated cleanly
 
 **Current micro average: 51.14%** (11 benchmarks, post-PR#94 from CI run 22141495151)
 - memorystrided: 253.1% error (dominant blocker — store-to-load forwarding latency issue)
 - Without memorystrided: 30.94% average (does NOT meet H5 <20% target)
 - PR#94 regressed 6 microbenchmarks by 25-84% CPI increase
 - **H5 micro goal NOT met** — both memorystrided and PR#94 regressions need addressing
+
+**Fix queue (in order of dependency):**
+1. PR#99 — revert secondary port stalls (fixes PR#94 regressions) → must merge first
+2. PR#96 — StoreForwardLatency 1→3 (memorystrided 253%→202% error)
+3. PR#97 — SMULL stall overlap (jacobi-1d improvement)
 
 **Budget: 10 cycles** (CI wait + verification + diagnosis)
 
@@ -144,7 +151,7 @@ Cache verification tests written and passed (PR #88, issue #183 closed). Akita c
 **Constraints:**
 - No speculative code changes until CI results are confirmed
 - Update accuracy JSON only from CI-verified runs
-- No PolyBench regressions
+- No PolyBench regressions (PR#99 must fix jacobi-1d timeout)
 
 ## Future Milestones (tentative)
 
