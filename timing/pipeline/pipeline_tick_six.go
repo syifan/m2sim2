@@ -1193,7 +1193,7 @@ func (p *Pipeline) tickSextupleIssue() {
 		p.exmem5 = nextEXMEM5
 		p.exmem6 = nextEXMEM6
 	}
-	if stallResult.InsertBubbleEX && !memStall {
+	if stallResult.InsertBubbleEX && !execStall && !memStall {
 		p.idex.Clear()
 		p.idex2.Clear()
 		p.idex3.Clear()
