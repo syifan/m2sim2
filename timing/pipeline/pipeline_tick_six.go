@@ -693,9 +693,7 @@ func (p *Pipeline) tickSextupleIssue() {
 		}
 	}
 
-	// Don't pass loadUseHazard to ComputeStalls — we handle it in the decode
-	// stage below by skipping dependent instructions (OoO bypass).
-	stallResult := p.hazardUnit.ComputeStalls(memStall, false)
+	stallResult := p.hazardUnit.ComputeStalls(loadUseHazard || execStall || memStall, false)
 
 	// Stage 2: Decode (all 6 slots)
 	var nextIDEX IDEXRegister
@@ -708,133 +706,16 @@ func (p *Pipeline) tickSextupleIssue() {
 	// Track CMP+B.cond fusion for issue count adjustment
 	fusedCMPBcond := false
 
-	// loadRdForBypass is the destination register of the in-flight load,
-	// used to check each IFID instruction for load-use hazard during bypass.
-	loadRdForBypass := uint8(31)
-	if loadUseHazard {
-		loadRdForBypass = p.idex.Rd
-		p.stats.Stalls++ // count as a stall for stat tracking
-	}
+	if p.ifid.Valid && !stallResult.StallID && !stallResult.FlushID && !execStall && !memStall {
+		decResult := p.decodeStage.Decode(p.ifid.InstructionWord, p.ifid.PC)
 
-	if p.ifid.Valid && !stallResult.StallID && !stallResult.FlushID && !memStall {
-		// During exec stall, the primary slot (slot 0) stays stalled in IDEX.
-		// We still decode secondary slots so independent instructions can issue.
-		if !execStall {
-			decResult := p.decodeStage.Decode(p.ifid.InstructionWord, p.ifid.PC)
-
-			// CMP+B.cond fusion detection: check if slot 0 is CMP and slot 1 is B.cond
-			// Disable fusion during load-use bypass since slot 0 may be held.
-			if !loadUseHazard && IsCMP(decResult.Inst) && p.ifid2.Valid {
-				decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
-				if IsBCond(decResult2.Inst) {
-					// Fuse CMP+B.cond: put B.cond in slot 0 with CMP operands
-					fusedCMPBcond = true
-					nextIDEX = IDEXRegister{
-						Valid:           true,
-						PC:              p.ifid2.PC,
-						Inst:            decResult2.Inst,
-						RnValue:         decResult2.RnValue,
-						RmValue:         decResult2.RmValue,
-						Rd:              decResult2.Rd,
-						Rn:              decResult2.Rn,
-						Rm:              decResult2.Rm,
-						MemRead:         decResult2.MemRead,
-						MemWrite:        decResult2.MemWrite,
-						RegWrite:        decResult2.RegWrite,
-						MemToReg:        decResult2.MemToReg,
-						IsBranch:        decResult2.IsBranch,
-						PredictedTaken:  p.ifid2.PredictedTaken,
-						PredictedTarget: p.ifid2.PredictedTarget,
-						EarlyResolved:   p.ifid2.EarlyResolved,
-						// Fusion fields from CMP
-						IsFused:    true,
-						FusedRnVal: decResult.RnValue,
-						FusedRmVal: decResult.RmValue,
-						FusedIs64:  decResult.Inst.Is64Bit,
-						FusedIsImm: decResult.Inst.Format == insts.FormatDPImm,
-						FusedImmVal: func() uint64 {
-							if decResult.Inst.Format == insts.FormatDPImm {
-								imm := decResult.Inst.Imm
-								if decResult.Inst.Shift > 0 {
-									imm <<= decResult.Inst.Shift
-								}
-								return imm
-							}
-							return 0
-						}(),
-					}
-					// Mark both instructions as consumed (CMP + B.cond count as 2 issued)
-					// This will be reflected in the issueCount later
-					// Note: IsFused flag is propagated through the pipeline.
-					// When the fused instruction retires, it counts as 2 instructions.
-				}
-			}
-
-			if !fusedCMPBcond {
-				// During load-use hazard, skip the dependent instruction (slot 0).
-				// It will be re-queued to IFID for the next cycle via consumed tracking.
-				// Also block speculative stores in slot 0: instructions fetched after
-				// a predicted-taken branch that write to memory cannot issue because
-				// memory writes are not rolled back on misprediction.
-				if !loadUseHazard && !(p.ifid.AfterBranch && decResult.MemWrite) {
-					nextIDEX = IDEXRegister{
-						Valid:           true,
-						PC:              p.ifid.PC,
-						Inst:            decResult.Inst,
-						RnValue:         decResult.RnValue,
-						RmValue:         decResult.RmValue,
-						Rd:              decResult.Rd,
-						Rn:              decResult.Rn,
-						Rm:              decResult.Rm,
-						MemRead:         decResult.MemRead,
-						MemWrite:        decResult.MemWrite,
-						RegWrite:        decResult.RegWrite,
-						MemToReg:        decResult.MemToReg,
-						IsBranch:        decResult.IsBranch,
-						PredictedTaken:  p.ifid.PredictedTaken,
-						PredictedTarget: p.ifid.PredictedTarget,
-						EarlyResolved:   p.ifid.EarlyResolved,
-					}
-				}
-			}
-		}
-
-		// Try to issue instructions 2-6 if they can issue with earlier instructions.
-		// Uses fixed-size array to avoid heap allocation per tick.
-		var issuedInsts [8]*IDEXRegister
-		var issued [8]bool
-		var forwarded [8]bool
-
-		// During exec stall, the stalled instruction in p.idex occupies slot 0.
-		// Include it in the issued set so canIssueWith checks RAW hazards against it.
-		// Mark as "forwarded" to prevent same-cycle ALU forwarding, since the
-		// multi-cycle instruction's result isn't available yet.
-		if execStall {
-			issuedInsts[0] = &p.idex
-			if p.idex.Valid {
-				issued[0] = true
-				forwarded[0] = true
-			}
-		} else {
-			issuedInsts[0] = &nextIDEX
-			if nextIDEX.Valid {
-				issued[0] = true
-			}
-		}
-		issuedCount := 1
-
-		// Track if IFID2 was consumed by fusion (skip its decode)
-		ifid2ConsumedByFusion := fusedCMPBcond
-
-		// Decode slot 2 (IFID2) - skip if consumed by fusion
-		// OoO-style issue: each slot independently checks canIssueWithFwd().
-		// If a slot can't issue, later slots still get a chance.
-		if p.ifid2.Valid && !ifid2ConsumedByFusion {
+		// CMP+B.cond fusion detection: check if slot 0 is CMP and slot 1 is B.cond
+		if IsCMP(decResult.Inst) && p.ifid2.Valid {
 			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult2.Inst) {
-				issuedCount++
-			} else {
-				tempIDEX2 := IDEXRegister{
+			if IsBCond(decResult2.Inst) {
+				// Fuse CMP+B.cond: put B.cond in slot 0 with CMP operands
+				fusedCMPBcond = true
+				nextIDEX = IDEXRegister{
 					Valid:           true,
 					PC:              p.ifid2.PC,
 					Inst:            decResult2.Inst,
@@ -851,157 +732,215 @@ func (p *Pipeline) tickSextupleIssue() {
 					PredictedTaken:  p.ifid2.PredictedTaken,
 					PredictedTarget: p.ifid2.PredictedTarget,
 					EarlyResolved:   p.ifid2.EarlyResolved,
+					// Fusion fields from CMP
+					IsFused:    true,
+					FusedRnVal: decResult.RnValue,
+					FusedRmVal: decResult.RmValue,
+					FusedIs64:  decResult.Inst.Is64Bit,
+					FusedIsImm: decResult.Inst.Format == insts.FormatDPImm,
+					FusedImmVal: func() uint64 {
+						if decResult.Inst.Format == insts.FormatDPImm {
+							imm := decResult.Inst.Imm
+							if decResult.Inst.Shift > 0 {
+								imm <<= decResult.Inst.Shift
+							}
+							return imm
+						}
+						return 0
+					}(),
 				}
-				if ok, _ := canIssueWithFwd(&tempIDEX2, &issuedInsts, issuedCount, &issued, &forwarded); ok && !(p.ifid2.AfterBranch && decResult2.MemWrite) {
-					nextIDEX2.fromIDEX(&tempIDEX2)
-					issued[issuedCount] = true
-				} else {
-					p.stats.StructuralHazardStalls++
-				}
-				issuedInsts[issuedCount] = &tempIDEX2
-				issuedCount++
+				// Mark both instructions as consumed (CMP + B.cond count as 2 issued)
+				// This will be reflected in the issueCount later
+				// Note: IsFused flag is propagated through the pipeline.
+				// When the fused instruction retires, it counts as 2 instructions.
 			}
+		}
+
+		if !fusedCMPBcond {
+			nextIDEX = IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid.PC,
+				Inst:            decResult.Inst,
+				RnValue:         decResult.RnValue,
+				RmValue:         decResult.RmValue,
+				Rd:              decResult.Rd,
+				Rn:              decResult.Rn,
+				Rm:              decResult.Rm,
+				MemRead:         decResult.MemRead,
+				MemWrite:        decResult.MemWrite,
+				RegWrite:        decResult.RegWrite,
+				MemToReg:        decResult.MemToReg,
+				IsBranch:        decResult.IsBranch,
+				PredictedTaken:  p.ifid.PredictedTaken,
+				PredictedTarget: p.ifid.PredictedTarget,
+				EarlyResolved:   p.ifid.EarlyResolved,
+			}
+		}
+
+		// Try to issue instructions 2-6 if they can issue with earlier instructions.
+		// Uses fixed-size array to avoid heap allocation per tick.
+		var issuedInsts [8]*IDEXRegister
+		var issued [8]bool
+		issuedInsts[0] = &nextIDEX
+		issued[0] = true
+		issuedCount := 1
+
+		// Track if IFID2 was consumed by fusion (skip its decode)
+		ifid2ConsumedByFusion := fusedCMPBcond
+
+		// Decode slot 2 (IFID2) - skip if consumed by fusion
+		// OoO-style issue: each slot independently checks canIssueWith().
+		if p.ifid2.Valid && !ifid2ConsumedByFusion {
+			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
+			tempIDEX2 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid2.PC,
+				Inst:            decResult2.Inst,
+				RnValue:         decResult2.RnValue,
+				RmValue:         decResult2.RmValue,
+				Rd:              decResult2.Rd,
+				Rn:              decResult2.Rn,
+				Rm:              decResult2.Rm,
+				MemRead:         decResult2.MemRead,
+				MemWrite:        decResult2.MemWrite,
+				RegWrite:        decResult2.RegWrite,
+				MemToReg:        decResult2.MemToReg,
+				IsBranch:        decResult2.IsBranch,
+				PredictedTaken:  p.ifid2.PredictedTaken,
+				PredictedTarget: p.ifid2.PredictedTarget,
+				EarlyResolved:   p.ifid2.EarlyResolved,
+			}
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
+				nextIDEX2.fromIDEX(&tempIDEX2)
+				issued[issuedCount] = true
+			} else {
+				p.stats.StructuralHazardStalls++
+			}
+			issuedInsts[issuedCount] = &tempIDEX2
+			issuedCount++
 		}
 
 		// Decode slot 3
 		if p.ifid3.Valid {
 			decResult3 := p.decodeStage.Decode(p.ifid3.InstructionWord, p.ifid3.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult3.Inst) {
-				issuedCount++
-			} else {
-				tempIDEX3 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid3.PC,
-					Inst:            decResult3.Inst,
-					RnValue:         decResult3.RnValue,
-					RmValue:         decResult3.RmValue,
-					Rd:              decResult3.Rd,
-					Rn:              decResult3.Rn,
-					Rm:              decResult3.Rm,
-					MemRead:         decResult3.MemRead,
-					MemWrite:        decResult3.MemWrite,
-					RegWrite:        decResult3.RegWrite,
-					MemToReg:        decResult3.MemToReg,
-					IsBranch:        decResult3.IsBranch,
-					PredictedTaken:  p.ifid3.PredictedTaken,
-					PredictedTarget: p.ifid3.PredictedTarget,
-					EarlyResolved:   p.ifid3.EarlyResolved,
-				}
-				if ok, _ := canIssueWithFwd(&tempIDEX3, &issuedInsts, issuedCount, &issued, &forwarded); ok && !(p.ifid3.AfterBranch && decResult3.MemWrite) {
-					nextIDEX3.fromIDEX(&tempIDEX3)
-					issued[issuedCount] = true
-				} else {
-					p.stats.StructuralHazardStalls++
-				}
-				issuedInsts[issuedCount] = &tempIDEX3
-				issuedCount++
+			tempIDEX3 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid3.PC,
+				Inst:            decResult3.Inst,
+				RnValue:         decResult3.RnValue,
+				RmValue:         decResult3.RmValue,
+				Rd:              decResult3.Rd,
+				Rn:              decResult3.Rn,
+				Rm:              decResult3.Rm,
+				MemRead:         decResult3.MemRead,
+				MemWrite:        decResult3.MemWrite,
+				RegWrite:        decResult3.RegWrite,
+				MemToReg:        decResult3.MemToReg,
+				IsBranch:        decResult3.IsBranch,
+				PredictedTaken:  p.ifid3.PredictedTaken,
+				PredictedTarget: p.ifid3.PredictedTarget,
+				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
+				nextIDEX3.fromIDEX(&tempIDEX3)
+				issued[issuedCount] = true
+			} else {
+				p.stats.StructuralHazardStalls++
+			}
+			issuedInsts[issuedCount] = &tempIDEX3
+			issuedCount++
 		}
 
 		// Decode slot 4
 		if p.ifid4.Valid {
 			decResult4 := p.decodeStage.Decode(p.ifid4.InstructionWord, p.ifid4.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult4.Inst) {
-				issuedCount++
-			} else {
-				tempIDEX4 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid4.PC,
-					Inst:            decResult4.Inst,
-					RnValue:         decResult4.RnValue,
-					RmValue:         decResult4.RmValue,
-					Rd:              decResult4.Rd,
-					Rn:              decResult4.Rn,
-					Rm:              decResult4.Rm,
-					MemRead:         decResult4.MemRead,
-					MemWrite:        decResult4.MemWrite,
-					RegWrite:        decResult4.RegWrite,
-					MemToReg:        decResult4.MemToReg,
-					IsBranch:        decResult4.IsBranch,
-					PredictedTaken:  p.ifid4.PredictedTaken,
-					PredictedTarget: p.ifid4.PredictedTarget,
-					EarlyResolved:   p.ifid4.EarlyResolved,
-				}
-				if ok, _ := canIssueWithFwd(&tempIDEX4, &issuedInsts, issuedCount, &issued, &forwarded); ok && !(p.ifid4.AfterBranch && decResult4.MemWrite) {
-					nextIDEX4.fromIDEX(&tempIDEX4)
-					issued[issuedCount] = true
-				} else {
-					p.stats.StructuralHazardStalls++
-				}
-				issuedInsts[issuedCount] = &tempIDEX4
-				issuedCount++
+			tempIDEX4 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid4.PC,
+				Inst:            decResult4.Inst,
+				RnValue:         decResult4.RnValue,
+				RmValue:         decResult4.RmValue,
+				Rd:              decResult4.Rd,
+				Rn:              decResult4.Rn,
+				Rm:              decResult4.Rm,
+				MemRead:         decResult4.MemRead,
+				MemWrite:        decResult4.MemWrite,
+				RegWrite:        decResult4.RegWrite,
+				MemToReg:        decResult4.MemToReg,
+				IsBranch:        decResult4.IsBranch,
+				PredictedTaken:  p.ifid4.PredictedTaken,
+				PredictedTarget: p.ifid4.PredictedTarget,
+				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
+				nextIDEX4.fromIDEX(&tempIDEX4)
+				issued[issuedCount] = true
+			} else {
+				p.stats.StructuralHazardStalls++
+			}
+			issuedInsts[issuedCount] = &tempIDEX4
+			issuedCount++
 		}
 
 		// Decode slot 5
 		if p.ifid5.Valid {
 			decResult5 := p.decodeStage.Decode(p.ifid5.InstructionWord, p.ifid5.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult5.Inst) {
-				issuedCount++
-			} else {
-				tempIDEX5 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid5.PC,
-					Inst:            decResult5.Inst,
-					RnValue:         decResult5.RnValue,
-					RmValue:         decResult5.RmValue,
-					Rd:              decResult5.Rd,
-					Rn:              decResult5.Rn,
-					Rm:              decResult5.Rm,
-					MemRead:         decResult5.MemRead,
-					MemWrite:        decResult5.MemWrite,
-					RegWrite:        decResult5.RegWrite,
-					MemToReg:        decResult5.MemToReg,
-					IsBranch:        decResult5.IsBranch,
-					PredictedTaken:  p.ifid5.PredictedTaken,
-					PredictedTarget: p.ifid5.PredictedTarget,
-					EarlyResolved:   p.ifid5.EarlyResolved,
-				}
-				if ok, _ := canIssueWithFwd(&tempIDEX5, &issuedInsts, issuedCount, &issued, &forwarded); ok && !(p.ifid5.AfterBranch && decResult5.MemWrite) {
-					nextIDEX5.fromIDEX(&tempIDEX5)
-					issued[issuedCount] = true
-				} else {
-					p.stats.StructuralHazardStalls++
-				}
-				issuedInsts[issuedCount] = &tempIDEX5
-				issuedCount++
+			tempIDEX5 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid5.PC,
+				Inst:            decResult5.Inst,
+				RnValue:         decResult5.RnValue,
+				RmValue:         decResult5.RmValue,
+				Rd:              decResult5.Rd,
+				Rn:              decResult5.Rn,
+				Rm:              decResult5.Rm,
+				MemRead:         decResult5.MemRead,
+				MemWrite:        decResult5.MemWrite,
+				RegWrite:        decResult5.RegWrite,
+				MemToReg:        decResult5.MemToReg,
+				IsBranch:        decResult5.IsBranch,
+				PredictedTaken:  p.ifid5.PredictedTaken,
+				PredictedTarget: p.ifid5.PredictedTarget,
+				EarlyResolved:   p.ifid5.EarlyResolved,
 			}
+			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
+				nextIDEX5.fromIDEX(&tempIDEX5)
+				issued[issuedCount] = true
+			} else {
+				p.stats.StructuralHazardStalls++
+			}
+			issuedInsts[issuedCount] = &tempIDEX5
+			issuedCount++
 		}
 
 		// Decode slot 6
 		if p.ifid6.Valid {
 			decResult6 := p.decodeStage.Decode(p.ifid6.InstructionWord, p.ifid6.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult6.Inst) {
-				// dependent — will be re-queued
+			tempIDEX6 := IDEXRegister{
+				Valid:           true,
+				PC:              p.ifid6.PC,
+				Inst:            decResult6.Inst,
+				RnValue:         decResult6.RnValue,
+				RmValue:         decResult6.RmValue,
+				Rd:              decResult6.Rd,
+				Rn:              decResult6.Rn,
+				Rm:              decResult6.Rm,
+				MemRead:         decResult6.MemRead,
+				MemWrite:        decResult6.MemWrite,
+				RegWrite:        decResult6.RegWrite,
+				MemToReg:        decResult6.MemToReg,
+				IsBranch:        decResult6.IsBranch,
+				PredictedTaken:  p.ifid6.PredictedTaken,
+				PredictedTarget: p.ifid6.PredictedTarget,
+				EarlyResolved:   p.ifid6.EarlyResolved,
+			}
+			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
+				nextIDEX6.fromIDEX(&tempIDEX6)
 			} else {
-				tempIDEX6 := IDEXRegister{
-					Valid:           true,
-					PC:              p.ifid6.PC,
-					Inst:            decResult6.Inst,
-					RnValue:         decResult6.RnValue,
-					RmValue:         decResult6.RmValue,
-					Rd:              decResult6.Rd,
-					Rn:              decResult6.Rn,
-					Rm:              decResult6.Rm,
-					MemRead:         decResult6.MemRead,
-					MemWrite:        decResult6.MemWrite,
-					RegWrite:        decResult6.RegWrite,
-					MemToReg:        decResult6.MemToReg,
-					IsBranch:        decResult6.IsBranch,
-					PredictedTaken:  p.ifid6.PredictedTaken,
-					PredictedTarget: p.ifid6.PredictedTarget,
-					EarlyResolved:   p.ifid6.EarlyResolved,
-				}
-				if ok, fwd := canIssueWithFwd(&tempIDEX6, &issuedInsts, issuedCount, &issued, &forwarded); ok && !(p.ifid6.AfterBranch && decResult6.MemWrite) {
-					nextIDEX6.fromIDEX(&tempIDEX6)
-					_ = fwd
-				} else {
-					p.stats.StructuralHazardStalls++
-				}
-				issuedInsts[issuedCount] = &tempIDEX6
+				p.stats.StructuralHazardStalls++
 			}
 		}
-	} else if (stallResult.StallID || memStall) && !stallResult.FlushID {
+	} else if (stallResult.StallID || execStall || memStall) && !stallResult.FlushID {
 		nextIDEX = p.idex
 		nextIDEX2 = p.idex2
 		nextIDEX3 = p.idex3
@@ -1009,19 +948,10 @@ func (p *Pipeline) tickSextupleIssue() {
 		nextIDEX5 = p.idex5
 		nextIDEX6 = p.idex6
 	}
-	if execStall {
-		nextIDEX = p.idex
-	}
 
 	// Track which IFID slots were consumed (issued to IDEX) for fetch re-queuing
 	var consumed [8]bool
-	// During exec stall, slot 0 was NOT decoded — the stalled instruction
-	// is in IDEX from a previous cycle, so IFID slot 0 is not consumed.
-	if execStall {
-		consumed[0] = false
-	} else {
-		consumed[0] = nextIDEX.Valid || fusedCMPBcond
-	}
+	consumed[0] = nextIDEX.Valid || fusedCMPBcond
 	consumed[1] = nextIDEX2.Valid || fusedCMPBcond // fusion consumes IFID2
 	consumed[2] = nextIDEX3.Valid
 	consumed[3] = nextIDEX4.Valid
@@ -1037,16 +967,78 @@ func (p *Pipeline) tickSextupleIssue() {
 	var nextIFID6 SenaryIFIDRegister
 	fetchStall := false
 
-	if !stallResult.StallIF && !stallResult.FlushIF && !memStall {
-		// Step 1: Push un-consumed IFID instructions into the window buffer.
-		// These are instructions that couldn't issue this cycle due to RAW
-		// hazards; they get another chance next cycle from the window.
-		p.pushUnconsumedToWindow(consumed[:6])
+	if !stallResult.StallIF && !stallResult.FlushIF && !memStall && !execStall {
+		// Shift unissued instructions forward
+		pendingInsts, pendingCount := p.collectPendingFetchInstructionsSelective(consumed[:6])
 
-		// Step 2: Fetch new instructions into the window buffer.
+		// Fill slots with pending instructions first, then fetch new ones
 		fetchPC := p.pc
-		fetchedAfterBranch := false
-		for p.instrWindowLen < instrWindowSize {
+		slotIdx := 0
+
+		// Place pending instructions
+		branchPredictedTaken := false
+		for pi := 0; pi < pendingCount; pi++ {
+			pending := pendingInsts[pi]
+			if branchPredictedTaken {
+				break
+			}
+			switch slotIdx {
+			case 0:
+				isUncondBranch, uncondTarget := isUnconditionalBranch(pending.Word, pending.PC)
+				pred := p.branchPredictor.Predict(pending.PC)
+				earlyResolved := false
+				if isUncondBranch {
+					pred.Taken = true
+					pred.Target = uncondTarget
+					pred.TargetKnown = true
+					earlyResolved = true
+				}
+				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
+				nextIFID = IFIDRegister{
+					Valid:           true,
+					PC:              pending.PC,
+					InstructionWord: pending.Word,
+					PredictedTaken:  pred.Taken,
+					PredictedTarget: pred.Target,
+					EarlyResolved:   earlyResolved,
+				}
+				if pred.Taken && pred.TargetKnown {
+					fetchPC = pred.Target
+					branchPredictedTaken = true
+				}
+			default:
+				isUncondBranch, uncondTarget := isUnconditionalBranch(pending.Word, pending.PC)
+				pred := p.branchPredictor.Predict(pending.PC)
+				earlyResolved := false
+				if isUncondBranch {
+					pred.Taken = true
+					pred.Target = uncondTarget
+					pred.TargetKnown = true
+					earlyResolved = true
+				}
+				enrichPredictionWithEncodedTarget(&pred, pending.Word, pending.PC)
+				switch slotIdx {
+				case 1:
+					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
+				case 2:
+					nextIFID3 = TertiaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
+				case 3:
+					nextIFID4 = QuaternaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
+				case 4:
+					nextIFID5 = QuinaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
+				case 5:
+					nextIFID6 = SenaryIFIDRegister{Valid: true, PC: pending.PC, InstructionWord: pending.Word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
+				}
+				if pred.Taken && pred.TargetKnown {
+					fetchPC = pred.Target
+					branchPredictedTaken = true
+				}
+			}
+			slotIdx++
+		}
+
+		// Fetch new instructions to fill remaining slots
+		for slotIdx < 6 {
 			var word uint32
 			var ok bool
 
@@ -1064,80 +1056,74 @@ func (p *Pipeline) tickSextupleIssue() {
 				break
 			}
 
-			// Branch elimination
+			// Branch elimination: unconditional B (not BL) instructions are
+			// eliminated at fetch time. They never enter the pipeline.
 			if isEliminableBranch(word) {
 				_, uncondTarget := isUnconditionalBranch(word, fetchPC)
 				fetchPC = uncondTarget
 				p.stats.EliminatedBranches++
+				// Don't create IFID entry - branch is eliminated
+				// Continue fetching from target without advancing slotIdx
 				continue
 			}
 
-			p.instrWindow[p.instrWindowLen] = instrWindowEntry{
-				Valid:           true,
-				PC:              fetchPC,
-				InstructionWord: word,
-				AfterBranch:     fetchedAfterBranch,
-			}
-			p.instrWindowLen++
-
-			// Check for predicted-taken branch to redirect fetch
-			isUncondBranch, uncondTarget := isUnconditionalBranch(word, fetchPC)
-			pred := p.branchPredictor.Predict(fetchPC)
-			if isUncondBranch {
-				pred.Taken = true
-				pred.Target = uncondTarget
-				pred.TargetKnown = true
-			}
-			enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
-
-			// Store prediction in the window entry
-			p.instrWindow[p.instrWindowLen-1].PredictedTaken = pred.Taken
-			p.instrWindow[p.instrWindowLen-1].PredictedTarget = pred.Target
-			p.instrWindow[p.instrWindowLen-1].EarlyResolved = isUncondBranch
-
-			if pred.Taken && pred.TargetKnown {
-				fetchPC = pred.Target
-				fetchedAfterBranch = true
+			if slotIdx == 0 {
+				isUncondBranch, uncondTarget := isUnconditionalBranch(word, fetchPC)
+				pred := p.branchPredictor.Predict(fetchPC)
+				earlyResolved := false
+				if isUncondBranch {
+					pred.Taken = true
+					pred.Target = uncondTarget
+					pred.TargetKnown = true
+					earlyResolved = true
+				}
+				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
+				nextIFID = IFIDRegister{
+					Valid:           true,
+					PC:              fetchPC,
+					InstructionWord: word,
+					PredictedTaken:  pred.Taken,
+					PredictedTarget: pred.Target,
+					EarlyResolved:   earlyResolved,
+				}
+				if pred.Taken && pred.TargetKnown {
+					fetchPC = pred.Target
+					slotIdx++
+					continue
+				}
 			} else {
-				fetchPC += 4
-			}
-		}
-		p.pc = fetchPC
-
-		// Step 3: Pop the first 6 entries from the window into IFID registers.
-		// (6-wide path pops at most 6, unlike the 8-wide path.)
-		{
-			popCount := p.instrWindowLen
-			if popCount > 6 {
-				popCount = 6
-			}
-			for i := 0; i < popCount; i++ {
-				e := p.instrWindow[i]
-				switch i {
-				case 0:
-					nextIFID = IFIDRegister{Valid: true, PC: e.PC, InstructionWord: e.InstructionWord, PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget, EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch}
+				isUncondBranch, uncondTarget := isUnconditionalBranch(word, fetchPC)
+				pred := p.branchPredictor.Predict(fetchPC)
+				earlyResolved := false
+				if isUncondBranch {
+					pred.Taken = true
+					pred.Target = uncondTarget
+					pred.TargetKnown = true
+					earlyResolved = true
+				}
+				enrichPredictionWithEncodedTarget(&pred, word, fetchPC)
+				switch slotIdx {
 				case 1:
-					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: e.PC, InstructionWord: e.InstructionWord, PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget, EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch}
+					nextIFID2 = SecondaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
 				case 2:
-					nextIFID3 = TertiaryIFIDRegister{Valid: true, PC: e.PC, InstructionWord: e.InstructionWord, PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget, EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch}
+					nextIFID3 = TertiaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
 				case 3:
-					nextIFID4 = QuaternaryIFIDRegister{Valid: true, PC: e.PC, InstructionWord: e.InstructionWord, PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget, EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch}
+					nextIFID4 = QuaternaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
 				case 4:
-					nextIFID5 = QuinaryIFIDRegister{Valid: true, PC: e.PC, InstructionWord: e.InstructionWord, PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget, EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch}
+					nextIFID5 = QuinaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
 				case 5:
-					nextIFID6 = SenaryIFIDRegister{Valid: true, PC: e.PC, InstructionWord: e.InstructionWord, PredictedTaken: e.PredictedTaken, PredictedTarget: e.PredictedTarget, EarlyResolved: e.EarlyResolved, AfterBranch: e.AfterBranch}
+					nextIFID6 = SenaryIFIDRegister{Valid: true, PC: fetchPC, InstructionWord: word, PredictedTaken: pred.Taken, PredictedTarget: pred.Target, EarlyResolved: earlyResolved}
+				}
+				if pred.Taken && pred.TargetKnown {
+					fetchPC = pred.Target
+					slotIdx++
+					continue
 				}
 			}
-			// Shift remaining window entries
-			remaining := p.instrWindowLen - popCount
-			for i := 0; i < remaining; i++ {
-				p.instrWindow[i] = p.instrWindow[i+popCount]
-			}
-			for i := remaining; i < p.instrWindowLen; i++ {
-				p.instrWindow[i] = instrWindowEntry{}
-			}
-			p.instrWindowLen = remaining
+			fetchPC += 4
+			slotIdx++
 		}
+		p.pc = fetchPC
 
 		if fetchStall {
 			nextIFID = p.ifid
@@ -1159,7 +1145,7 @@ func (p *Pipeline) tickSextupleIssue() {
 			nextEXMEM5 = p.exmem5
 			nextEXMEM6 = p.exmem6
 		}
-	} else if (stallResult.StallIF || memStall) && !stallResult.FlushIF {
+	} else if (stallResult.StallIF || memStall || execStall) && !stallResult.FlushIF {
 		nextIFID = p.ifid
 		nextIFID2 = p.ifid2
 		nextIFID3 = p.ifid3
@@ -1185,7 +1171,7 @@ func (p *Pipeline) tickSextupleIssue() {
 		p.memwb5.Clear()
 		p.memwb6.Clear()
 	}
-	if !memStall {
+	if !execStall && !memStall {
 		p.exmem = nextEXMEM
 		p.exmem2 = nextEXMEM2
 		p.exmem3 = nextEXMEM3
