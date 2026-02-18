@@ -96,6 +96,16 @@ type CachedMemoryStage struct {
 	result      *memResult // Cached result while waiting
 	isHit       bool       // True if pending is for a hit (for stats)
 
+	// Completed state: when a cache access finishes but the pipeline is
+	// stalled by another memory port, the result is held here so that the
+	// same instruction replaying does not re-trigger cache.Read(), which
+	// would cause a livelock (each port would re-enter pending
+	// out-of-phase with the others and never all clear simultaneously).
+	completed       bool       // True if access completed but pipeline hasn't advanced
+	completedPC     uint64     // PC of completed instruction
+	completedAddr   uint64     // Address of completed access
+	completedResult *memResult // Cached result from completed access
+
 	storeIssuedPC   uint64 // PC of last fire-and-forget store issued
 	storeIssuedAddr uint64 // Address of last fire-and-forget store issued
 	storeIssued     bool   // True if store already written to cache for current (PC, addr)
@@ -120,24 +130,40 @@ func (s *CachedMemoryStage) Access(exmem *EXMEMRegister) (MemoryResult, bool) {
 	result := MemoryResult{}
 
 	if !exmem.Valid {
-		// If the register is not valid, clear any pending state
+		// If the register is not valid, clear any pending/completed state
 		s.pending = false
+		s.completed = false
 		return result, false
 	}
 
 	// If not a memory operation, no stall
 	if !exmem.MemRead && !exmem.MemWrite {
 		s.pending = false
+		s.completed = false
 		return result, false
 	}
 
 	addr := exmem.ALUResult
 
-	// If PC/addr changed, this is a different memory operation - cancel pending
+	// If PC/addr changed, this is a different memory operation - cancel pending/completed
 	if s.pending && (s.pendingPC != exmem.PC || s.pendingAddr != addr) {
 		s.pending = false
 		s.latency = 0
 		s.result = nil
+	}
+	if s.completed && (s.completedPC != exmem.PC || s.completedAddr != addr) {
+		s.completed = false
+		s.completedResult = nil
+	}
+
+	// If access already completed but pipeline hasn't advanced (another port
+	// is still stalling), return the cached result without re-triggering
+	// cache.Read(). This breaks the multi-port livelock.
+	if s.completed {
+		if s.completedResult != nil && exmem.MemRead {
+			result.MemData = s.completedResult.data
+		}
+		return result, false
 	}
 
 	// If still waiting for previous access (hit or miss) at same address
@@ -146,8 +172,12 @@ func (s *CachedMemoryStage) Access(exmem *EXMEMRegister) (MemoryResult, bool) {
 		if s.latency > 0 {
 			return result, true // Still stalling
 		}
-		// Access complete
+		// Access complete — transition to completed state
 		s.pending = false
+		s.completed = true
+		s.completedPC = exmem.PC
+		s.completedAddr = addr
+		s.completedResult = s.result
 		if s.result != nil && exmem.MemRead {
 			result.MemData = s.result.data
 		}
@@ -176,8 +206,12 @@ func (s *CachedMemoryStage) Access(exmem *EXMEMRegister) (MemoryResult, bool) {
 			return result, true // Stall for remaining latency
 		}
 
-		// Single-cycle latency (latency=1)
+		// Single-cycle latency (latency=1) — go directly to completed
 		s.pending = false
+		s.completed = true
+		s.completedPC = exmem.PC
+		s.completedAddr = addr
+		s.completedResult = &memResult{data: cacheResult.Data}
 		result.MemData = cacheResult.Data
 		return result, false
 	}
@@ -210,11 +244,13 @@ func (s *CachedMemoryStage) AccessSlot(slot MemorySlot) (MemoryResult, bool) {
 
 	if !slot.IsValid() {
 		s.pending = false
+		s.completed = false
 		return result, false
 	}
 
 	if !slot.GetMemRead() && !slot.GetMemWrite() {
 		s.pending = false
+		s.completed = false
 		return result, false
 	}
 
@@ -226,13 +262,32 @@ func (s *CachedMemoryStage) AccessSlot(slot MemorySlot) (MemoryResult, bool) {
 		s.latency = 0
 		s.result = nil
 	}
+	if s.completed && (s.completedPC != pc || s.completedAddr != addr) {
+		s.completed = false
+		s.completedResult = nil
+	}
+
+	// If access already completed but pipeline hasn't advanced (another port
+	// is still stalling), return the cached result without re-triggering
+	// cache.Read(). This breaks the multi-port livelock.
+	if s.completed {
+		if s.completedResult != nil && slot.GetMemRead() {
+			result.MemData = s.completedResult.data
+		}
+		return result, false
+	}
 
 	if s.pending {
 		s.latency--
 		if s.latency > 0 {
 			return result, true
 		}
+		// Access complete — transition to completed state
 		s.pending = false
+		s.completed = true
+		s.completedPC = pc
+		s.completedAddr = addr
+		s.completedResult = s.result
 		if s.result != nil && slot.GetMemRead() {
 			result.MemData = s.result.data
 		}
@@ -257,7 +312,12 @@ func (s *CachedMemoryStage) AccessSlot(slot MemorySlot) (MemoryResult, bool) {
 		if s.latency > 0 {
 			return result, true
 		}
+		// Single-cycle latency — go directly to completed
 		s.pending = false
+		s.completed = true
+		s.completedPC = pc
+		s.completedAddr = addr
+		s.completedResult = &memResult{data: cacheResult.Data}
 		result.MemData = cacheResult.Data
 		return result, false
 	}
@@ -278,12 +338,14 @@ func (s *CachedMemoryStage) AccessSlot(slot MemorySlot) (MemoryResult, bool) {
 	return result, false
 }
 
-// Reset clears pending state.
+// Reset clears pending and completed state.
 func (s *CachedMemoryStage) Reset() {
 	s.pending = false
 	s.latency = 0
 	s.result = nil
 	s.isHit = false
+	s.completed = false
+	s.completedResult = nil
 	s.storeIssued = false
 }
 
