@@ -117,41 +117,38 @@ Cache verification tests written and passed (PR #88, issue #183 closed). Akita c
 
 **Lesson 11:** The livelock fix was correct but took the full budget. Next milestone: collect results and continue calibration.
 
-## Milestone 15: Collect CI Results + Reduce Remaining High-Error Benchmarks
+## Milestone 15: Verify CI + Prepare Next Accuracy Target (CURRENT)
 
-**Goal:** Verify memorystrided fix via CI, update h5_accuracy_results.json, then reduce remaining high-error benchmarks (arithmetic 35%, branchheavy 32%, jacobi-1d 53%) to drive overall average below 25%.
+**Goal:** Verify memorystrided livelock fix CI results, update h5_accuracy_results.json, and prepare a profiling-based diagnosis of the next high-error benchmarks.
 
-**Why this matters:** With memorystrided fixed, micro avg should be ~13.5% (meets <20%). The H5 project goal is <20% across all benchmarks. Remaining blockers: jacobi-1d (52.9%), arithmetic (35.2%), branchheavy (31.8%).
+**Why this matters:** With memorystrided fixed, micro avg should drop from 54.78% to ~13.5% (meets H5 <20% goal). We need CI verification to confirm, then plan targeted fixes for jacobi-1d (52.9%), arithmetic (35.2%), branchheavy (31.8%).
 
-**Tasks:**
-1. Check CI run 22144669883 — if complete, extract memorystrided CPI and update h5_accuracy_results.json
-2. If memorystrided error is still high (>100%), diagnose further and fix
-3. Investigate jacobi-1d root cause (sim 0.231, HW 0.151 — sim is 53% too slow)
-4. Investigate arithmetic root cause (sim 0.219, HW 0.296 — sim is 35% too slow)
-5. Make targeted pipeline fix for the most impactful remaining error
+**Tasks (CI-first approach):**
+1. Check CI run 22144669883 — extract memorystrided CPI and compute error %
+2. Update h5_accuracy_results.json with CI-verified numbers
+3. Close open issues #222 and #223 in tbc-db
+4. If memorystrided error is now <100%: compute new micro avg, update roadmap
+5. If memorystrided still >100%: identify remaining root cause, create fix issue
+6. Investigate jacobi-1d root cause (sim 0.231 vs HW 0.151 — sim 53% too high)
 
-**Budget: 15 cycles**
+**Budget: 10 cycles** (CI wait + verification + diagnosis)
 
-**Success criteria:** Average microbenchmark error <20% with CI verification. If memorystrided is fixed, this should be achievable without PolyBench changes.
-
-**Target:** memorystrided error <100% (from 429%), micro avg <25% (from 54.78%), no PolyBench regressions.
+**Success criteria:** h5_accuracy_results.json updated with CI-verified data; next accuracy target identified with root cause analysis.
 
 **Constraints:**
-- All existing tests must pass (ginkgo -r)
-- No PolyBench regressions (avg must stay <70%)
-- Changes should be minimal and targeted at memory stall handling
-
-**Estimated cycles:** 15
+- No speculative code changes until CI results are confirmed
+- Update accuracy JSON only from CI-verified runs
+- No PolyBench regressions
 
 ## Future Milestones (tentative)
 
-### Milestone 15: Improve arithmetic + branchheavy accuracy
+### Milestone 16: Fix arithmetic + branchheavy accuracy
 Target: arithmetic <20% (from 35.2%), branchheavy <20% (from 31.8%), keeping memorystrided fixed.
 
-### Milestone 16: Improve jacobi-1d PolyBench accuracy
+### Milestone 17: Improve jacobi-1d PolyBench accuracy
 Target: jacobi-1d <30% (from 52.9%), maintaining other PolyBench benchmarks.
 
-### Milestone 17+: Overall <20% average error
+### Milestone 18+: Overall <20% average error
 Iterate on remaining accuracy gaps to achieve the H5 target across all benchmarks.
 
 ### H4: Multi-Core Support (deferred)
