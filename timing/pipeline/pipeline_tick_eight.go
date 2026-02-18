@@ -1438,12 +1438,19 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Include it in the issued set so canIssueWith checks RAW hazards against it.
 		// Mark as "forwarded" to prevent same-cycle ALU forwarding, since the
 		// multi-cycle instruction's result isn't available yet.
+		//
+		// Enable ALU-to-ALU forwarding for secondary slots during exec stall
+		// so independent instructions can co-issue (e.g., add x1 + cmp x1
+		// while SMULL stalls). Outside exec stall, forwarding is disabled
+		// for slots 2-7 to avoid over-optimistic deep chaining.
+		var fwdPtr *[8]bool
 		if execStall {
 			issuedInsts[0] = &p.idex
 			if p.idex.Valid {
 				issued[0] = true
 				forwarded[0] = true
 			}
+			fwdPtr = &forwarded
 		} else {
 			issuedInsts[0] = &nextIDEX
 			if nextIDEX.Valid {
@@ -1485,9 +1492,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid2.PredictedTarget,
 					EarlyResolved:   p.ifid2.EarlyResolved,
 				}
-				if !(p.ifid2.AfterBranch && decResult2.MemWrite) && canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX2, &issuedInsts, issuedCount, &issued, fwdPtr); ok && !(p.ifid2.AfterBranch && decResult2.MemWrite) {
 					nextIDEX2.fromIDEX(&tempIDEX2)
 					issued[issuedCount] = true
+					if fwd && fwdPtr != nil {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1520,9 +1530,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid3.PredictedTarget,
 					EarlyResolved:   p.ifid3.EarlyResolved,
 				}
-				if !(p.ifid3.AfterBranch && decResult3.MemWrite) && canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX3, &issuedInsts, issuedCount, &issued, fwdPtr); ok && !(p.ifid3.AfterBranch && decResult3.MemWrite) {
 					nextIDEX3.fromIDEX(&tempIDEX3)
 					issued[issuedCount] = true
+					if fwd && fwdPtr != nil {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1555,9 +1568,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid4.PredictedTarget,
 					EarlyResolved:   p.ifid4.EarlyResolved,
 				}
-				if !(p.ifid4.AfterBranch && decResult4.MemWrite) && canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX4, &issuedInsts, issuedCount, &issued, fwdPtr); ok && !(p.ifid4.AfterBranch && decResult4.MemWrite) {
 					nextIDEX4.fromIDEX(&tempIDEX4)
 					issued[issuedCount] = true
+					if fwd && fwdPtr != nil {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1590,9 +1606,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid5.PredictedTarget,
 					EarlyResolved:   p.ifid5.EarlyResolved,
 				}
-				if !(p.ifid5.AfterBranch && decResult5.MemWrite) && canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX5, &issuedInsts, issuedCount, &issued, fwdPtr); ok && !(p.ifid5.AfterBranch && decResult5.MemWrite) {
 					nextIDEX5.fromIDEX(&tempIDEX5)
 					issued[issuedCount] = true
+					if fwd && fwdPtr != nil {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1625,9 +1644,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid6.PredictedTarget,
 					EarlyResolved:   p.ifid6.EarlyResolved,
 				}
-				if !(p.ifid6.AfterBranch && decResult6.MemWrite) && canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX6, &issuedInsts, issuedCount, &issued, fwdPtr); ok && !(p.ifid6.AfterBranch && decResult6.MemWrite) {
 					nextIDEX6.fromIDEX(&tempIDEX6)
 					issued[issuedCount] = true
+					if fwd && fwdPtr != nil {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1660,9 +1682,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid7.PredictedTarget,
 					EarlyResolved:   p.ifid7.EarlyResolved,
 				}
-				if !(p.ifid7.AfterBranch && decResult7.MemWrite) && canIssueWith(&tempIDEX7, &issuedInsts, issuedCount, &issued) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX7, &issuedInsts, issuedCount, &issued, fwdPtr); ok && !(p.ifid7.AfterBranch && decResult7.MemWrite) {
 					nextIDEX7.fromIDEX(&tempIDEX7)
 					issued[issuedCount] = true
+					if fwd && fwdPtr != nil {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
