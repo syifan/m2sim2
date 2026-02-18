@@ -124,12 +124,17 @@ Cache verification tests written and passed (PR #88, issue #183 closed). Akita c
 **Why this matters:** With memorystrided fixed, micro avg should drop from 54.78% to ~13.5% (meets H5 <20% goal). We need CI verification to confirm, then plan targeted fixes for jacobi-1d (52.9%), arithmetic (35.2%), branchheavy (31.8%).
 
 **Tasks (CI-first approach):**
-1. Check CI run 22144669883 — extract memorystrided CPI and compute error %
-2. Update h5_accuracy_results.json with CI-verified numbers
-3. Close open issues #222 and #223 in tbc-db
-4. If memorystrided error is now <100%: compute new micro avg, update roadmap
-5. If memorystrided still >100%: identify remaining root cause, create fix issue
-6. Investigate jacobi-1d root cause (sim 0.231 vs HW 0.151 — sim 53% too high)
+1. ✅ Check CI run 22144669883 — still QUEUED (runner congestion); used PR branch run 22142753352
+2. ✅ Update h5_accuracy_results.json — memorystrided DCache CPI=0.750, error=253.1% (2.531)
+3. ✅ Close open issues #222 and #223 in tbc-db
+4. ❌ memorystrided still >100% (253.1%): root cause identified in issue #226
+5. ✅ Root cause analysis complete: issues #226 (memorystrided) and #227 (jacobi-1d) filed
+6. ✅ Investigated jacobi-1d root cause (sim 0.231 vs HW 0.151 — see issue #227)
+
+**Current micro average: 38.74%** (11 benchmarks, as of CI run 22142753352)
+- memorystrided: 253.1% error (dominant blocker — store-to-load forwarding latency issue)
+- Without memorystrided: 17.30% average (meets H5 <20% target)
+- **H5 micro goal NOT met** — memorystrided fix is required
 
 **Budget: 10 cycles** (CI wait + verification + diagnosis)
 
