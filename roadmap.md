@@ -117,51 +117,68 @@ Cache verification tests written and passed (PR #88, issue #183 closed). Akita c
 
 **Lesson 11:** The livelock fix was correct but took the full budget. Next milestone: collect results and continue calibration.
 
-## Milestone 15: Verify CI + Prepare Next Accuracy Target (CURRENT)
+## Milestone 15: Verify CI + Prepare Next Accuracy Target ❌ DEADLINE MISSED (10/10 cycles)
 
 **Goal:** Verify memorystrided livelock fix CI results, update h5_accuracy_results.json, and prepare a profiling-based diagnosis of the next high-error benchmarks.
 
-**Why this matters:** With memorystrided fixed, micro avg should drop from 54.78% to ~13.5% (meets H5 <20% goal). We need CI verification to confirm, then plan targeted fixes for jacobi-1d (52.9%), arithmetic (35.2%), branchheavy (31.8%).
+**Tasks completed:**
+1. ✅ Updated h5_accuracy_results.json — memorystrided DCache CPI=0.750, error=253.1% (2.531)
+2. ✅ Closed open issues #222 and #223 in tbc-db
+3. ✅ Root cause analysis: issues #226 (memorystrided) and #227 (jacobi-1d) filed
+4. ✅ PR#99 MERGED — fixes PR#94 regressions (6 micros were 25-84% too slow)
+5. ✅ PR#96 open — StoreForwardLatency 1→3 (memorystrided improvement)
+6. ✅ PR#97 open — SMULL stall overlap (jacobi-1d improvement)
+7. ❌ CI results for post-PR#99 state NOT YET collected (CI running as of deadline)
 
-**Tasks (CI-first approach):**
-1. ✅ Check CI run 22144669883 — still QUEUED (runner congestion); used PR branch run 22142753352
-2. ✅ Update h5_accuracy_results.json — memorystrided DCache CPI=0.750, error=253.1% (2.531)
-3. ✅ Close open issues #222 and #223 in tbc-db
-4. ❌ memorystrided still >100% (253.1%): root cause identified in issue #226; PR#96 (StoreForwardLatency 1→3) reduces to 202% error (CPI=0.875), still needs work
-5. ✅ Root cause analysis complete: issues #226 (memorystrided) and #227 (jacobi-1d) filed
-6. ✅ Investigated jacobi-1d root cause (sim 0.231 vs HW 0.151 — see issue #227)
-7. ❌ PR#94 regression discovered: 6 micros regressed 25-84%, jacobi-1d now infeasible; PR#99 (Leo) fixes this — CI running
-8. ⏳ PR#99 CI pending — must merge before PR#96 and PR#97 can be evaluated cleanly
+**State at deadline miss (February 18, 2026):**
+- PR#99 merged; CI runs 22151656429/22151656412/22151656451 in progress
+- h5_accuracy_results.json still shows stale post-PR#94 data (with regressions)
+- PRs #96, #97 awaiting clean CI baseline to evaluate
 
-**Current micro average: 51.14%** (11 benchmarks, post-PR#94 from CI run 22141495151)
-- memorystrided: 253.1% error (dominant blocker — store-to-load forwarding latency issue)
-- Without memorystrided: 30.94% average (does NOT meet H5 <20% target)
-- PR#94 regressed 6 microbenchmarks by 25-84% CPI increase
-- **H5 micro goal NOT met** — both memorystrided and PR#94 regressions need addressing
+**Lesson 12:** CI wait time is consistently the bottleneck. Never assign CI-wait + implementation in the same milestone. "Wait for CI" should be its own focused milestone.
 
-**Fix queue (in order of dependency):**
-1. PR#99 — revert secondary port stalls (fixes PR#94 regressions) → must merge first
-2. PR#96 — StoreForwardLatency 1→3 (memorystrided 253%→202% error)
-3. PR#97 — SMULL stall overlap (jacobi-1d improvement)
+## Milestone 16: Collect PR#99 CI Results + Merge PRs #96/#97 (CURRENT)
 
-**Budget: 10 cycles** (CI wait + verification + diagnosis)
+**Goal:** Collect CI results from post-PR#99 main (runs ~22151656429), update h5_accuracy_results.json with verified data, then evaluate and merge PRs #96 and #97 to improve memorystrided and jacobi-1d accuracy.
 
-**Success criteria:** h5_accuracy_results.json updated with CI-verified data; next accuracy target identified with root cause analysis.
+**Why this matters:**
+- PR#99 reverted PR#94 regressions — 6 benchmarks were running 25-84% too slow
+- Post-PR#99, micro average (excl. memorystrided) should return to ~16-20% range
+- PR#96 (StoreForwardLatency 3): reduces memorystrided from 253%→~202% error
+- PR#97 (SMULL overlap): fixes jacobi-1d stall overcount → may restore jacobi-1d feasibility
+- Together these may bring micro average to ~20-25% and unlock the H5 <20% goal
+
+**Tasks (in order):**
+1. Wait for CI runs 22151656429/22151656412 to complete; extract results
+2. Update h5_accuracy_results.json from CI-verified post-PR#99 data
+3. Evaluate PR#96 CI results — merge if memorystrided improves without regressions
+4. Evaluate PR#97 CI results — merge if jacobi-1d improves without regressions
+5. Close issues #230, #231, #232 once PRs merged and data updated
+6. Identify next highest-error benchmarks and file targeted fix issues
+
+**Budget: 10 cycles** (CI-first, one action per cycle)
+
+**Success criteria:**
+- h5_accuracy_results.json updated from post-PR#99 CI run (CI-verified)
+- PRs #96 and/or #97 merged if CI confirms improvement without regressions
+- Micro average error documented with updated figures
 
 **Constraints:**
-- No speculative code changes until CI results are confirmed
-- Update accuracy JSON only from CI-verified runs
-- No PolyBench regressions (PR#99 must fix jacobi-1d timeout)
+- Update accuracy JSON ONLY from CI-verified runs (no speculation)
+- Do not merge PRs if regressions appear in CI
+- Do not introduce new code changes until PR#99 baseline is confirmed
 
 ## Future Milestones (tentative)
 
-### Milestone 16: Fix arithmetic + branchheavy accuracy
-Target: arithmetic <20% (from 35.2%), branchheavy <20% (from 31.8%), keeping memorystrided fixed.
+### Milestone 17: Microbenchmark accuracy <20% average
+Target: micro average <20% (currently ~51% with regressions, should be ~30% post-PR#99).
+Focus: arithmetic (35.2%), branchheavy (31.8%), memorystrided (253%).
 
-### Milestone 17: Improve jacobi-1d PolyBench accuracy
-Target: jacobi-1d <30% (from 52.9%), maintaining other PolyBench benchmarks.
+### Milestone 18: Restore PolyBench accuracy + jacobi-1d
+Target: jacobi-1d feasible and <30% error; atax/bicg back below 20%.
+Fix PR#94 damage to PolyBench (atax 59.7%, bicg 144.9%).
 
-### Milestone 18+: Overall <20% average error
+### Milestone 19+: Overall <20% average error
 Iterate on remaining accuracy gaps to achieve the H5 target across all benchmarks.
 
 ### H4: Multi-Core Support (deferred)
