@@ -6,11 +6,11 @@
     "polybench_with_error": 3,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 10,
-    "average_error": 0.3825,
-    "micro_average_error": 0.4163,
+    "average_error": 0.3598,
+    "micro_average_error": 0.3874,
     "polybench_average_error": 0.2588,
     "h5_target_met": false,
-    "note": "14 benchmarks with error data (11 micro + 3 polybench). GEMM moved to infeasible — exceeded 5B cycle limit on CI run 22136356830 (18.8B instructions, 7675s wall time). MVT passed on same run (CPI=0.277). Micro from CI run 22134036996. PolyBench atax/bicg/jacobi-1d from CI run 22134446555. Error formula: |sim-hw|/min(sim,hw)."
+    "note": "14 benchmarks with error data (11 micro + 3 polybench). memorystrided updated to DCache path CPI=0.750 from CI run 22142753352 (PR #95 branch, livelock fix merged). Micro avg error 38.74%. Error formula: |sim-hw|/min(sim,hw). Other micro from CI run 22134036996. PolyBench atax/bicg/jacobi-1d from CI run 22134446555."
   },
   "benchmarks": [
     {
@@ -43,11 +43,12 @@
     {
       "name": "memorystrided",
       "category": "microbenchmark",
-      "simulated_cpi": 0.688,
+      "simulated_cpi": 0.750,
       "hardware_cpi": 2.648,
-      "error": 2.8490,
-      "ci_verified": false,
-      "note": "no-cache path fix from PR #94; DCache path has separate infinite stall bug"
+      "error": 2.531,
+      "ci_verified": true,
+      "ci_run": 22142753352,
+      "note": "DCache path CPI from CI run 22142753352 (PR #95 branch). Error formula: |sim-hw|/min(sim,hw). Livelock fix (PR #95) merged but DCache path still runs 3.5x too fast vs HW — deeper latency modeling bug."
     },
     {
       "name": "loadheavy",
