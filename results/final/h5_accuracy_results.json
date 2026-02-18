@@ -6,12 +6,12 @@
     "polybench_with_error": 3,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 10,
-    "average_error": 0.4938,
-    "micro_average_error": 0.3415,
-    "micro_average_error_excl_memorystrided": 0.1730,
+    "average_error": 0.5338,
+    "micro_average_error": 0.3925,
+    "micro_average_error_excl_memorystrided": 0.2291,
     "polybench_average_error": 1.0522,
     "h5_target_met": false,
-    "note": "Updated after PR#96 merge (StoreForwardLatency 1→3 cycles). memorystrided CPI improved 0.750→0.875. CI-verified from Accuracy-Microbenchmarks runs 22148182599 and 22147994732 (leo/memorystrided-store-forward-latency branch, consistent across 2 runs). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Corrected post-PR#99 data from CI Accuracy-Microbenchmarks run 22151656429 (main after PR#99 merge). PR#99 partially reverted PR#94 regressions: loadheavy 0.643→0.600, storeheavy unchanged 0.957, vectorsum 0.500→0.394, vectoradd 0.448→0.385, reductiontree 0.594 (unchanged), strideindirect 0.761→0.609. memorystrided=0.875 from PR#96 branch CI runs (22148182599, 22147994732). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -54,20 +54,20 @@
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.349,
+      "simulated_cpi": 0.600,
       "hardware_cpi": 0.429,
-      "error": 0.2292,
+      "error": 0.3986,
       "ci_verified": true,
-      "ci_run": 22151658027
+      "ci_run": 22151656429
     },
     {
       "name": "storeheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.522,
+      "simulated_cpi": 0.957,
       "hardware_cpi": 0.612,
-      "error": 0.1724,
+      "error": 0.5637,
       "ci_verified": true,
-      "ci_run": 22151658027
+      "ci_run": 22151656429
     },
     {
       "name": "branchheavy",
@@ -81,29 +81,29 @@
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.362,
+      "simulated_cpi": 0.394,
       "hardware_cpi": 0.402,
-      "error": 0.1105,
+      "error": 0.0203,
       "ci_verified": true,
-      "ci_run": 22151658027
+      "ci_run": 22151656429
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.290,
+      "simulated_cpi": 0.385,
       "hardware_cpi": 0.329,
-      "error": 0.1345,
+      "error": 0.1702,
       "ci_verified": true,
-      "ci_run": 22151658027
+      "ci_run": 22151656429
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.406,
+      "simulated_cpi": 0.594,
       "hardware_cpi": 0.480,
-      "error": 0.1823,
+      "error": 0.2375,
       "ci_verified": true,
-      "ci_run": 22151658027
+      "ci_run": 22151656429
     },
     {
       "name": "strideindirect",
@@ -112,7 +112,7 @@
       "hardware_cpi": 0.528,
       "error": 0.1534,
       "ci_verified": true,
-      "ci_run": 22151658027
+      "ci_run": 22151656429
     },
     {
       "name": "atax",
