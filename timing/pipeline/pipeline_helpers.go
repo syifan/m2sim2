@@ -141,15 +141,7 @@ func (p *Pipeline) accessSecondaryMem(slot MemorySlot) (MemoryResult, bool) {
 		result, stall := p.cachedMemoryStage2.AccessSlot(slot)
 		return result, stall
 	}
-	// Non-cached path: 2-cycle memory access using memPending stall pattern.
-	if p.memPending2 && p.memPendingPC2 != slot.GetPC() {
-		p.memPending2 = false
-	}
-	if !p.memPending2 {
-		p.memPending2 = true
-		p.memPendingPC2 = slot.GetPC()
-		return MemoryResult{}, true
-	}
+	// Non-cached path: immediate access (no stall).
 	p.memPending2 = false
 	return p.memoryStage.MemorySlot(slot), false
 }
@@ -164,15 +156,7 @@ func (p *Pipeline) accessTertiaryMem(slot MemorySlot) (MemoryResult, bool) {
 		result, stall := p.cachedMemoryStage3.AccessSlot(slot)
 		return result, stall
 	}
-	// Non-cached path: 2-cycle memory access using memPending stall pattern.
-	if p.memPending3 && p.memPendingPC3 != slot.GetPC() {
-		p.memPending3 = false
-	}
-	if !p.memPending3 {
-		p.memPending3 = true
-		p.memPendingPC3 = slot.GetPC()
-		return MemoryResult{}, true
-	}
+	// Non-cached path: immediate access (no stall).
 	p.memPending3 = false
 	return p.memoryStage.MemorySlot(slot), false
 }
@@ -187,15 +171,7 @@ func (p *Pipeline) accessQuaternaryMem(slot MemorySlot) (MemoryResult, bool) {
 		result, stall := p.cachedMemoryStage4.AccessSlot(slot)
 		return result, stall
 	}
-	// Non-cached path: 2-cycle memory access using memPending stall pattern.
-	if p.memPending4 && p.memPendingPC4 != slot.GetPC() {
-		p.memPending4 = false
-	}
-	if !p.memPending4 {
-		p.memPending4 = true
-		p.memPendingPC4 = slot.GetPC()
-		return MemoryResult{}, true
-	}
+	// Non-cached path: immediate access (no stall).
 	p.memPending4 = false
 	return p.memoryStage.MemorySlot(slot), false
 }
@@ -210,15 +186,7 @@ func (p *Pipeline) accessQuinaryMem(slot MemorySlot) (MemoryResult, bool) {
 		result, stall := p.cachedMemoryStage5.AccessSlot(slot)
 		return result, stall
 	}
-	// Non-cached path: 2-cycle memory access using memPending stall pattern.
-	if p.memPending5 && p.memPendingPC5 != slot.GetPC() {
-		p.memPending5 = false
-	}
-	if !p.memPending5 {
-		p.memPending5 = true
-		p.memPendingPC5 = slot.GetPC()
-		return MemoryResult{}, true
-	}
+	// Non-cached path: immediate access (no stall).
 	p.memPending5 = false
 	return p.memoryStage.MemorySlot(slot), false
 }
