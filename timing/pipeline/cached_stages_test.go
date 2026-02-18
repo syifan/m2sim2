@@ -357,13 +357,18 @@ var _ = Describe("CachedMemoryStage", func() {
 					MemRead:   true,
 					Inst:      &insts.Instruction{Is64Bit: true},
 				}
-				// First access stalls for store-to-load forwarding penalty
-				_, readStall := memStage.Access(readExmem)
-				Expect(readStall).To(BeTrue(), "Read after store should stall for forwarding penalty")
-				// Drain the forwarding stall cycle
-				result, readStall2 := memStage.Access(readExmem)
-				Expect(readStall2).To(BeFalse(), "Read should complete after forwarding penalty")
-				Expect(result.MemData).To(Equal(uint64(0xCAFEBABE12345678)))
+				// Drain store-to-load forwarding stall cycles
+				stallCycles := 0
+				for {
+					result, stall := memStage.Access(readExmem)
+					if !stall {
+						Expect(result.MemData).To(Equal(uint64(0xCAFEBABE12345678)))
+						break
+					}
+					stallCycles++
+				}
+				Expect(uint64(stallCycles)).To(Equal(cache.StoreForwardLatency),
+					"Should stall for exactly StoreForwardLatency cycles")
 			})
 		})
 
@@ -688,13 +693,18 @@ var _ = Describe("CachedMemoryStage Integration", func() {
 				Inst:      &insts.Instruction{Is64Bit: true},
 			}
 
-			// First access stalls for store-to-load forwarding penalty
-			_, stall = memStage.Access(loadExmem)
-			Expect(stall).To(BeTrue(), "Should stall for store-to-load forwarding")
-			// Drain the forwarding stall cycle
-			result, stall := memStage.Access(loadExmem)
-			Expect(stall).To(BeFalse(), "Should complete after forwarding penalty")
-			Expect(result.MemData).To(Equal(uint64(0xABCDEF0123456789)))
+			// Drain store-to-load forwarding stall cycles
+			stallCycles := 0
+			for {
+				result, stallAgain := memStage.Access(loadExmem)
+				if !stallAgain {
+					Expect(result.MemData).To(Equal(uint64(0xABCDEF0123456789)))
+					break
+				}
+				stallCycles++
+			}
+			Expect(uint64(stallCycles)).To(Equal(cache.StoreForwardLatency),
+				"Should stall for exactly StoreForwardLatency cycles")
 		})
 	})
 

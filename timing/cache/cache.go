@@ -96,7 +96,7 @@ type AccessResult struct {
 // the store-to-load forwarding path through the store queue adds latency
 // compared to a normal L1 hit because the data must be checked against
 // pending stores in the store buffer.
-const StoreForwardLatency uint64 = 1
+const StoreForwardLatency uint64 = 3
 
 // Cache represents an L1 cache using Akita cache components.
 type Cache struct {
