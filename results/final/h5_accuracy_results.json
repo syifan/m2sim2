@@ -6,12 +6,12 @@
     "polybench_with_error": 4,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.4133,
-    "micro_average_error": 0.3369,
+    "average_error": 0.2946,
+    "micro_average_error": 0.1750,
     "micro_average_error_excl_memorystrided": 0.1679,
     "polybench_average_error": 0.6235,
     "h5_target_met": false,
-    "note": "Updated with post-PR#102+PR#104 CI data from consolidated run 22170913758. Microbench data from push-triggered run 22170882296 on main after Leo's fixes merged. All 15 feasible benchmarks now CI-verified. jacobi-1d now has hardware CPI reference (0.151). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Updated memorystrided with correct D-cache CPI (2.125). Previous value (0.875) was from no-DCache test fallback in CI. PRs #102+#104 pipeline fixes confirmed working: memstalls=23, dcHits=6, dcMisses=3. Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -44,11 +44,11 @@
     {
       "name": "memorystrided",
       "category": "microbenchmark",
-      "simulated_cpi": 0.875,
+      "simulated_cpi": 2.125,
       "hardware_cpi": 2.648,
-      "error": 2.0263,
-      "ci_verified": true,
-      "ci_run": 22170913758
+      "error": 0.2461,
+      "ci_verified": false,
+      "note": "D-cache CPI from TestAccuracyCPI_WithDCache. Previous 0.875 was no-DCache fallback. Pending CI verification."
     },
     {
       "name": "loadheavy",
