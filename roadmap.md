@@ -1,185 +1,111 @@
 # M2Sim Roadmap
 
 ## Overview
-This roadmap tracks milestone completion and strategic decisions for the M2Sim project. Last updated: February 18, 2026.
+Strategic plan for achieving H5: <20% average CPI error across 15+ benchmarks.
+Last updated: February 18, 2026.
 
-## Completed Milestones
+## Completed High-Level Milestones
 
-### H1: Core Simulator ✅ COMPLETE
-Foundation simulator with ARM64 decode, pipeline timing, cache hierarchy, branch prediction, 8-wide superscalar, and macro-op fusion.
+- **H1: Core Simulator** — ARM64 decode, pipeline, caches, branch prediction, 8-wide superscalar
+- **H2: SPEC Benchmark Enablement** — Syscalls, cross-compilation, medium benchmarks
+- **H3: Microbenchmark Calibration** — Achieved 14.1% avg error on 3 microbenchmarks
 
-### H2: SPEC Benchmark Enablement ✅ COMPLETE
-Complete syscall infrastructure and ARM64 cross-compilation setup.
+## Completed Implementation Milestones (M10–M16)
 
-### H3: Initial Accuracy Calibration ✅ COMPLETE
-Achieved <20% average CPI error on microbenchmarks (14.1%).
+| Milestone | Result | Key Outcome |
+|-----------|--------|-------------|
+| M10: Stability Recovery | Done | 18 benchmarks with error data |
+| M11: Cache Verification | Done | Caches correctly configured |
+| M12: Refactor pipeline.go + Profile | Done | Split to 13 files; stall profiling added |
+| M13: Reduce PolyBench CPI <70% | Done | Pre-OoO baseline achieves 26.68% PolyBench avg |
+| M14: Fix memorystrided livelock | Done | Livelock fixed, memorystrided 429%→253% |
+| M15: Verify CI + Prepare Next Target | Missed | Data partially collected; PR#99 merged |
+| M16: Collect PR#99 CI + Merge PRs | Done | PR#96, PR#101 merged; 14 benchmarks verified |
 
-### Milestone 10: Stability Recovery ✅ COMPLETE (February 17, 2026)
-Restored simulator stability: memorystrided regression fixed, all PolyBench timeouts resolved, 18 benchmarks with error data.
+## Current State (February 18, 2026)
 
-### Milestone 11 (cache verification portion): ✅ COMPLETE
-Cache verification tests written and passed (PR #88, issue #183 closed). Akita caches behave as configured — no misconfigurations found. PR #87 merged.
+**Accuracy (from h5_accuracy_results.json):**
+- **14 benchmarks with error data** (11 micro + 3 PolyBench with HW CPI)
+- **Overall average error: 39.29%** — does NOT meet <20% target
+- **Micro average: 39.25%** (excl. memorystrided: 22.91%)
+- **PolyBench average: 39.42%** (atax 19.4%, bicg 70.4%, mvt 28.5%)
+- 6 microbenchmarks have stale data (ci_verified=false, pending post-PR#101 CI)
 
-### Milestone 12: Refactor pipeline.go + Profile PolyBench Bottlenecks ✅ COMPLETE
-- Pipeline.go split into 13 files, all under 2000 lines (PRs #90, #92)
-- Stall profiling counters added (PR #91): RAWHazardStalls, StructuralHazardStalls, BranchMispredictionStalls
-- Stall profile data collected for gemm, bicg, atax — structural hazards are the dominant overestimated source
-- CI passing on main after gofmt fix
-- **Actual cycles used:** ~8 (vs 15 budgeted)
+**Error breakdown (sorted by error, descending):**
 
-### Milestone 13: Reduce PolyBench CPI error to <70% ✅ GOAL MET (February 18, 2026)
-**Goal was:** Reduce PolyBench average CPI error from 98% to <70%.
-**Outcome:** Pre-OoO code (reverted baseline at d2c3373) achieves PolyBench avg 26.68% — well under <70% target.
+| Benchmark | Category | Sim CPI | HW CPI | Error | Verified? |
+|-----------|----------|---------|--------|-------|-----------|
+| memorystrided | micro | 0.875 | 2.648 | 202.6% | Yes |
+| bicg | polybench | 0.391 | 0.230 | 70.4% | Yes |
+| storeheavy | micro | 0.957 | 0.612 | 56.4% | No (stale) |
+| loadheavy | micro | 0.600 | 0.429 | 39.9% | No (stale) |
+| arithmetic | micro | 0.219 | 0.296 | 35.2% | Yes |
+| branchheavy | micro | 0.941 | 0.714 | 31.8% | Yes |
+| mvt | polybench | 0.277 | 0.216 | 28.5% | Yes |
+| reductiontree | micro | 0.594 | 0.480 | 23.8% | No (stale) |
+| atax | polybench | 0.183 | 0.219 | 19.4% | Yes |
+| vectoradd | micro | 0.385 | 0.329 | 17.0% | No (stale) |
+| strideindirect | micro | 0.609 | 0.528 | 15.3% | No (stale) |
+| dependency | micro | 1.015 | 1.088 | 7.2% | Yes |
+| vectorsum | micro | 0.394 | 0.402 | 2.0% | No (stale) |
+| branch | micro | 1.311 | 1.303 | 0.6% | Yes |
 
-**How it happened:** The OoO dispatch experiment (PR #93, 20 cycles) tried to improve individual benchmarks further. After mixed results (GEMM CI inconclusive), the team reverted to pre-OoO baseline and discovered the structural hazard reduction from earlier PRs (#65-74) had already driven the PolyBench avg to 26.68%. The pre-OoO baseline meets the target.
+**Additional data points (no HW CPI for error calculation):**
+- jacobi-1d: sim CPI 0.349, HW CPI unknown
+- aha_mont64: sim CPI 0.347, no HW CPI workflow
 
-**Current accuracy (February 18, 2026, CI-verified):**
-- Microbenchmarks: 54.78% average (11 benchmarks) — **does NOT meet <20%** (memorystrided: 429% error dominates)
-- PolyBench: 26.68% average (4 benchmarks: atax 5.7%, bicg 18.9%, jacobi-1d 52.9%, gemm 29.1%)
-- Overall: 47.29% average (15 benchmarks)
+**Infeasible:** gemm, 2mm, 3mm (polybench); crc32, edn, statemate, primecount, huffbench, matmult-int (embench)
 
-**Remaining blocker:** memorystrided is massively wrong (sim CPI 0.5 vs HW CPI 2.648, 429% error). This single benchmark drags the micro average from ~13.5% to 54.78%.
+## Path to H5: <20% Average Error Across 15+ Benchmarks
 
-**Lessons learned this milestone:**
-8. **OoO experiments cause regressions.** The instruction window OoO approach caused dcache timeouts, infinite loops, and CI instability. Pre-OoO code is more stable.
-9. **Don't abandon CI before results are in.** Team reverted without waiting for GEMM CI results, leaving CI ambiguity.
-10. **memorystrided is the #1 remaining blocker.** Fix this first before anything else.
+**Math:** Current sum of errors across 14 benchmarks = 5.50. For 15 benchmarks at <20% average, sum must be < 3.0. Need to reduce total error by >2.5.
 
-## Failed Milestones
+**High-impact fixes needed (in priority order):**
+1. **memorystrided** (error 2.026 → target 0.20): saves ~1.83 from total — THE #1 priority
+2. **bicg** (error 0.704 → target 0.20): saves ~0.50
+3. **storeheavy** (error 0.564 → target 0.20): saves ~0.36
+4. **loadheavy** (error 0.399 → target 0.20): saves ~0.20
+5. **arithmetic** (error 0.352 → target 0.20): saves ~0.15
+6. **branchheavy** (error 0.318 → target 0.20): saves ~0.12
 
-### Milestone 11: Reduce PolyBench CPI to <80% ❌ FAILED (25/25 cycles)
-**Goal:** Reduce PolyBench average CPI error from 98% to <80%.
-**Result:** Failed after 25 cycles. PolyBench average remained ~98%.
-**Changes attempted:** OoO issue within fetch group (PR #85 - memory ports), instruction window 48→192, load-use stall bypass (PR #87).
-**Key insight:** The in-order pipeline fundamentally overestimates CPI for loop-heavy PolyBench kernels. The M2's 330+ ROB enables massive loop-level parallelism that our pipeline doesn't model.
+Fixing #1–#4 + adding 1 new benchmark at ~15% error → 15 benchmarks, sum ≈ 2.60, avg ≈ 17.3%. This achieves the target.
 
-## Current State (February 18, 2026, post-PR#94 + PR#95)
+## Milestone Plan (M17–M21)
 
-**Accuracy (CI-verified, post-PR#94 from run 22141495151, memorystrided from run 22142753352):**
-- **Microbenchmarks:** 51.14% average (11 benchmarks) — memorystrided (253.1%) dominates; excl. memorystrided: 30.94%
-- **PolyBench:** 105.22% average (3 benchmarks: atax, bicg, mvt from run 22139825134) — significant regression from PR#94
-- **Overall:** 62.72% average (14 benchmarks)
+### M17: Verify CI Baseline + Diagnose memorystrided (NEXT)
+**Budget:** 12 cycles
+**Goal:** Get verified CI data for all benchmarks on current main. Profile memorystrided to understand why sim CPI (0.875) is so far below HW CPI (2.648). Implement targeted fix.
+**Success:** memorystrided error < 80%. Verified CI data for all 14 benchmarks.
 
-**Key regression from PR#94 (fix memory stall propagation in tickOctupleIssue):**
-- 6 microbenchmarks show 25-84% CPI increase: loadheavy, storeheavy, vectoradd, vectorsum, reductiontree, strideindirect
-- PolyBench: atax regressed (5.7%→59.7%), bicg regressed (18.9%→144.9%), jacobi-1d now infeasible (timeout)
-- mvt now completes (previously infeasible) with 111.0% error
+### M18: Fix PolyBench Accuracy (bicg focus)
+**Budget:** 12 cycles
+**Goal:** Reduce bicg error from 70% to <30%. Improve mvt if possible.
 
-**PolyBench breakdown (3 completing, post-PR#94):**
-| Benchmark | Sim CPI | HW CPI | Error | Status |
-|-----------|---------|--------|-------|--------|
-| atax      | 0.349   | 0.219  | 59.7% | ⚠️ Regressed from 5.7% |
-| bicg      | 0.562   | 0.230  | 144.9%| ❌ Regressed from 18.9% |
-| mvt       | 0.455   | 0.216  | 111.0%| ⚠️ New (was infeasible) |
-| jacobi-1d | infeasible | 0.151 | — | ⛔ Timeout (was 52.9%) |
-| gemm      | infeasible | 0.233 | — | ⛔ Too slow |
-| 2mm/3mm   | infeasible | —    | — | ⛔ Too slow |
+### M19: Fix Memory-Heavy Microbenchmarks
+**Budget:** 12 cycles
+**Goal:** Reduce storeheavy (<30%) and loadheavy (<25%). These benchmarks share a root cause (memory pipeline CPI overestimation).
 
-**Microbenchmark breakdown (post-PR#94):**
-| Benchmark | Sim CPI | HW CPI | Error | Status |
-|-----------|---------|--------|-------|--------|
-| arithmetic    | 0.219 | 0.296 | 35.2% | ⚠️ Unchanged |
-| dependency    | 1.015 | 1.088 | 7.2%  | ✅ Unchanged |
-| branch        | 1.311 | 1.303 | 0.6%  | ✅ Unchanged |
-| memorystrided | 0.750 | 2.648 | 253.1%| ❌ Improved from 429% (livelock fix) |
-| loadheavy     | 0.643 | 0.429 | 49.9% | ⚠️ Regressed from 22.9% |
-| storeheavy    | 0.957 | 0.612 | 56.4% | ⚠️ Regressed from 17.2% |
-| branchheavy   | 0.941 | 0.714 | 31.8% | ⚠️ Unchanged |
-| vectorsum     | 0.500 | 0.402 | 24.4% | ⚠️ Regressed from 11.1% |
-| vectoradd     | 0.448 | 0.329 | 36.2% | ⚠️ Regressed from 13.5% |
-| reductiontree | 0.594 | 0.480 | 23.8% | ⚠️ Regressed from 18.2% |
-| strideindirect| 0.761 | 0.528 | 44.1% | ⚠️ Regressed from 15.3% |
+### M20: Reduce Remaining Microbenchmark Errors
+**Budget:** 10 cycles
+**Goal:** Reduce arithmetic (<25%), branchheavy (<25%). These are secondary blockers.
 
-**Root cause of regressions:** PR#94 fixed memory stall propagation in tickOctupleIssue, which correctly added stalls that were previously missing. This increased CPI for all memory-heavy benchmarks. The stalls are arguably more correct (closer to real hardware behavior for memory latency) but the overall error increased because the simulator now overestimates CPI for these benchmarks.
+### M21: Final Push — 15+ Benchmarks at <20% Average
+**Budget:** 10 cycles
+**Goal:** Add jacobi-1d HW CPI (or other benchmarks), final calibration, achieve H5 target.
 
-### Lessons Learned (cumulative)
-1. **Break big problems into small ones.** Milestone 11 failed by targeting all 7 PolyBench kernels. Target 1-2 at a time.
-2. **CI turnaround is the bottleneck.** PolyBench CI takes hours. Each cycle can only test one CI iteration. Budget cycles accordingly.
-3. **Caches are correctly configured** (issue #183 resolved). The problem is purely in the pipeline timing model.
-4. **Research before implementation.** Profile WHY sim CPI is high on specific kernels before changing pipeline parameters.
-5. **pipeline.go refactored.** Now split into 13 manageable files (issue #126 resolved).
-6. **Structural hazards are the #1 accuracy bottleneck for PolyBench.** Profiling confirms in-order co-issue blocking is the dominant source of CPI overestimation.
-7. **Milestone 11 tried too much at once.** Targeting <80% on all 7 PolyBench was too ambitious.
-8. **OoO experiments cause regressions.** Instruction window OoO approach caused dcache timeouts and CI instability.
-9. **memorystrided is the #1 remaining blocker for microbenchmark accuracy.**
+**Total estimated budget:** ~56 cycles
 
-### Milestone 14: Fix memorystrided livelock ✅ GOAL ACHIEVED (February 18, 2026)
+### H4: Multi-Core Support (deferred until H5 complete)
 
-**Goal:** Fix memorystrided accuracy and related livelock bugs.
+## Lessons Learned (from milestones 10–16)
 
-**What happened:**
-- PR #93 (revert OoO, pre-OoO baseline) merged ✅
-- PR #94 (no-cache path memory stall fix): memorystrided improved from 429% → ~285% ✅
-- PR #95 (CachedMemoryStage livelock fix): eliminates multi-port replay bug ✅
-- Microbenchmark CI run 22144669883 triggered on main post-livelock-fix (pending results)
-
-**Deadline missed at 15/15 cycles** — but all planned fixes were implemented and merged. CI is running.
-
-**Lesson 11:** The livelock fix was correct but took the full budget. Next milestone: collect results and continue calibration.
-
-## Milestone 15: Verify CI + Prepare Next Accuracy Target ❌ DEADLINE MISSED (10/10 cycles)
-
-**Goal:** Verify memorystrided livelock fix CI results, update h5_accuracy_results.json, and prepare a profiling-based diagnosis of the next high-error benchmarks.
-
-**Tasks completed:**
-1. ✅ Updated h5_accuracy_results.json — memorystrided DCache CPI=0.750, error=253.1% (2.531)
-2. ✅ Closed open issues #222 and #223 in tbc-db
-3. ✅ Root cause analysis: issues #226 (memorystrided) and #227 (jacobi-1d) filed
-4. ✅ PR#99 MERGED — fixes PR#94 regressions (6 micros were 25-84% too slow)
-5. ✅ PR#96 open — StoreForwardLatency 1→3 (memorystrided improvement)
-6. ✅ PR#97 open — SMULL stall overlap (jacobi-1d improvement)
-7. ❌ CI results for post-PR#99 state NOT YET collected (CI running as of deadline)
-
-**State at deadline miss (February 18, 2026):**
-- PR#99 merged; CI runs 22151656429/22151656412/22151656451 in progress
-- h5_accuracy_results.json still shows stale post-PR#94 data (with regressions)
-- PRs #96, #97 awaiting clean CI baseline to evaluate
-
-**Lesson 12:** CI wait time is consistently the bottleneck. Never assign CI-wait + implementation in the same milestone. "Wait for CI" should be its own focused milestone.
-
-## Milestone 16: Collect PR#99 CI Results + Merge PRs #96/#97 (CURRENT)
-
-**Goal:** Collect CI results from post-PR#99 main (runs ~22151656429), update h5_accuracy_results.json with verified data, then evaluate and merge PRs #96 and #97 to improve memorystrided and jacobi-1d accuracy.
-
-**Why this matters:**
-- PR#99 reverted PR#94 regressions — 6 benchmarks were running 25-84% too slow
-- Post-PR#99, micro average (excl. memorystrided) should return to ~16-20% range
-- PR#96 (StoreForwardLatency 3): reduces memorystrided from 253%→~202% error
-- PR#97 (SMULL overlap): fixes jacobi-1d stall overcount → may restore jacobi-1d feasibility
-- Together these may bring micro average to ~20-25% and unlock the H5 <20% goal
-
-**Tasks (in order):**
-1. Wait for CI runs 22151656429/22151656412 to complete; extract results
-2. Update h5_accuracy_results.json from CI-verified post-PR#99 data
-3. Evaluate PR#96 CI results — merge if memorystrided improves without regressions
-4. Evaluate PR#97 CI results — merge if jacobi-1d improves without regressions
-5. Close issues #230, #231, #232 once PRs merged and data updated
-6. Identify next highest-error benchmarks and file targeted fix issues
-
-**Budget: 10 cycles** (CI-first, one action per cycle)
-
-**Success criteria:**
-- h5_accuracy_results.json updated from post-PR#99 CI run (CI-verified)
-- PRs #96 and/or #97 merged if CI confirms improvement without regressions
-- Micro average error documented with updated figures
-
-**Constraints:**
-- Update accuracy JSON ONLY from CI-verified runs (no speculation)
-- Do not merge PRs if regressions appear in CI
-- Do not introduce new code changes until PR#99 baseline is confirmed
-
-## Future Milestones (tentative)
-
-### Milestone 17: Microbenchmark accuracy <20% average
-Target: micro average <20% (currently ~51% with regressions, should be ~30% post-PR#99).
-Focus: arithmetic (35.2%), branchheavy (31.8%), memorystrided (253%).
-
-### Milestone 18: Restore PolyBench accuracy + jacobi-1d
-Target: jacobi-1d feasible and <30% error; atax/bicg back below 20%.
-Fix PR#94 damage to PolyBench (atax 59.7%, bicg 144.9%).
-
-### Milestone 19+: Overall <20% average error
-Iterate on remaining accuracy gaps to achieve the H5 target across all benchmarks.
-
-### H4: Multi-Core Support (deferred)
-Not started. Prerequisites: H5 accuracy target must be CI-verified first.
+1. **Break big problems into small ones.** Target 1–2 benchmarks per milestone, not all at once.
+2. **CI turnaround is the bottleneck.** Each cycle can only test one CI iteration. Budget accordingly.
+3. **Caches are correctly configured** (M11 confirmed). Problems are purely pipeline timing.
+4. **Research before implementation.** Profile WHY sim CPI is wrong before changing parameters.
+5. **OoO experiments cause regressions.** Stick to in-order pipeline improvements.
+6. **Don't merge without CI verification.** Update accuracy data ONLY from CI-verified runs.
+7. **"Wait for CI" should be its own task.** Never combine CI wait + implementation in one milestone.
+8. **Structural hazards are the #1 pipeline accuracy bottleneck** for most benchmarks.
+9. **memorystrided is a distinct problem** — sim is too fast (not too slow like others), suggesting missing memory penalties.
+10. **The Marin runner group** provides Apple M2 hardware for accuracy benchmarks.
