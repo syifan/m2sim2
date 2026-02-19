@@ -6,12 +6,12 @@
     "polybench_with_error": 4,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.2586,
+    "average_error": 0.2374,
     "micro_average_error": 0.1686,
     "micro_average_error_excl_memorystrided": 0.1687,
-    "polybench_average_error": 0.5061,
+    "polybench_average_error": 0.4266,
     "h5_target_met": false,
-    "note": "DataProc3Src-only forwarding gate (commit 11aa8ce). Microbenchmarks from CI run 22194997028. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22195291854. mvt still from older CI run 22187796851. Groups 2/3 still running. jacobi-1d improved 0.349→0.302 (131.13%→100.00%). memorystrided ≤30% PASS (16.81%). jacobi-1d <70% FAIL (100.00%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Bitfield+DataProc3Src forwarding gate (commit e9a0185). Microbenchmarks from CI run 22198904952. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22198904920. mvt from older CI run 22187796851 (Group 2 still running). jacobi-1d improved 0.302→0.254 (100.00%→68.21%). memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (68.21%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -21,7 +21,7 @@
       "hardware_cpi": 0.296,
       "error": 0.3455,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "dependency",
@@ -30,7 +30,7 @@
       "hardware_cpi": 1.088,
       "error": 0.0667,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "branch",
@@ -39,7 +39,7 @@
       "hardware_cpi": 1.303,
       "error": 0.013,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "memorystrided",
@@ -48,7 +48,7 @@
       "hardware_cpi": 2.648,
       "error": 0.1681,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "loadheavy",
@@ -57,7 +57,7 @@
       "hardware_cpi": 0.429,
       "error": 0.2017,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "storeheavy",
@@ -66,7 +66,7 @@
       "hardware_cpi": 0.612,
       "error": 0.1724,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "branchheavy",
@@ -75,7 +75,7 @@
       "hardware_cpi": 0.714,
       "error": 0.3585,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "vectorsum",
@@ -84,7 +84,7 @@
       "hardware_cpi": 0.402,
       "error": 0.1356,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "vectoradd",
@@ -93,7 +93,7 @@
       "hardware_cpi": 0.329,
       "error": 0.1115,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "reductiontree",
@@ -102,7 +102,7 @@
       "hardware_cpi": 0.48,
       "error": 0.1456,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "strideindirect",
@@ -111,7 +111,7 @@
       "hardware_cpi": 0.528,
       "error": 0.1364,
       "ci_verified": true,
-      "ci_run": 22194997028
+      "ci_run": 22198904952
     },
     {
       "name": "atax",
@@ -120,7 +120,7 @@
       "hardware_cpi": 0.2185,
       "error": 0.194,
       "ci_verified": true,
-      "ci_run": 22195291854
+      "ci_run": 22198904920
     },
     {
       "name": "bicg",
@@ -129,7 +129,7 @@
       "hardware_cpi": 0.2295,
       "error": 0.7124,
       "ci_verified": true,
-      "ci_run": 22195291854
+      "ci_run": 22198904920
     },
     {
       "name": "mvt",
@@ -139,16 +139,16 @@
       "error": 0.1178,
       "ci_verified": true,
       "ci_run": 22187796851,
-      "note": "From older CI run (commit a79580b). PolyBench CI run 22194997040 for commit 11aa8ce pending (no runner available)."
+      "note": "From older CI run (commit a79580b). CI run 22198904920 Group 2 still running for commit e9a0185."
     },
     {
       "name": "jacobi-1d",
       "category": "polybench",
-      "simulated_cpi": 0.302,
+      "simulated_cpi": 0.254,
       "hardware_cpi": 0.151,
-      "error": 1.0,
+      "error": 0.6821,
       "ci_verified": true,
-      "ci_run": 22195291854
+      "ci_run": 22198904920
     },
     {
       "name": "aha_mont64",
