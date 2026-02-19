@@ -4,6 +4,42 @@ import (
 	"github.com/sarchlab/m2sim/insts"
 )
 
+// isLoadFwdEligible checks if a load-use hazard can be resolved by MEM→EX
+// forwarding from the cache stage instead of a 1-cycle pipeline stall.
+// This models OOO-style load-to-use forwarding where the cache hit result
+// is available to the consumer without waiting for the writeback stage.
+//
+// Narrowly scoped to DataProc3Src (MADD/MSUB) consumers only:
+//   - Producer is an integer load (LDR/LDRH/LDRB, not LDRQ/FP loads)
+//   - Consumer is a DataProc3Src op (MADD/MSUB/SMULL etc.)
+//   - Consumer doesn't write only flags (Rd==31)
+//   - Consumer doesn't read load result via Ra/Rt2 (no MEM→EX path for Ra)
+func isLoadFwdEligible(loadInst *insts.Instruction, loadRd uint8, consumerInst *insts.Instruction) bool {
+	if loadInst == nil || consumerInst == nil {
+		return false
+	}
+	// Producer must be an integer load
+	switch loadInst.Op {
+	case insts.OpLDR, insts.OpLDRB, insts.OpLDRSB, insts.OpLDRH, insts.OpLDRSH, insts.OpLDRSW:
+	default:
+		return false
+	}
+	// Consumer must be a DataProc3Src format (MADD/MSUB/SMULL etc.)
+	if consumerInst.Format != insts.FormatDataProc3Src {
+		return false
+	}
+	// Don't suppress for flag-only consumers (Rd==31)
+	if consumerInst.Rd == 31 {
+		return false
+	}
+	// Don't suppress if consumer reads load result via Rt2 (Ra for MADD/MSUB):
+	// Ra is read directly from the register file with no forwarding path.
+	if consumerInst.Rt2 == loadRd {
+		return false
+	}
+	return true
+}
+
 // tickOctupleIssue executes one cycle with 8-wide superscalar support.
 // This extends 6-wide to match the Apple M2's 8-wide decode bandwidth.
 func (p *Pipeline) tickOctupleIssue() {
@@ -251,6 +287,55 @@ func (p *Pipeline) tickOctupleIssue() {
 			// Forward from all secondary pipeline stages to primary slot
 			rnValue = p.forwardFromAllSlots(p.idex.Rn, rnValue)
 			rmValue = p.forwardFromAllSlots(p.idex.Rm, rmValue)
+
+			// MEM→EX forwarding: when a load in EXMEM completes its cache
+			// access this cycle, forward MemData directly to the consumer
+			// in IDEX. Only activates when the consumer was placed into IDEX
+			// via loadFwdActive (suppressed load-use stall). This prevents
+			// incorrect forwarding for unrelated instructions in IDEX.
+			if p.loadFwdPendingInIDEX && !memStall {
+				p.loadFwdPendingInIDEX = false
+				if nextMEMWB.Valid && nextMEMWB.MemToReg && nextMEMWB.RegWrite && nextMEMWB.Rd != 31 {
+					if p.idex.Rn == nextMEMWB.Rd {
+						rnValue = nextMEMWB.MemData
+					}
+					if p.idex.Rm == nextMEMWB.Rd {
+						rmValue = nextMEMWB.MemData
+					}
+				}
+				if nextMEMWB2.Valid && nextMEMWB2.MemToReg && nextMEMWB2.RegWrite && nextMEMWB2.Rd != 31 {
+					if p.idex.Rn == nextMEMWB2.Rd {
+						rnValue = nextMEMWB2.MemData
+					}
+					if p.idex.Rm == nextMEMWB2.Rd {
+						rmValue = nextMEMWB2.MemData
+					}
+				}
+				if nextMEMWB3.Valid && nextMEMWB3.MemToReg && nextMEMWB3.RegWrite && nextMEMWB3.Rd != 31 {
+					if p.idex.Rn == nextMEMWB3.Rd {
+						rnValue = nextMEMWB3.MemData
+					}
+					if p.idex.Rm == nextMEMWB3.Rd {
+						rmValue = nextMEMWB3.MemData
+					}
+				}
+				if nextMEMWB4.Valid && nextMEMWB4.MemToReg && nextMEMWB4.RegWrite && nextMEMWB4.Rd != 31 {
+					if p.idex.Rn == nextMEMWB4.Rd {
+						rnValue = nextMEMWB4.MemData
+					}
+					if p.idex.Rm == nextMEMWB4.Rd {
+						rmValue = nextMEMWB4.MemData
+					}
+				}
+				if nextMEMWB5.Valid && nextMEMWB5.MemToReg && nextMEMWB5.RegWrite && nextMEMWB5.Rd != 31 {
+					if p.idex.Rn == nextMEMWB5.Rd {
+						rnValue = nextMEMWB5.MemData
+					}
+					if p.idex.Rm == nextMEMWB5.Rd {
+						rmValue = nextMEMWB5.MemData
+					}
+				}
+			}
 
 			// Check for PSTATE flag forwarding from all EXMEM stages (octuple-issue).
 			// CMP can execute in any slot, and B.cond in slot 0 needs the flags.
@@ -1295,7 +1380,14 @@ func (p *Pipeline) tickOctupleIssue() {
 	// Instead of stalling the entire pipeline, we use an OoO-style bypass:
 	// only the dependent instruction is held; independent instructions from
 	// other IFID slots can still be decoded and issued in this cycle.
+	//
+	// Load-use forwarding from cache stage: when the producer is an integer
+	// load (LDR/LDRH/LDRB) and the consumer is an integer ALU op, suppress
+	// the 1-cycle stall. The consumer enters IDEX and waits during the cache
+	// stall; when the cache completes, MEM→EX forwarding provides the load
+	// data directly. This models OOO-style load-to-use forwarding.
 	loadUseHazard := false
+	loadFwdActive := false
 	loadHazardRd := uint8(31)
 	if p.ifid.Valid {
 		nextInst := p.decodeStage.decoder.Decode(p.ifid.InstructionWord)
@@ -1312,21 +1404,31 @@ func (p *Pipeline) tickOctupleIssue() {
 
 			// Check primary slot (IDEX) for load-use hazard
 			if p.idex.Valid && p.idex.MemRead && p.idex.Rd != 31 {
-				loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
+				hazard := p.hazardUnit.DetectLoadUseHazardDecoded(
 					p.idex.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
-				if loadUseHazard {
+				if hazard {
 					loadHazardRd = p.idex.Rd
-					p.stats.RAWHazardStalls++
+					if isLoadFwdEligible(p.idex.Inst, p.idex.Rd, nextInst) {
+						loadFwdActive = true
+					} else {
+						loadUseHazard = true
+						p.stats.RAWHazardStalls++
+					}
 				}
 			}
 
 			// Check secondary slot (IDEX2) for load-use hazard
-			if !loadUseHazard && p.idex2.Valid && p.idex2.MemRead && p.idex2.Rd != 31 {
-				loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
+			if !loadUseHazard && !loadFwdActive && p.idex2.Valid && p.idex2.MemRead && p.idex2.Rd != 31 {
+				hazard := p.hazardUnit.DetectLoadUseHazardDecoded(
 					p.idex2.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
-				if loadUseHazard {
+				if hazard {
 					loadHazardRd = p.idex2.Rd
-					p.stats.RAWHazardStalls++
+					if isLoadFwdEligible(p.idex2.Inst, p.idex2.Rd, nextInst) {
+						loadFwdActive = true
+					} else {
+						loadUseHazard = true
+						p.stats.RAWHazardStalls++
+					}
 				}
 			}
 		}
@@ -1351,10 +1453,15 @@ func (p *Pipeline) tickOctupleIssue() {
 
 	// loadRdForBypass is the destination register of the in-flight load,
 	// used to check each IFID instruction for load-use hazard during bypass.
+	// When loadFwdActive, slot 0 is not stalled (MEM→EX forwarding), but
+	// other IFID slots that depend on the load must still be held because
+	// they don't have the MEM→EX forwarding path.
 	loadRdForBypass := uint8(31)
 	if loadUseHazard {
 		loadRdForBypass = loadHazardRd
 		p.stats.Stalls++ // count as a stall for stat tracking
+	} else if loadFwdActive {
+		loadRdForBypass = loadHazardRd
 	}
 
 	if p.ifid.Valid && !stallResult.StallID && !stallResult.FlushID && !memStall {
@@ -1432,6 +1539,9 @@ func (p *Pipeline) tickOctupleIssue() {
 						PredictedTarget: p.ifid.PredictedTarget,
 						EarlyResolved:   p.ifid.EarlyResolved,
 					}
+					if loadFwdActive {
+						p.loadFwdPendingInIDEX = true
+					}
 				}
 			}
 		}
@@ -1472,7 +1582,7 @@ func (p *Pipeline) tickOctupleIssue() {
 			// During load-use bypass, check if this instruction also depends on the load.
 			// Unlike other hazards, load-use dependency does NOT block subsequent slots —
 			// independent instructions can still issue (OoO-style bypass).
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult2.Inst) {
+			if (loadUseHazard || loadFwdActive) && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult2.Inst) {
 				// Dependent on load — don't issue, re-queue to IFID next cycle
 				issuedCount++
 			} else {
@@ -1511,7 +1621,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Decode slot 3
 		if p.ifid3.Valid {
 			decResult3 := p.decodeStage.Decode(p.ifid3.InstructionWord, p.ifid3.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult3.Inst) {
+			if (loadUseHazard || loadFwdActive) && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult3.Inst) {
 				issuedCount++
 			} else {
 				tempIDEX3 := IDEXRegister{
@@ -1549,7 +1659,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Decode slot 4
 		if p.ifid4.Valid {
 			decResult4 := p.decodeStage.Decode(p.ifid4.InstructionWord, p.ifid4.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult4.Inst) {
+			if (loadUseHazard || loadFwdActive) && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult4.Inst) {
 				issuedCount++
 			} else {
 				tempIDEX4 := IDEXRegister{
@@ -1587,7 +1697,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Decode slot 5
 		if p.ifid5.Valid {
 			decResult5 := p.decodeStage.Decode(p.ifid5.InstructionWord, p.ifid5.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult5.Inst) {
+			if (loadUseHazard || loadFwdActive) && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult5.Inst) {
 				issuedCount++
 			} else {
 				tempIDEX5 := IDEXRegister{
@@ -1625,7 +1735,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Decode slot 6
 		if p.ifid6.Valid {
 			decResult6 := p.decodeStage.Decode(p.ifid6.InstructionWord, p.ifid6.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult6.Inst) {
+			if (loadUseHazard || loadFwdActive) && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult6.Inst) {
 				issuedCount++
 			} else {
 				tempIDEX6 := IDEXRegister{
@@ -1663,7 +1773,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Decode slot 7
 		if p.ifid7.Valid {
 			decResult7 := p.decodeStage.Decode(p.ifid7.InstructionWord, p.ifid7.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult7.Inst) {
+			if (loadUseHazard || loadFwdActive) && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult7.Inst) {
 				issuedCount++
 			} else {
 				tempIDEX7 := IDEXRegister{
@@ -1701,7 +1811,7 @@ func (p *Pipeline) tickOctupleIssue() {
 		// Decode slot 8
 		if p.ifid8.Valid {
 			decResult8 := p.decodeStage.Decode(p.ifid8.InstructionWord, p.ifid8.PC)
-			if loadUseHazard && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult8.Inst) {
+			if (loadUseHazard || loadFwdActive) && p.hazardUnit.DetectLoadUseHazardForInst(loadRdForBypass, decResult8.Inst) {
 				// dependent — will be re-queued
 			} else {
 				tempIDEX8 := IDEXRegister{

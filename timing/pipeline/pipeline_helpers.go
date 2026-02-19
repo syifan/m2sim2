@@ -404,6 +404,7 @@ func (p *Pipeline) flushAllIDEX() {
 	p.idex6.Clear()
 	p.idex7.Clear()
 	p.idex8.Clear()
+	p.loadFwdPendingInIDEX = false
 }
 
 // collectPendingFetchInstructionsSelective returns unissued IFID instructions,

@@ -239,6 +239,11 @@ type Pipeline struct {
 	useICache         bool
 	useDCache         bool
 
+	// Load-use forwarding: when loadFwdActive places a consumer into IDEX,
+	// this flag tells the execute stage to apply MEM→EX forwarding from the
+	// completing load's MemData. Cleared after the forwarding is consumed.
+	loadFwdPendingInIDEX bool
+
 	// Hazard detection
 	hazardUnit *HazardUnit
 
