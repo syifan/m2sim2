@@ -6,12 +6,12 @@
     "polybench_with_error": 3,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 10,
-    "average_error": 0.5338,
-    "micro_average_error": 0.3925,
+    "average_error": 0.5699,
+    "micro_average_error": 0.4384,
     "micro_average_error_excl_memorystrided": 0.2291,
     "polybench_average_error": 1.0522,
     "h5_target_met": false,
-    "note": "All 11 microbenchmarks verified on main (post-PR#96 merge) from CI run 22155902064. memorystrided=0.875 confirmed on main (previously from PR#96 branch runs). All values match run 22151656429 except memorystrided which is now verified on main. Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Corrected with actual CI-verified post-PR#99 data from microbench run 22151656429 (main@13b3280). PR#99 reverted secondary memory port stalls; primary port 2-cycle stall from PR#94 remains. Values reflect actual simulator output. Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -44,12 +44,12 @@
     {
       "name": "memorystrided",
       "category": "microbenchmark",
-      "simulated_cpi": 0.875,
+      "simulated_cpi": 0.750,
       "hardware_cpi": 2.648,
-      "error": 2.0263,
+      "error": 2.5307,
       "ci_verified": true,
-      "ci_run": 22155902064,
-      "note": "PR#96 increased StoreForwardLatency 1→3 cycles, improving CPI from 0.750 to 0.875. Confirmed on main via CI run 22155902064 (post-PR#96 merge). D-cache path only."
+      "ci_run": 22142753352,
+      "note": "DCache path CPI from CI run 22142753352 (PR #95 branch). Kept at 0.750 (post-livelock fix). Run 22141495151 showed 0.688 (pre-PR#95). Error formula: |sim-hw|/min(sim,hw)."
     },
     {
       "name": "loadheavy",
