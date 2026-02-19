@@ -1144,12 +1144,11 @@ func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCo
 				if producerIsALU && consumerIsLoad {
 					usesForwarding = true
 				} else if forwarded != nil && producerIsALU {
-					// General ALU→ALU forwarding with 1-hop depth limit:
-					// the producer must not itself be a forwarding consumer
-					// (to prevent unrealistic deep chaining like A→B→C in
-					// one cycle).
+					// Only enable FP→FP forwarding; integer dep chains must not co-issue.
+					producerIsFP := prev.Inst != nil && prev.Inst.IsFloat
+					consumerIsFP := newInst.Inst != nil && newInst.Inst.IsFloat
 					producerNotForwarded := !forwarded[i]
-					if producerNotForwarded {
+					if producerIsFP && consumerIsFP && producerNotForwarded {
 						usesForwarding = true
 					} else {
 						return false, false
