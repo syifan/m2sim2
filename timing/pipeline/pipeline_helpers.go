@@ -619,6 +619,7 @@ func (p *Pipeline) popWindowToIFID(
 	p.instrWindowLen = remaining
 }
 
+
 // StallProfile returns a formatted string summarizing stall sources.
 func (p *Pipeline) StallProfile() string {
 	s := p.stats

@@ -1065,11 +1065,24 @@ func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCo
 			}
 		}
 
-		// Store-to-load forwarding: M2's 56-entry store buffer handles
-		// forwarding transparently. No blanket blocking needed.
-
 		// Only count port usage for actually-issued instructions.
 		isIssued := issued != nil && issued[i]
+
+		// Store-to-load ordering: when a load is in the same issue
+		// group as an earlier store targeting the same address
+		// (same base register AND same immediate offset), block
+		// the load regardless of whether the store issued.
+		// The store must complete first so the cache's store-forward
+		// path can apply the appropriate latency penalty.
+		// Skip SP (reg 31) since stack spill/reload patterns are
+		// usually separated by many instructions and don't need
+		// dispatch-level serialization.
+		if newInst.MemRead && prev.MemWrite &&
+			newInst.Rn == prev.Rn && newInst.Rn != 31 &&
+			newInst.Inst != nil && prev.Inst != nil &&
+			newInst.Inst.Imm == prev.Inst.Imm {
+			return false, false
+		}
 		if isIssued {
 			if prev.MemRead {
 				loadCount++
