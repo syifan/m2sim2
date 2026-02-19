@@ -1,17 +1,17 @@
 {
   "summary": {
-    "total_ci_verified_benchmarks": 25,
+    "total_ci_verified_benchmarks": 19,
     "benchmarks_with_error_data": 14,
     "microbenchmarks_with_error": 11,
     "polybench_with_error": 3,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.3528,
-    "micro_average_error": 0.3415,
-    "micro_average_error_excl_memorystrided": 0.1730,
+    "average_error": 0.3929,
+    "micro_average_error": 0.3925,
+    "micro_average_error_excl_memorystrided": 0.2291,
     "polybench_average_error": 0.3942,
     "h5_target_met": false,
-    "note": "Updated with post-PR#101 CI-verified data. PR#101 reverted primary port 2-cycle stall in tickOctupleIssue. Microbench values from local deterministic run on PR#101 branch (CI run 22158353194 queued at merge time; simulator is deterministic). PolyBench values from CI run 22158353169 (Groups 1&2 completed). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "6 microbenchmarks (loadheavy, storeheavy, vectoradd, vectorsum, reductiontree, strideindirect) reverted to post-PR#99 CI-verified values from run 22151656429. CI run 22158353194 (PR#101 microbench) never completed (still queued). Post-PR#101 main CI runs (22165739150, 22165809642) also still queued/pending. These 6 benchmarks are ci_verified=false until a post-PR#101 CI run completes. PolyBench values from CI run 22158353169 (Groups 1&2 completed). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -49,25 +49,27 @@
       "error": 2.0263,
       "ci_verified": true,
       "ci_run": 22158353194,
-      "note": "DCache path CPI. Updated from 0.750 to 0.875 (CI-verified post-PR#96 value, confirmed by local deterministic run on PR#101 branch)."
+      "note": "DCache path CPI. Updated from 0.750 to 0.875 (CI-verified post-PR#96 value, confirmed by local deterministic run on PR#101 branch). Note: ci_run 22158353194 is still queued; value originates from post-PR#96 CI verification."
     },
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.349,
+      "simulated_cpi": 0.600,
       "hardware_cpi": 0.429,
-      "error": 0.2292,
-      "ci_verified": true,
-      "ci_run": 22158353194
+      "error": 0.3986,
+      "ci_verified": false,
+      "ci_run": 22151656429,
+      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
     },
     {
       "name": "storeheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.522,
+      "simulated_cpi": 0.957,
       "hardware_cpi": 0.612,
-      "error": 0.1724,
-      "ci_verified": true,
-      "ci_run": 22158353194
+      "error": 0.5637,
+      "ci_verified": false,
+      "ci_run": 22151656429,
+      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
     },
     {
       "name": "branchheavy",
@@ -81,29 +83,32 @@
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.362,
+      "simulated_cpi": 0.394,
       "hardware_cpi": 0.402,
-      "error": 0.1105,
-      "ci_verified": true,
-      "ci_run": 22158353194
+      "error": 0.0203,
+      "ci_verified": false,
+      "ci_run": 22151656429,
+      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.290,
+      "simulated_cpi": 0.385,
       "hardware_cpi": 0.329,
-      "error": 0.1345,
-      "ci_verified": true,
-      "ci_run": 22158353194
+      "error": 0.1702,
+      "ci_verified": false,
+      "ci_run": 22151656429,
+      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.406,
+      "simulated_cpi": 0.594,
       "hardware_cpi": 0.480,
-      "error": 0.1823,
-      "ci_verified": true,
-      "ci_run": 22158353194
+      "error": 0.2375,
+      "ci_verified": false,
+      "ci_run": 22151656429,
+      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
     },
     {
       "name": "strideindirect",
@@ -111,8 +116,9 @@
       "simulated_cpi": 0.609,
       "hardware_cpi": 0.528,
       "error": 0.1534,
-      "ci_verified": true,
-      "ci_run": 22158353194
+      "ci_verified": false,
+      "ci_run": 22151656429,
+      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
     },
     {
       "name": "atax",
