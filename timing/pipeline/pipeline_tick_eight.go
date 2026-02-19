@@ -1296,7 +1296,8 @@ func (p *Pipeline) tickOctupleIssue() {
 	// only the dependent instruction is held; independent instructions from
 	// other IFID slots can still be decoded and issued in this cycle.
 	loadUseHazard := false
-	if p.idex.Valid && p.idex.MemRead && p.idex.Rd != 31 && p.ifid.Valid {
+	loadHazardRd := uint8(31)
+	if p.ifid.Valid {
 		nextInst := p.decodeStage.decoder.Decode(p.ifid.InstructionWord)
 		if nextInst != nil && nextInst.Op != insts.OpUnknown {
 			usesRn := true
@@ -1309,10 +1310,24 @@ func (p *Pipeline) tickOctupleIssue() {
 				sourceRm = nextInst.Rd
 			}
 
-			loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
-				p.idex.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
-			if loadUseHazard {
-				p.stats.RAWHazardStalls++
+			// Check primary slot (IDEX) for load-use hazard
+			if p.idex.Valid && p.idex.MemRead && p.idex.Rd != 31 {
+				loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
+					p.idex.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
+				if loadUseHazard {
+					loadHazardRd = p.idex.Rd
+					p.stats.RAWHazardStalls++
+				}
+			}
+
+			// Check secondary slot (IDEX2) for load-use hazard
+			if !loadUseHazard && p.idex2.Valid && p.idex2.MemRead && p.idex2.Rd != 31 {
+				loadUseHazard = p.hazardUnit.DetectLoadUseHazardDecoded(
+					p.idex2.Rd, nextInst.Rn, sourceRm, usesRn, usesRm)
+				if loadUseHazard {
+					loadHazardRd = p.idex2.Rd
+					p.stats.RAWHazardStalls++
+				}
 			}
 		}
 	}
@@ -1338,7 +1353,7 @@ func (p *Pipeline) tickOctupleIssue() {
 	// used to check each IFID instruction for load-use hazard during bypass.
 	loadRdForBypass := uint8(31)
 	if loadUseHazard {
-		loadRdForBypass = p.idex.Rd
+		loadRdForBypass = loadHazardRd
 		p.stats.Stalls++ // count as a stall for stat tracking
 	}
 
