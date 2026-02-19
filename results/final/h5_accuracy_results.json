@@ -6,12 +6,12 @@
     "polybench_with_error": 4,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.237,
-    "micro_average_error": 0.1686,
-    "micro_average_error_excl_memorystrided": 0.1687,
-    "polybench_average_error": 0.4249,
+    "average_error": 0.2415,
+    "micro_average_error": 0.1755,
+    "micro_average_error_excl_memorystrided": 0.1763,
+    "polybench_average_error": 0.4227,
     "h5_target_met": false,
-    "note": "Load-use forwarding from cache stage (commit 28f7ec1). Microbenchmarks from CI run 22204159766. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22204159767. mvt from older CI run 22187796851 (commit a79580b). All CPI values unchanged from 0fb7a22 (load forwarding has no effect without dcache in CI tests). memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (67.55%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "MEM→EX forwarding broadening (commit 23e2791). Microbenchmarks from CI run 22204801981. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22204802792. mvt from older CI run 22187796851 (commit a79580b). Group 2/3 still running (GEMM/2MM/3MM infeasible). Changed CPIs: loadheavy 0.357→0.349, vectorsum 0.354→0.323, vectoradd 0.296→0.29, reductiontree 0.419→0.452, bicg 0.393→0.391. memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (67.55%). bicg <50% FAIL (70.37%). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -21,7 +21,7 @@
       "hardware_cpi": 0.296,
       "error": 0.3455,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "dependency",
@@ -30,7 +30,7 @@
       "hardware_cpi": 1.088,
       "error": 0.0667,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "branch",
@@ -39,7 +39,7 @@
       "hardware_cpi": 1.303,
       "error": 0.013,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "memorystrided",
@@ -48,16 +48,16 @@
       "hardware_cpi": 2.648,
       "error": 0.1681,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.357,
+      "simulated_cpi": 0.349,
       "hardware_cpi": 0.429,
-      "error": 0.2017,
+      "error": 0.2292,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "storeheavy",
@@ -66,7 +66,7 @@
       "hardware_cpi": 0.612,
       "error": 0.1724,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "branchheavy",
@@ -75,34 +75,34 @@
       "hardware_cpi": 0.714,
       "error": 0.3585,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.354,
+      "simulated_cpi": 0.323,
       "hardware_cpi": 0.402,
-      "error": 0.1356,
+      "error": 0.2446,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.296,
+      "simulated_cpi": 0.29,
       "hardware_cpi": 0.329,
-      "error": 0.1115,
+      "error": 0.1345,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.419,
+      "simulated_cpi": 0.452,
       "hardware_cpi": 0.48,
-      "error": 0.1456,
+      "error": 0.0619,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "strideindirect",
@@ -111,7 +111,7 @@
       "hardware_cpi": 0.528,
       "error": 0.1364,
       "ci_verified": true,
-      "ci_run": 22204159766
+      "ci_run": 22204801981
     },
     {
       "name": "atax",
@@ -120,16 +120,16 @@
       "hardware_cpi": 0.2185,
       "error": 0.194,
       "ci_verified": true,
-      "ci_run": 22204159767
+      "ci_run": 22204802792
     },
     {
       "name": "bicg",
       "category": "polybench",
-      "simulated_cpi": 0.393,
+      "simulated_cpi": 0.391,
       "hardware_cpi": 0.2295,
-      "error": 0.7124,
+      "error": 0.7036,
       "ci_verified": true,
-      "ci_run": 22204159767
+      "ci_run": 22204802792
     },
     {
       "name": "mvt",
@@ -139,7 +139,7 @@
       "error": 0.1178,
       "ci_verified": true,
       "ci_run": 22187796851,
-      "note": "From older CI run (commit a79580b). Group 2 of run 22204159767 (commit 28f7ec1) running — GEMM infeasible, will timeout."
+      "note": "From older CI run (commit a79580b). Group 2 of run 22204802792 (commit 23e2791) running — GEMM infeasible, will timeout."
     },
     {
       "name": "jacobi-1d",
@@ -148,7 +148,7 @@
       "hardware_cpi": 0.151,
       "error": 0.6755,
       "ci_verified": true,
-      "ci_run": 22204159767
+      "ci_run": 22204802792
     },
     {
       "name": "aha_mont64",
