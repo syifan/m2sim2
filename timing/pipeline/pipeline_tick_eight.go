@@ -1464,8 +1464,9 @@ func (p *Pipeline) tickOctupleIssue() {
 		ifid2ConsumedByFusion := fusedCMPBcond
 
 		// Decode slot 2 (IFID2) - skip if consumed by fusion
-		// OoO-style issue: each slot independently checks canIssueWith().
+		// OoO-style issue: each slot independently checks canIssueWithFwd().
 		// If a slot can't issue, later slots still get a chance.
+		// ALU→ALU same-cycle forwarding is enabled for all slots (with 1-hop depth limit).
 		if p.ifid2.Valid && !ifid2ConsumedByFusion {
 			decResult2 := p.decodeStage.Decode(p.ifid2.InstructionWord, p.ifid2.PC)
 			// During load-use bypass, check if this instruction also depends on the load.
@@ -1493,9 +1494,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid2.PredictedTarget,
 					EarlyResolved:   p.ifid2.EarlyResolved,
 				}
-				if !(p.ifid2.AfterBranch && decResult2.MemWrite) && canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued, p.useDCache) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX2, &issuedInsts, issuedCount, &issued, &forwarded, p.useDCache); ok && !(p.ifid2.AfterBranch && decResult2.MemWrite) {
 					nextIDEX2.fromIDEX(&tempIDEX2)
 					issued[issuedCount] = true
+					if fwd {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1528,9 +1532,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid3.PredictedTarget,
 					EarlyResolved:   p.ifid3.EarlyResolved,
 				}
-				if !(p.ifid3.AfterBranch && decResult3.MemWrite) && canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued, p.useDCache) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX3, &issuedInsts, issuedCount, &issued, &forwarded, p.useDCache); ok && !(p.ifid3.AfterBranch && decResult3.MemWrite) {
 					nextIDEX3.fromIDEX(&tempIDEX3)
 					issued[issuedCount] = true
+					if fwd {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1563,9 +1570,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid4.PredictedTarget,
 					EarlyResolved:   p.ifid4.EarlyResolved,
 				}
-				if !(p.ifid4.AfterBranch && decResult4.MemWrite) && canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued, p.useDCache) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX4, &issuedInsts, issuedCount, &issued, &forwarded, p.useDCache); ok && !(p.ifid4.AfterBranch && decResult4.MemWrite) {
 					nextIDEX4.fromIDEX(&tempIDEX4)
 					issued[issuedCount] = true
+					if fwd {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1598,9 +1608,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid5.PredictedTarget,
 					EarlyResolved:   p.ifid5.EarlyResolved,
 				}
-				if !(p.ifid5.AfterBranch && decResult5.MemWrite) && canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued, p.useDCache) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX5, &issuedInsts, issuedCount, &issued, &forwarded, p.useDCache); ok && !(p.ifid5.AfterBranch && decResult5.MemWrite) {
 					nextIDEX5.fromIDEX(&tempIDEX5)
 					issued[issuedCount] = true
+					if fwd {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1633,9 +1646,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid6.PredictedTarget,
 					EarlyResolved:   p.ifid6.EarlyResolved,
 				}
-				if !(p.ifid6.AfterBranch && decResult6.MemWrite) && canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued, p.useDCache) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX6, &issuedInsts, issuedCount, &issued, &forwarded, p.useDCache); ok && !(p.ifid6.AfterBranch && decResult6.MemWrite) {
 					nextIDEX6.fromIDEX(&tempIDEX6)
 					issued[issuedCount] = true
+					if fwd {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1668,9 +1684,12 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid7.PredictedTarget,
 					EarlyResolved:   p.ifid7.EarlyResolved,
 				}
-				if !(p.ifid7.AfterBranch && decResult7.MemWrite) && canIssueWith(&tempIDEX7, &issuedInsts, issuedCount, &issued, p.useDCache) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX7, &issuedInsts, issuedCount, &issued, &forwarded, p.useDCache); ok && !(p.ifid7.AfterBranch && decResult7.MemWrite) {
 					nextIDEX7.fromIDEX(&tempIDEX7)
 					issued[issuedCount] = true
+					if fwd {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
@@ -1705,7 +1724,9 @@ func (p *Pipeline) tickOctupleIssue() {
 				}
 				if ok, fwd := canIssueWithFwd(&tempIDEX8, &issuedInsts, issuedCount, &issued, &forwarded, p.useDCache); ok && !(p.ifid8.AfterBranch && decResult8.MemWrite) {
 					nextIDEX8.fromIDEX(&tempIDEX8)
-					_ = fwd
+					if fwd {
+						forwarded[issuedCount] = true
+					}
 				} else {
 					p.stats.StructuralHazardStalls++
 				}
