@@ -11,7 +11,7 @@
     "micro_average_error_excl_memorystrided": 0.1679,
     "polybench_average_error": 0.6235,
     "h5_target_met": false,
-    "note": "Post-PR#106 CI-verified data. PR#106 fixed bicg regression (store-to-load ordering). PolyBench CPI values confirmed unchanged by CI run 22173989869. memorystrided: CPI=2.125 from CI run 22170890623. Fresh main run 22182409791 in progress for additional verification. Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Post-PR#106 CI-verified data. PR#106 did not regress memorystrided (runs with EnableDCache=true, store-to-load ordering preserved). memorystrided CPI=2.125 confirmed by CI run 22180241267. bicg CPI=0.391 confirmed by CI run 22173989869. Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -48,7 +48,7 @@
       "hardware_cpi": 2.648,
       "error": 0.2461,
       "ci_verified": true,
-      "ci_run": 22170890623
+      "ci_run": 22180241267
     },
     {
       "name": "loadheavy",
