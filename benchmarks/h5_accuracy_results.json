@@ -5,13 +5,13 @@
     "microbenchmarks_with_error": 11,
     "polybench_with_error": 3,
     "embench_sim_only": 1,
-    "infeasible_benchmarks": 10,
-    "average_error": 0.6272,
-    "micro_average_error": 0.5114,
-    "micro_average_error_excl_memorystrided": 0.3094,
-    "polybench_average_error": 1.0522,
+    "infeasible_benchmarks": 9,
+    "average_error": 0.3528,
+    "micro_average_error": 0.3415,
+    "micro_average_error_excl_memorystrided": 0.1730,
+    "polybench_average_error": 0.3942,
     "h5_target_met": false,
-    "note": "Updated post-PR#94 regression impact. 6 microbenchmarks show 25-84% CPI increase from PR#94 (fix memory stall propagation in tickOctupleIssue). Data from CI run 22141495151 (main, post-PR#94). PolyBench updated from run 22139825134: jacobi-1d now infeasible (timeout), mvt now feasible. Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Updated with post-PR#101 CI-verified data. PR#101 reverted primary port 2-cycle stall in tickOctupleIssue. Microbench values from local deterministic run on PR#101 branch (CI run 22158353194 queued at merge time; simulator is deterministic). PolyBench values from CI run 22158353169 (Groups 1&2 completed). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -44,30 +44,30 @@
     {
       "name": "memorystrided",
       "category": "microbenchmark",
-      "simulated_cpi": 0.750,
+      "simulated_cpi": 0.875,
       "hardware_cpi": 2.648,
-      "error": 2.5307,
+      "error": 2.0263,
       "ci_verified": true,
-      "ci_run": 22142753352,
-      "note": "DCache path CPI from CI run 22142753352 (PR #95 branch). Kept at 0.750 (post-livelock fix). Run 22141495151 showed 0.688 (pre-PR#95). Error formula: |sim-hw|/min(sim,hw)."
+      "ci_run": 22158353194,
+      "note": "DCache path CPI. Updated from 0.750 to 0.875 (CI-verified post-PR#96 value, confirmed by local deterministic run on PR#101 branch)."
     },
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.643,
+      "simulated_cpi": 0.349,
       "hardware_cpi": 0.429,
-      "error": 0.4988,
+      "error": 0.2292,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22158353194
     },
     {
       "name": "storeheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.957,
+      "simulated_cpi": 0.522,
       "hardware_cpi": 0.612,
-      "error": 0.5637,
+      "error": 0.1724,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22158353194
     },
     {
       "name": "branchheavy",
@@ -81,66 +81,75 @@
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.500,
+      "simulated_cpi": 0.362,
       "hardware_cpi": 0.402,
-      "error": 0.2438,
+      "error": 0.1105,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22158353194
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.448,
+      "simulated_cpi": 0.290,
       "hardware_cpi": 0.329,
-      "error": 0.3617,
+      "error": 0.1345,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22158353194
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.594,
+      "simulated_cpi": 0.406,
       "hardware_cpi": 0.480,
-      "error": 0.2375,
+      "error": 0.1823,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22158353194
     },
     {
       "name": "strideindirect",
       "category": "microbenchmark",
-      "simulated_cpi": 0.761,
+      "simulated_cpi": 0.609,
       "hardware_cpi": 0.528,
-      "error": 0.4413,
+      "error": 0.1534,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22158353194
     },
     {
       "name": "atax",
       "category": "polybench",
-      "simulated_cpi": 0.349,
+      "simulated_cpi": 0.183,
       "hardware_cpi": 0.2185,
-      "error": 0.5973,
+      "error": 0.1940,
       "ci_verified": true,
-      "ci_run": 22139825134
+      "ci_run": 22158353169
     },
     {
       "name": "bicg",
       "category": "polybench",
-      "simulated_cpi": 0.562,
+      "simulated_cpi": 0.391,
       "hardware_cpi": 0.2295,
-      "error": 1.4488,
+      "error": 0.7037,
       "ci_verified": true,
-      "ci_run": 22139825134
+      "ci_run": 22158353169
     },
     {
       "name": "mvt",
       "category": "polybench",
-      "simulated_cpi": 0.455,
+      "simulated_cpi": 0.277,
       "hardware_cpi": 0.2156,
-      "error": 1.1104,
+      "error": 0.2848,
       "ci_verified": true,
-      "ci_run": 22139825134,
-      "note": "Previously infeasible (exceeded 5B cycle limit). Now completes after PR#94 changes."
+      "ci_run": 22158353169
+    },
+    {
+      "name": "jacobi-1d",
+      "category": "polybench",
+      "simulated_cpi": 0.349,
+      "hardware_cpi": null,
+      "error": null,
+      "ci_verified": true,
+      "ci_run": 22158353169,
+      "note": "Previously infeasible (timeout post-PR#94). Now completes after PR#101 reverted primary port stall. No hardware CPI reference available."
     },
     {
       "name": "aha_mont64",
@@ -154,23 +163,14 @@
   ],
   "infeasible": [
     {
-      "name": "jacobi-1d",
-      "category": "polybench",
-      "status": "infeasible",
-      "reason": "Timeout on PolyBench accuracy workflow post-PR#94. Previously completed with CPI=0.231.",
-      "ci_verified": true,
-      "ci_run": 22139825134
-    },
-    {
       "name": "gemm",
       "category": "polybench",
       "status": "infeasible",
-      "reason": "Exceeded 5B cycle limit on CI run 22136356830. Retired 18,766,215,806 instructions in 5B cycles (7675.71s wall time). MINI_DATASET size is infeasible for current simulator.",
+      "reason": "Exceeded 5B cycle limit. CI run 22158353169 (PR#101 branch) confirmed: still exceeds limit with 18,766,215,806 instructions in 5B cycles.",
       "ci_verified": true,
       "cycles_at_limit": 5000000000,
       "instructions_at_limit": 18766215806,
-      "wall_time_at_limit": "7675.71s",
-      "ci_run": 22136356830
+      "ci_run": 22158353169
     },
     {
       "name": "2mm",
