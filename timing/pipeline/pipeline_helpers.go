@@ -299,32 +299,60 @@ func (p *Pipeline) forwardFromAllSlots(reg uint8, currentValue uint64) uint64 {
 		}
 	}
 	if p.memwb2.Valid && p.memwb2.RegWrite && p.memwb2.Rd == reg {
-		currentValue = p.memwb2.ALUResult
+		if p.memwb2.MemToReg {
+			currentValue = p.memwb2.MemData
+		} else {
+			currentValue = p.memwb2.ALUResult
+		}
 	}
 	if p.memwb3.Valid && p.memwb3.RegWrite && p.memwb3.Rd == reg {
-		currentValue = p.memwb3.ALUResult
+		if p.memwb3.MemToReg {
+			currentValue = p.memwb3.MemData
+		} else {
+			currentValue = p.memwb3.ALUResult
+		}
 	}
 	if p.memwb4.Valid && p.memwb4.RegWrite && p.memwb4.Rd == reg {
-		currentValue = p.memwb4.ALUResult
+		if p.memwb4.MemToReg {
+			currentValue = p.memwb4.MemData
+		} else {
+			currentValue = p.memwb4.ALUResult
+		}
 	}
 	if p.memwb5.Valid && p.memwb5.RegWrite && p.memwb5.Rd == reg {
-		currentValue = p.memwb5.ALUResult
+		if p.memwb5.MemToReg {
+			currentValue = p.memwb5.MemData
+		} else {
+			currentValue = p.memwb5.ALUResult
+		}
 	}
 	if p.memwb6.Valid && p.memwb6.RegWrite && p.memwb6.Rd == reg {
-		currentValue = p.memwb6.ALUResult
+		if p.memwb6.MemToReg {
+			currentValue = p.memwb6.MemData
+		} else {
+			currentValue = p.memwb6.ALUResult
+		}
 	}
 	if p.memwb7.Valid && p.memwb7.RegWrite && p.memwb7.Rd == reg {
-		currentValue = p.memwb7.ALUResult
+		if p.memwb7.MemToReg {
+			currentValue = p.memwb7.MemData
+		} else {
+			currentValue = p.memwb7.ALUResult
+		}
 	}
 	if p.memwb8.Valid && p.memwb8.RegWrite && p.memwb8.Rd == reg {
-		currentValue = p.memwb8.ALUResult
+		if p.memwb8.MemToReg {
+			currentValue = p.memwb8.MemData
+		} else {
+			currentValue = p.memwb8.ALUResult
+		}
 	}
 
 	// Check exmem stages (newer, higher priority, primary slot first)
 	if p.exmem.Valid && p.exmem.RegWrite && p.exmem.Rd == reg {
 		currentValue = p.exmem.ALUResult
 	}
-	if p.exmem2.Valid && p.exmem2.RegWrite && p.exmem2.Rd == reg {
+	if p.exmem2.Valid && p.exmem2.RegWrite && p.exmem2.Rd == reg && !p.exmem2.MemToReg {
 		currentValue = p.exmem2.ALUResult
 	}
 	if p.exmem3.Valid && p.exmem3.RegWrite && p.exmem3.Rd == reg {
