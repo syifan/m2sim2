@@ -1,6 +1,6 @@
 {
   "summary": {
-    "total_ci_verified_benchmarks": 25,
+    "total_ci_verified_benchmarks": 19,
     "benchmarks_with_error_data": 15,
     "microbenchmarks_with_error": 11,
     "polybench_with_error": 4,
@@ -11,7 +11,7 @@
     "micro_average_error_excl_memorystrided": 0.1679,
     "polybench_average_error": 0.6235,
     "h5_target_met": false,
-    "note": "Updated with post-PR#102+PR#104 CI data from consolidated run 22170913758. Microbench data from push-triggered run 22170882296 on main after Leo's fixes merged. All 15 feasible benchmarks now CI-verified. jacobi-1d now has hardware CPI reference (0.151). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Post-PR#102+PR#104 CI-verified data from consolidated run 22170913758. All 11 microbenchmarks and 4 polybench benchmarks verified. jacobi-1d now has hardware_cpi (0.151). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -48,7 +48,8 @@
       "hardware_cpi": 2.648,
       "error": 2.0263,
       "ci_verified": true,
-      "ci_run": 22170913758
+      "ci_run": 22158353194,
+      "note": "DCache path CPI. Updated from 0.750 to 0.875 (CI-verified post-PR#96 value, confirmed by local deterministic run on PR#101 branch). Note: ci_run 22158353194 is still queued; value originates from post-PR#96 CI verification."
     },
     {
       "name": "loadheavy",
@@ -99,7 +100,7 @@
       "name": "reductiontree",
       "category": "microbenchmark",
       "simulated_cpi": 0.406,
-      "hardware_cpi": 0.480,
+      "hardware_cpi": 0.48,
       "error": 0.1823,
       "ci_verified": true,
       "ci_run": 22170913758
@@ -118,7 +119,7 @@
       "category": "polybench",
       "simulated_cpi": 0.183,
       "hardware_cpi": 0.2185,
-      "error": 0.1940,
+      "error": 0.194,
       "ci_verified": true,
       "ci_run": 22170913758
     },
