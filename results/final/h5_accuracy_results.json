@@ -6,12 +6,12 @@
     "polybench_with_error": 4,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.2794,
-    "micro_average_error": 0.1686,
-    "micro_average_error_excl_memorystrided": 0.1687,
+    "average_error": 0.3172,
+    "micro_average_error": 0.2203,
+    "micro_average_error_excl_memorystrided": 0.2255,
     "polybench_average_error": 0.5839,
     "h5_target_met": false,
-    "note": "FP-only forwarding fix (commit 43fca10). Microbenchmarks from CI run 22190131410. PolyBench Group 1 (atax, bicg, jacobi-1d) from CI run 22190131432; mvt from CI run 22187796851. memorystrided ≤30% PASS (16.81%). jacobi-1d <70% FAIL (131.13%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Format-based forwarding gate (commit 6e80856). Microbenchmarks from CI run 22194200467. PolyBench still from older CI runs (22190131432 for atax/bicg/jacobi-1d, 22187796851 for mvt) — PolyBench CI run 22194200533 pending (no runner available). reductiontree regressed 14.56%→39.94%, strideindirect regressed 13.64%→45.05% due to format-based gate enabling forwarding for register-form integer ops. memorystrided ≤30% PASS (16.81%). jacobi-1d <70% FAIL (131.13%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -21,7 +21,7 @@
       "hardware_cpi": 0.296,
       "error": 0.3455,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "dependency",
@@ -30,7 +30,7 @@
       "hardware_cpi": 1.088,
       "error": 0.0667,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "branch",
@@ -39,7 +39,7 @@
       "hardware_cpi": 1.303,
       "error": 0.013,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "memorystrided",
@@ -48,7 +48,7 @@
       "hardware_cpi": 2.648,
       "error": 0.1681,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "loadheavy",
@@ -57,7 +57,7 @@
       "hardware_cpi": 0.429,
       "error": 0.2017,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "storeheavy",
@@ -66,7 +66,7 @@
       "hardware_cpi": 0.612,
       "error": 0.1724,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "branchheavy",
@@ -75,7 +75,7 @@
       "hardware_cpi": 0.714,
       "error": 0.3585,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "vectorsum",
@@ -84,7 +84,7 @@
       "hardware_cpi": 0.402,
       "error": 0.1356,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "vectoradd",
@@ -93,25 +93,25 @@
       "hardware_cpi": 0.329,
       "error": 0.1115,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.419,
+      "simulated_cpi": 0.343,
       "hardware_cpi": 0.48,
-      "error": 0.1456,
+      "error": 0.3994,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "strideindirect",
       "category": "microbenchmark",
-      "simulated_cpi": 0.6,
+      "simulated_cpi": 0.364,
       "hardware_cpi": 0.528,
-      "error": 0.1364,
+      "error": 0.4505,
       "ci_verified": true,
-      "ci_run": 22190131410
+      "ci_run": 22194200467
     },
     {
       "name": "atax",
@@ -120,7 +120,8 @@
       "hardware_cpi": 0.2185,
       "error": 0.194,
       "ci_verified": true,
-      "ci_run": 22190131432
+      "ci_run": 22190131432,
+      "note": "From older CI run (commit 43fca10). PolyBench CI run 22194200533 for commit 6e80856 still pending."
     },
     {
       "name": "bicg",
@@ -129,7 +130,8 @@
       "hardware_cpi": 0.2295,
       "error": 0.7124,
       "ci_verified": true,
-      "ci_run": 22190131432
+      "ci_run": 22190131432,
+      "note": "From older CI run (commit 43fca10). PolyBench CI run 22194200533 for commit 6e80856 still pending."
     },
     {
       "name": "mvt",
@@ -138,7 +140,8 @@
       "hardware_cpi": 0.2156,
       "error": 0.1178,
       "ci_verified": true,
-      "ci_run": 22187796851
+      "ci_run": 22187796851,
+      "note": "From older CI run (commit a79580b). PolyBench CI run 22194200533 for commit 6e80856 still pending."
     },
     {
       "name": "jacobi-1d",
@@ -147,7 +150,8 @@
       "hardware_cpi": 0.151,
       "error": 1.3113,
       "ci_verified": true,
-      "ci_run": 22190131432
+      "ci_run": 22190131432,
+      "note": "From older CI run (commit 43fca10). PolyBench CI run 22194200533 for commit 6e80856 still pending."
     },
     {
       "name": "aha_mont64",
