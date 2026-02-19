@@ -6,12 +6,12 @@
     "polybench_with_error": 4,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.2374,
+    "average_error": 0.237,
     "micro_average_error": 0.1686,
     "micro_average_error_excl_memorystrided": 0.1687,
-    "polybench_average_error": 0.4266,
+    "polybench_average_error": 0.4249,
     "h5_target_met": false,
-    "note": "Bitfield+DataProc3Src forwarding gate (commit e9a0185). Microbenchmarks from CI run 22198904952. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22198904920. mvt from older CI run 22187796851 (Group 2 still running). jacobi-1d improved 0.302→0.254 (100.00%→68.21%). memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (68.21%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "CMP/flag-only forwarding + MADD Ra check (commit 0fb7a22). Microbenchmarks from CI run 22200656637. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22200656642. mvt from older CI run 22187796851 (commit a79580b). jacobi-1d 0.254→0.253 (68.21%→67.55%). memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (67.55%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -21,7 +21,7 @@
       "hardware_cpi": 0.296,
       "error": 0.3455,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "dependency",
@@ -30,7 +30,7 @@
       "hardware_cpi": 1.088,
       "error": 0.0667,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "branch",
@@ -39,7 +39,7 @@
       "hardware_cpi": 1.303,
       "error": 0.013,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "memorystrided",
@@ -48,7 +48,7 @@
       "hardware_cpi": 2.648,
       "error": 0.1681,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "loadheavy",
@@ -57,7 +57,7 @@
       "hardware_cpi": 0.429,
       "error": 0.2017,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "storeheavy",
@@ -66,7 +66,7 @@
       "hardware_cpi": 0.612,
       "error": 0.1724,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "branchheavy",
@@ -75,7 +75,7 @@
       "hardware_cpi": 0.714,
       "error": 0.3585,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "vectorsum",
@@ -84,7 +84,7 @@
       "hardware_cpi": 0.402,
       "error": 0.1356,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "vectoradd",
@@ -93,7 +93,7 @@
       "hardware_cpi": 0.329,
       "error": 0.1115,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "reductiontree",
@@ -102,7 +102,7 @@
       "hardware_cpi": 0.48,
       "error": 0.1456,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "strideindirect",
@@ -111,7 +111,7 @@
       "hardware_cpi": 0.528,
       "error": 0.1364,
       "ci_verified": true,
-      "ci_run": 22198904952
+      "ci_run": 22200656637
     },
     {
       "name": "atax",
@@ -120,7 +120,7 @@
       "hardware_cpi": 0.2185,
       "error": 0.194,
       "ci_verified": true,
-      "ci_run": 22198904920
+      "ci_run": 22200656642
     },
     {
       "name": "bicg",
@@ -129,7 +129,7 @@
       "hardware_cpi": 0.2295,
       "error": 0.7124,
       "ci_verified": true,
-      "ci_run": 22198904920
+      "ci_run": 22200656642
     },
     {
       "name": "mvt",
@@ -144,11 +144,11 @@
     {
       "name": "jacobi-1d",
       "category": "polybench",
-      "simulated_cpi": 0.254,
+      "simulated_cpi": 0.253,
       "hardware_cpi": 0.151,
-      "error": 0.6821,
+      "error": 0.6755,
       "ci_verified": true,
-      "ci_run": 22198904920
+      "ci_run": 22200656642
     },
     {
       "name": "aha_mont64",
