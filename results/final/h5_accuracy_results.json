@@ -11,7 +11,7 @@
     "micro_average_error_excl_memorystrided": 0.1687,
     "polybench_average_error": 0.4249,
     "h5_target_met": false,
-    "note": "CMP/flag-only forwarding + MADD Ra check (commit 0fb7a22). Microbenchmarks from CI run 22200656637. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22200656642. mvt from older CI run 22187796851 (commit a79580b). jacobi-1d 0.254→0.253 (68.21%→67.55%). memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (67.55%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Load-use forwarding from cache stage (commit 28f7ec1). Microbenchmarks from CI run 22204159766. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22204159767. mvt from older CI run 22187796851 (commit a79580b). All CPI values unchanged from 0fb7a22 (load forwarding has no effect without dcache in CI tests). memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (67.55%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -21,7 +21,7 @@
       "hardware_cpi": 0.296,
       "error": 0.3455,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "dependency",
@@ -30,7 +30,7 @@
       "hardware_cpi": 1.088,
       "error": 0.0667,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "branch",
@@ -39,7 +39,7 @@
       "hardware_cpi": 1.303,
       "error": 0.013,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "memorystrided",
@@ -48,7 +48,7 @@
       "hardware_cpi": 2.648,
       "error": 0.1681,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "loadheavy",
@@ -57,7 +57,7 @@
       "hardware_cpi": 0.429,
       "error": 0.2017,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "storeheavy",
@@ -66,7 +66,7 @@
       "hardware_cpi": 0.612,
       "error": 0.1724,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "branchheavy",
@@ -75,7 +75,7 @@
       "hardware_cpi": 0.714,
       "error": 0.3585,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "vectorsum",
@@ -84,7 +84,7 @@
       "hardware_cpi": 0.402,
       "error": 0.1356,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "vectoradd",
@@ -93,7 +93,7 @@
       "hardware_cpi": 0.329,
       "error": 0.1115,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "reductiontree",
@@ -102,7 +102,7 @@
       "hardware_cpi": 0.48,
       "error": 0.1456,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "strideindirect",
@@ -111,7 +111,7 @@
       "hardware_cpi": 0.528,
       "error": 0.1364,
       "ci_verified": true,
-      "ci_run": 22200656637
+      "ci_run": 22204159766
     },
     {
       "name": "atax",
@@ -120,7 +120,7 @@
       "hardware_cpi": 0.2185,
       "error": 0.194,
       "ci_verified": true,
-      "ci_run": 22200656642
+      "ci_run": 22204159767
     },
     {
       "name": "bicg",
@@ -129,7 +129,7 @@
       "hardware_cpi": 0.2295,
       "error": 0.7124,
       "ci_verified": true,
-      "ci_run": 22200656642
+      "ci_run": 22204159767
     },
     {
       "name": "mvt",
@@ -139,7 +139,7 @@
       "error": 0.1178,
       "ci_verified": true,
       "ci_run": 22187796851,
-      "note": "From older CI run (commit a79580b). CI run 22198904920 Group 2 still running for commit e9a0185."
+      "note": "From older CI run (commit a79580b). Group 2 of run 22204159767 (commit 28f7ec1) running — GEMM infeasible, will timeout."
     },
     {
       "name": "jacobi-1d",
@@ -148,7 +148,7 @@
       "hardware_cpi": 0.151,
       "error": 0.6755,
       "ci_verified": true,
-      "ci_run": 22200656642
+      "ci_run": 22204159767
     },
     {
       "name": "aha_mont64",
