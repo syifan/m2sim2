@@ -573,7 +573,7 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued, p.useDCache) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
 				issued[issuedCount] = true
 			}
@@ -603,7 +603,7 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued, p.useDCache) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
 				issued[issuedCount] = true
 			}
@@ -633,7 +633,7 @@ func (p *Pipeline) tickQuadIssue() {
 				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
 
-			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued, p.useDCache) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
 			}
 		}

@@ -810,7 +810,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid2.PredictedTarget,
 				EarlyResolved:   p.ifid2.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
+			if canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued, p.useDCache) {
 				nextIDEX2.fromIDEX(&tempIDEX2)
 				issued[issuedCount] = true
 			} else {
@@ -841,7 +841,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid3.PredictedTarget,
 				EarlyResolved:   p.ifid3.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
+			if canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued, p.useDCache) {
 				nextIDEX3.fromIDEX(&tempIDEX3)
 				issued[issuedCount] = true
 			} else {
@@ -872,7 +872,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid4.PredictedTarget,
 				EarlyResolved:   p.ifid4.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
+			if canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued, p.useDCache) {
 				nextIDEX4.fromIDEX(&tempIDEX4)
 				issued[issuedCount] = true
 			} else {
@@ -903,7 +903,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid5.PredictedTarget,
 				EarlyResolved:   p.ifid5.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
+			if canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued, p.useDCache) {
 				nextIDEX5.fromIDEX(&tempIDEX5)
 				issued[issuedCount] = true
 			} else {
@@ -934,7 +934,7 @@ func (p *Pipeline) tickSextupleIssue() {
 				PredictedTarget: p.ifid6.PredictedTarget,
 				EarlyResolved:   p.ifid6.EarlyResolved,
 			}
-			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
+			if canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued, p.useDCache) {
 				nextIDEX6.fromIDEX(&tempIDEX6)
 			} else {
 				p.stats.StructuralHazardStalls++

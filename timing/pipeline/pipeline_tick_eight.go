@@ -1493,7 +1493,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid2.PredictedTarget,
 					EarlyResolved:   p.ifid2.EarlyResolved,
 				}
-				if !(p.ifid2.AfterBranch && decResult2.MemWrite) && canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued) {
+				if !(p.ifid2.AfterBranch && decResult2.MemWrite) && canIssueWith(&tempIDEX2, &issuedInsts, issuedCount, &issued, p.useDCache) {
 					nextIDEX2.fromIDEX(&tempIDEX2)
 					issued[issuedCount] = true
 				} else {
@@ -1528,7 +1528,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid3.PredictedTarget,
 					EarlyResolved:   p.ifid3.EarlyResolved,
 				}
-				if !(p.ifid3.AfterBranch && decResult3.MemWrite) && canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued) {
+				if !(p.ifid3.AfterBranch && decResult3.MemWrite) && canIssueWith(&tempIDEX3, &issuedInsts, issuedCount, &issued, p.useDCache) {
 					nextIDEX3.fromIDEX(&tempIDEX3)
 					issued[issuedCount] = true
 				} else {
@@ -1563,7 +1563,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid4.PredictedTarget,
 					EarlyResolved:   p.ifid4.EarlyResolved,
 				}
-				if !(p.ifid4.AfterBranch && decResult4.MemWrite) && canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued) {
+				if !(p.ifid4.AfterBranch && decResult4.MemWrite) && canIssueWith(&tempIDEX4, &issuedInsts, issuedCount, &issued, p.useDCache) {
 					nextIDEX4.fromIDEX(&tempIDEX4)
 					issued[issuedCount] = true
 				} else {
@@ -1598,7 +1598,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid5.PredictedTarget,
 					EarlyResolved:   p.ifid5.EarlyResolved,
 				}
-				if !(p.ifid5.AfterBranch && decResult5.MemWrite) && canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued) {
+				if !(p.ifid5.AfterBranch && decResult5.MemWrite) && canIssueWith(&tempIDEX5, &issuedInsts, issuedCount, &issued, p.useDCache) {
 					nextIDEX5.fromIDEX(&tempIDEX5)
 					issued[issuedCount] = true
 				} else {
@@ -1633,7 +1633,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid6.PredictedTarget,
 					EarlyResolved:   p.ifid6.EarlyResolved,
 				}
-				if !(p.ifid6.AfterBranch && decResult6.MemWrite) && canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued) {
+				if !(p.ifid6.AfterBranch && decResult6.MemWrite) && canIssueWith(&tempIDEX6, &issuedInsts, issuedCount, &issued, p.useDCache) {
 					nextIDEX6.fromIDEX(&tempIDEX6)
 					issued[issuedCount] = true
 				} else {
@@ -1668,7 +1668,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid7.PredictedTarget,
 					EarlyResolved:   p.ifid7.EarlyResolved,
 				}
-				if !(p.ifid7.AfterBranch && decResult7.MemWrite) && canIssueWith(&tempIDEX7, &issuedInsts, issuedCount, &issued) {
+				if !(p.ifid7.AfterBranch && decResult7.MemWrite) && canIssueWith(&tempIDEX7, &issuedInsts, issuedCount, &issued, p.useDCache) {
 					nextIDEX7.fromIDEX(&tempIDEX7)
 					issued[issuedCount] = true
 				} else {
@@ -1703,7 +1703,7 @@ func (p *Pipeline) tickOctupleIssue() {
 					PredictedTarget: p.ifid8.PredictedTarget,
 					EarlyResolved:   p.ifid8.EarlyResolved,
 				}
-				if ok, fwd := canIssueWithFwd(&tempIDEX8, &issuedInsts, issuedCount, &issued, &forwarded); ok && !(p.ifid8.AfterBranch && decResult8.MemWrite) {
+				if ok, fwd := canIssueWithFwd(&tempIDEX8, &issuedInsts, issuedCount, &issued, &forwarded, p.useDCache); ok && !(p.ifid8.AfterBranch && decResult8.MemWrite) {
 					nextIDEX8.fromIDEX(&tempIDEX8)
 					_ = fwd
 				} else {

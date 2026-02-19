@@ -984,15 +984,17 @@ func isALUOp(inst *IDEXRegister) bool {
 // instructions were issued via same-cycle ALU forwarding. When non-nil,
 // ALU-to-ALU RAW dependencies are allowed (same-cycle forwarding) as long
 // as the producer was not itself forwarded (max 1-hop forwarding depth).
+// hasDCache enables store-to-load ordering checks (only needed when D-cache
+// is active, since without cache there is no store-forward path to serialize).
 // Returns (canIssue, usesForwarding).
-func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int, issued *[8]bool) bool {
-	ok, _ := canIssueWithFwd(newInst, earlier, earlierCount, issued, nil)
+func canIssueWith(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int, issued *[8]bool, hasDCache bool) bool {
+	ok, _ := canIssueWithFwd(newInst, earlier, earlierCount, issued, nil, hasDCache)
 	return ok
 }
 
 // canIssueWithFwd is the full-featured version of canIssueWith that supports
 // ALU-to-ALU same-cycle forwarding tracking.
-func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int, issued *[8]bool, forwarded *[8]bool) (bool, bool) {
+func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCount int, issued *[8]bool, forwarded *[8]bool, hasDCache bool) (bool, bool) {
 	if newInst == nil || !newInst.Valid {
 		return false, false
 	}
@@ -1068,16 +1070,17 @@ func canIssueWithFwd(newInst *IDEXRegister, earlier *[8]*IDEXRegister, earlierCo
 		// Only count port usage for actually-issued instructions.
 		isIssued := issued != nil && issued[i]
 
-		// Store-to-load ordering: when a load is in the same issue
-		// group as an earlier store targeting the same address
-		// (same base register AND same immediate offset), block
-		// the load regardless of whether the store issued.
-		// The store must complete first so the cache's store-forward
-		// path can apply the appropriate latency penalty.
+		// Store-to-load ordering (D-cache only): when a load is in the
+		// same issue group as an earlier store targeting the same address
+		// (same base register AND same immediate offset), block the load
+		// so the store completes first and the cache's store-forward path
+		// can apply the appropriate latency penalty.
+		// Only active when D-cache is enabled — without cache there is no
+		// store buffer forwarding to serialize against.
 		// Skip SP (reg 31) since stack spill/reload patterns are
 		// usually separated by many instructions and don't need
 		// dispatch-level serialization.
-		if newInst.MemRead && prev.MemWrite &&
+		if hasDCache && newInst.MemRead && prev.MemWrite &&
 			newInst.Rn == prev.Rn && newInst.Rn != 31 &&
 			newInst.Inst != nil && prev.Inst != nil &&
 			newInst.Inst.Imm == prev.Inst.Imm {
