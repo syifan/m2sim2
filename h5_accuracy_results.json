@@ -1,17 +1,17 @@
 {
   "summary": {
     "total_ci_verified_benchmarks": 19,
-    "benchmarks_with_error_data": 14,
+    "benchmarks_with_error_data": 15,
     "microbenchmarks_with_error": 11,
-    "polybench_with_error": 3,
+    "polybench_with_error": 4,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.3929,
-    "micro_average_error": 0.3925,
-    "micro_average_error_excl_memorystrided": 0.2291,
-    "polybench_average_error": 0.3942,
+    "average_error": 0.4133,
+    "micro_average_error": 0.3369,
+    "micro_average_error_excl_memorystrided": 0.1679,
+    "polybench_average_error": 0.6235,
     "h5_target_met": false,
-    "note": "6 microbenchmarks (loadheavy, storeheavy, vectoradd, vectorsum, reductiontree, strideindirect) reverted to post-PR#99 CI-verified values from run 22151656429. CI run 22158353194 (PR#101 microbench) never completed (still queued). Post-PR#101 main CI runs (22165739150, 22165809642) also still queued/pending. These 6 benchmarks are ci_verified=false until a post-PR#101 CI run completes. PolyBench values from CI run 22158353169 (Groups 1&2 completed). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Post-PR#102+PR#104 CI-verified data from consolidated run 22170913758. All 11 microbenchmarks and 4 polybench benchmarks verified. jacobi-1d now has hardware_cpi (0.151). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -21,7 +21,7 @@
       "hardware_cpi": 0.296,
       "error": 0.3516,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22170913758
     },
     {
       "name": "dependency",
@@ -30,7 +30,7 @@
       "hardware_cpi": 1.088,
       "error": 0.0719,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22170913758
     },
     {
       "name": "branch",
@@ -39,7 +39,7 @@
       "hardware_cpi": 1.303,
       "error": 0.0061,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22170913758
     },
     {
       "name": "memorystrided",
@@ -54,22 +54,20 @@
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.600,
+      "simulated_cpi": 0.357,
       "hardware_cpi": 0.429,
-      "error": 0.3986,
-      "ci_verified": false,
-      "ci_run": 22151656429,
-      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
+      "error": 0.2017,
+      "ci_verified": true,
+      "ci_run": 22170913758
     },
     {
       "name": "storeheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.957,
+      "simulated_cpi": 0.522,
       "hardware_cpi": 0.612,
-      "error": 0.5637,
-      "ci_verified": false,
-      "ci_run": 22151656429,
-      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
+      "error": 0.1724,
+      "ci_verified": true,
+      "ci_run": 22170913758
     },
     {
       "name": "branchheavy",
@@ -78,37 +76,34 @@
       "hardware_cpi": 0.714,
       "error": 0.3179,
       "ci_verified": true,
-      "ci_run": 22141495151
+      "ci_run": 22170913758
     },
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.394,
+      "simulated_cpi": 0.362,
       "hardware_cpi": 0.402,
-      "error": 0.0203,
-      "ci_verified": false,
-      "ci_run": 22151656429,
-      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
+      "error": 0.1105,
+      "ci_verified": true,
+      "ci_run": 22170913758
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.385,
+      "simulated_cpi": 0.296,
       "hardware_cpi": 0.329,
-      "error": 0.1702,
-      "ci_verified": false,
-      "ci_run": 22151656429,
-      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
+      "error": 0.1115,
+      "ci_verified": true,
+      "ci_run": 22170913758
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.594,
-      "hardware_cpi": 0.480,
-      "error": 0.2375,
-      "ci_verified": false,
-      "ci_run": 22151656429,
-      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
+      "simulated_cpi": 0.406,
+      "hardware_cpi": 0.48,
+      "error": 0.1823,
+      "ci_verified": true,
+      "ci_run": 22170913758
     },
     {
       "name": "strideindirect",
@@ -116,18 +111,17 @@
       "simulated_cpi": 0.609,
       "hardware_cpi": 0.528,
       "error": 0.1534,
-      "ci_verified": false,
-      "ci_run": 22151656429,
-      "note": "Reverted to post-PR#99 CI-verified value. Post-PR#101 CI pending (runs 22165739150, 22165809642 still queued)."
+      "ci_verified": true,
+      "ci_run": 22170913758
     },
     {
       "name": "atax",
       "category": "polybench",
       "simulated_cpi": 0.183,
       "hardware_cpi": 0.2185,
-      "error": 0.1940,
+      "error": 0.194,
       "ci_verified": true,
-      "ci_run": 22158353169
+      "ci_run": 22170913758
     },
     {
       "name": "bicg",
@@ -136,7 +130,7 @@
       "hardware_cpi": 0.2295,
       "error": 0.7037,
       "ci_verified": true,
-      "ci_run": 22158353169
+      "ci_run": 22170913758
     },
     {
       "name": "mvt",
@@ -145,17 +139,16 @@
       "hardware_cpi": 0.2156,
       "error": 0.2848,
       "ci_verified": true,
-      "ci_run": 22158353169
+      "ci_run": 22170913758
     },
     {
       "name": "jacobi-1d",
       "category": "polybench",
       "simulated_cpi": 0.349,
-      "hardware_cpi": null,
-      "error": null,
+      "hardware_cpi": 0.151,
+      "error": 1.3113,
       "ci_verified": true,
-      "ci_run": 22158353169,
-      "note": "Previously infeasible (timeout post-PR#94). Now completes after PR#101 reverted primary port stall. No hardware CPI reference available."
+      "ci_run": 22170913758
     },
     {
       "name": "aha_mont64",
