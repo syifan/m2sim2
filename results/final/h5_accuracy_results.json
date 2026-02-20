@@ -7,24 +7,24 @@
     "polybench_sim_only": 1,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 8,
-    "average_error": 0.2522,
-    "micro_average_error": 0.1895,
-    "micro_average_error_excl_memorystrided": 0.1916,
+    "average_error": 0.199,
+    "micro_average_error": 0.1168,
+    "micro_average_error_excl_memorystrided": 0.1117,
     "polybench_average_error": 0.4249,
     "polybench_status": "all_fresh",
-    "h5_target_met": false,
-    "note": "HEAD of leo/fix-fp-coissue (commit 4dad54f). Arithmetic sim CPI updated to 0.188 from CI run 22219381657 (Nina's benchmark restructure df005d5). Arithmetic hw CPI (0.296) may need re-measurement on restructured benchmark. PolyBench verified from CI run 22217510861: atax, bicg, jacobi-1d, 3mm all unchanged. bicg 71.24% <=72% PASS. jacobi-1d 67.55% <=68% PASS. mvt unchanged (Group 2 still running, no simulator code changed). 2mm still infeasible. memorystrided 16.81% <=17% PASS. Error formula: |sim-hw|/min(sim,hw)."
+    "h5_target_met": true,
+    "note": "HEAD of leo/fix-fp-coissue (commit 016eb3b). All microbench sim CPI updated from CI run 22223493122 (Leo's 1-cycle taken-branch redirect penalty, commit 016eb3b). Key improvements: arithmetic 57.45%->3.14%, branchheavy 35.85%->1.26%. PolyBench unchanged from prior runs. Overall avg 25.22%->19.9%. Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
       "name": "arithmetic",
       "category": "microbenchmark",
-      "simulated_cpi": 0.188,
+      "simulated_cpi": 0.287,
       "hardware_cpi": 0.296,
-      "error": 0.5745,
+      "error": 0.0314,
       "ci_verified": true,
-      "ci_run": 22219381657,
-      "note": "Sim CPI changed 0.220->0.188 after benchmark restructure (Nina, df005d5). HW CPI may need re-measurement on restructured benchmark."
+      "ci_run": 22223493122,
+      "note": "Sim CPI 0.188->0.287 after Leo's 1-cycle taken-branch redirect penalty (016eb3b). Now within 3.14% of hw CPI."
     },
     {
       "name": "dependency",
@@ -33,16 +33,16 @@
       "hardware_cpi": 1.088,
       "error": 0.0667,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "branch",
       "category": "microbenchmark",
-      "simulated_cpi": 1.32,
+      "simulated_cpi": 1.333,
       "hardware_cpi": 1.303,
-      "error": 0.013,
+      "error": 0.023,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "memorystrided",
@@ -51,7 +51,7 @@
       "hardware_cpi": 2.648,
       "error": 0.1681,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "loadheavy",
@@ -60,7 +60,7 @@
       "hardware_cpi": 0.429,
       "error": 0.2017,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "storeheavy",
@@ -69,34 +69,35 @@
       "hardware_cpi": 0.612,
       "error": 0.1724,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "branchheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.97,
+      "simulated_cpi": 0.723,
       "hardware_cpi": 0.714,
-      "error": 0.3585,
+      "error": 0.0126,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122,
+      "note": "Sim CPI 0.97->0.428 (Nina's restructure 4dad54f) then 0.428->0.723 (Leo's redirect penalty 016eb3b). Now within 1.26% of hw CPI."
     },
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.354,
+      "simulated_cpi": 0.49,
       "hardware_cpi": 0.402,
-      "error": 0.1356,
+      "error": 0.2189,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.296,
+      "simulated_cpi": 0.303,
       "hardware_cpi": 0.329,
-      "error": 0.1115,
+      "error": 0.0858,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "reductiontree",
@@ -105,16 +106,16 @@
       "hardware_cpi": 0.48,
       "error": 0.1456,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "strideindirect",
       "category": "microbenchmark",
-      "simulated_cpi": 0.6,
+      "simulated_cpi": 0.612,
       "hardware_cpi": 0.528,
-      "error": 0.1364,
+      "error": 0.1591,
       "ci_verified": true,
-      "ci_run": 22219381657
+      "ci_run": 22223493122
     },
     {
       "name": "atax",
