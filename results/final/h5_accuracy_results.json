@@ -6,12 +6,12 @@
     "polybench_with_error": 4,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.2364,
+    "average_error": 0.237,
     "micro_average_error": 0.1686,
     "micro_average_error_excl_memorystrided": 0.1687,
-    "polybench_average_error": 0.4228,
+    "polybench_average_error": 0.4249,
     "h5_target_met": false,
-    "note": "Non-dcache load EX latency tuning (commit 51c4b7d). Previous MEM→EX forwarding broadening (23e2791) was reverted (f734a21). Microbenchmarks from CI run 22207487553. PolyBench Group 1 values STALE — from CI run 22204802792 (commit 23e2791, now reverted). PolyBench uses non-dcache path, so 51c4b7d (EX latency 3→2) WILL change bicg/atax/jacobi-1d CPIs. PolyBench re-run 22207486468 pending for commit 51c4b7d. mvt from older CI run 22187796851, also stale. Microbench CPIs reverted to pre-23e2791 baseline: loadheavy 0.349→0.357, vectorsum 0.323→0.354, vectoradd 0.29→0.296, reductiontree 0.452→0.419. memorystrided ≤30% PASS (16.81%). bicg/jacobi-1d pending PolyBench re-run. Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Commit 51c4b7d (non-dcache load EX latency 3→2) has NO EFFECT on benchmarks — latencyTable is never set in timing_harness.go, so getExLatency returns 1 for all instructions (nil early return). The nonCacheLoadLatency=2 code path is dead. Microbenchmarks from CI run 22207487553 (commit 51c4b7d). PolyBench Group 1 confirmed from CI run 22207607443 (commit 03ef78b on top of 51c4b7d) — identical to pre-23e2791 baseline (bicg=0.393, atax=0.183, jacobi-1d=0.253). mvt from older CI run 22187796851. memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (67.55%). bicg <50% FAIL (71.24%). Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -120,18 +120,16 @@
       "hardware_cpi": 0.2185,
       "error": 0.194,
       "ci_verified": true,
-      "ci_run": 22204802792,
-      "note": "STALE: from CI run for commit 23e2791 (reverted). PolyBench uses non-dcache path — 51c4b7d WILL change this. Re-run 22207486468 pending."
+      "ci_run": 22207607443
     },
     {
       "name": "bicg",
       "category": "polybench",
-      "simulated_cpi": 0.391,
+      "simulated_cpi": 0.393,
       "hardware_cpi": 0.2295,
-      "error": 0.7037,
+      "error": 0.7124,
       "ci_verified": true,
-      "ci_run": 22204802792,
-      "note": "STALE: from CI run for commit 23e2791 (reverted). PolyBench uses non-dcache path — 51c4b7d WILL change this. Re-run 22207486468 pending."
+      "ci_run": 22207607443
     },
     {
       "name": "mvt",
@@ -150,8 +148,7 @@
       "hardware_cpi": 0.151,
       "error": 0.6755,
       "ci_verified": true,
-      "ci_run": 22204802792,
-      "note": "STALE: from CI run for commit 23e2791 (reverted). PolyBench uses non-dcache path — 51c4b7d WILL change this. Re-run 22207486468 pending."
+      "ci_run": 22207607443
     },
     {
       "name": "aha_mont64",
