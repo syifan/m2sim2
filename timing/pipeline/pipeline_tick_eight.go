@@ -40,31 +40,6 @@ func isLoadFwdEligible(loadInst *insts.Instruction, loadRd uint8, consumerInst *
 	return true
 }
 
-// isNonCacheLoadFwdEligible returns true when a load-use stall can be
-// suppressed in the non-dcache path. Without cache simulation, memory
-// provides data immediately (direct array lookup), so MEM→EX forwarding
-// always has data available in the same cycle. This allows 0-cycle
-// load-to-use latency for all integer load → consumer pairs.
-//
-// Only Rt2 (Ra) dependencies in DataProc3Src consumers are excluded,
-// since the MEM→EX path only forwards to Rn/Rm operands.
-func isNonCacheLoadFwdEligible(loadInst *insts.Instruction, loadRd uint8, consumerInst *insts.Instruction) bool {
-	if loadInst == nil || consumerInst == nil {
-		return false
-	}
-	// Producer must be an integer load
-	switch loadInst.Op {
-	case insts.OpLDR, insts.OpLDRB, insts.OpLDRSB, insts.OpLDRH, insts.OpLDRSH, insts.OpLDRSW:
-	default:
-		return false
-	}
-	// Exclude Rt2 (Ra) dependency — no MEM→EX forwarding path for this operand
-	if consumerInst.Format == insts.FormatDataProc3Src && consumerInst.Rt2 == loadRd {
-		return false
-	}
-	return true
-}
-
 // tickOctupleIssue executes one cycle with 8-wide superscalar support.
 // This extends 6-wide to match the Apple M2's 8-wide decode bandwidth.
 func (p *Pipeline) tickOctupleIssue() {
@@ -1435,10 +1410,6 @@ func (p *Pipeline) tickOctupleIssue() {
 					loadHazardRd = p.idex.Rd
 					if isLoadFwdEligible(p.idex.Inst, p.idex.Rd, nextInst) {
 						loadFwdActive = true
-					} else if !p.useDCache && isNonCacheLoadFwdEligible(p.idex.Inst, p.idex.Rd, nextInst) {
-						// Non-cached path: memory is immediate,
-						// MEM→EX forwarding always has data.
-						loadFwdActive = true
 					} else {
 						loadUseHazard = true
 						p.stats.RAWHazardStalls++
@@ -1453,8 +1424,6 @@ func (p *Pipeline) tickOctupleIssue() {
 				if hazard {
 					loadHazardRd = p.idex2.Rd
 					if isLoadFwdEligible(p.idex2.Inst, p.idex2.Rd, nextInst) {
-						loadFwdActive = true
-					} else if !p.useDCache && isNonCacheLoadFwdEligible(p.idex2.Inst, p.idex2.Rd, nextInst) {
 						loadFwdActive = true
 					} else {
 						loadUseHazard = true
