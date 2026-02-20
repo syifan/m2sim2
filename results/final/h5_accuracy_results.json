@@ -6,12 +6,12 @@
     "polybench_with_error": 4,
     "embench_sim_only": 1,
     "infeasible_benchmarks": 9,
-    "average_error": 0.2415,
-    "micro_average_error": 0.1755,
-    "micro_average_error_excl_memorystrided": 0.1763,
-    "polybench_average_error": 0.4227,
+    "average_error": 0.2364,
+    "micro_average_error": 0.1686,
+    "micro_average_error_excl_memorystrided": 0.1687,
+    "polybench_average_error": 0.4228,
     "h5_target_met": false,
-    "note": "MEM→EX forwarding broadening (commit 23e2791). Microbenchmarks from CI run 22204801981. PolyBench Group 1 (atax/bicg/jacobi-1d) from CI run 22204802792. mvt from older CI run 22187796851 (commit a79580b). Group 2/3 still running (GEMM/2MM/3MM infeasible). Changed CPIs: loadheavy 0.357→0.349, vectorsum 0.354→0.323, vectoradd 0.296→0.29, reductiontree 0.419→0.452, bicg 0.393→0.391. memorystrided ≤30% PASS (16.81%). jacobi-1d <70% PASS (67.55%). bicg <50% FAIL (70.37%). Error formula: |sim-hw|/min(sim,hw)."
+    "note": "Non-dcache load EX latency tuning (commit 51c4b7d). Previous MEM→EX forwarding broadening (23e2791) was reverted (f734a21). Microbenchmarks from CI run 22207487553. PolyBench Group 1 values STALE — from CI run 22204802792 (commit 23e2791, now reverted). PolyBench uses non-dcache path, so 51c4b7d (EX latency 3→2) WILL change bicg/atax/jacobi-1d CPIs. PolyBench re-run 22207486468 pending for commit 51c4b7d. mvt from older CI run 22187796851, also stale. Microbench CPIs reverted to pre-23e2791 baseline: loadheavy 0.349→0.357, vectorsum 0.323→0.354, vectoradd 0.29→0.296, reductiontree 0.452→0.419. memorystrided ≤30% PASS (16.81%). bicg/jacobi-1d pending PolyBench re-run. Error formula: |sim-hw|/min(sim,hw)."
   },
   "benchmarks": [
     {
@@ -21,7 +21,7 @@
       "hardware_cpi": 0.296,
       "error": 0.3455,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "dependency",
@@ -30,7 +30,7 @@
       "hardware_cpi": 1.088,
       "error": 0.0667,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "branch",
@@ -39,7 +39,7 @@
       "hardware_cpi": 1.303,
       "error": 0.013,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "memorystrided",
@@ -48,16 +48,16 @@
       "hardware_cpi": 2.648,
       "error": 0.1681,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "loadheavy",
       "category": "microbenchmark",
-      "simulated_cpi": 0.349,
+      "simulated_cpi": 0.357,
       "hardware_cpi": 0.429,
-      "error": 0.2292,
+      "error": 0.2017,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "storeheavy",
@@ -66,7 +66,7 @@
       "hardware_cpi": 0.612,
       "error": 0.1724,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "branchheavy",
@@ -75,34 +75,34 @@
       "hardware_cpi": 0.714,
       "error": 0.3585,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "vectorsum",
       "category": "microbenchmark",
-      "simulated_cpi": 0.323,
+      "simulated_cpi": 0.354,
       "hardware_cpi": 0.402,
-      "error": 0.2446,
+      "error": 0.1356,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "vectoradd",
       "category": "microbenchmark",
-      "simulated_cpi": 0.29,
+      "simulated_cpi": 0.296,
       "hardware_cpi": 0.329,
-      "error": 0.1345,
+      "error": 0.1115,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "reductiontree",
       "category": "microbenchmark",
-      "simulated_cpi": 0.452,
+      "simulated_cpi": 0.419,
       "hardware_cpi": 0.48,
-      "error": 0.0619,
+      "error": 0.1456,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "strideindirect",
@@ -111,7 +111,7 @@
       "hardware_cpi": 0.528,
       "error": 0.1364,
       "ci_verified": true,
-      "ci_run": 22204801981
+      "ci_run": 22207487553
     },
     {
       "name": "atax",
@@ -120,16 +120,18 @@
       "hardware_cpi": 0.2185,
       "error": 0.194,
       "ci_verified": true,
-      "ci_run": 22204802792
+      "ci_run": 22204802792,
+      "note": "STALE: from CI run for commit 23e2791 (reverted). PolyBench uses non-dcache path — 51c4b7d WILL change this. Re-run 22207486468 pending."
     },
     {
       "name": "bicg",
       "category": "polybench",
       "simulated_cpi": 0.391,
       "hardware_cpi": 0.2295,
-      "error": 0.7036,
+      "error": 0.7037,
       "ci_verified": true,
-      "ci_run": 22204802792
+      "ci_run": 22204802792,
+      "note": "STALE: from CI run for commit 23e2791 (reverted). PolyBench uses non-dcache path — 51c4b7d WILL change this. Re-run 22207486468 pending."
     },
     {
       "name": "mvt",
@@ -139,7 +141,7 @@
       "error": 0.1178,
       "ci_verified": true,
       "ci_run": 22187796851,
-      "note": "From older CI run (commit a79580b). Group 2 of run 22204802792 (commit 23e2791) running — GEMM infeasible, will timeout."
+      "note": "From older CI run (commit a79580b). Dcache path unchanged since then."
     },
     {
       "name": "jacobi-1d",
@@ -148,7 +150,8 @@
       "hardware_cpi": 0.151,
       "error": 0.6755,
       "ci_verified": true,
-      "ci_run": 22204802792
+      "ci_run": 22204802792,
+      "note": "STALE: from CI run for commit 23e2791 (reverted). PolyBench uses non-dcache path — 51c4b7d WILL change this. Re-run 22207486468 pending."
     },
     {
       "name": "aha_mont64",
